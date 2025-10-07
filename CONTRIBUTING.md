@@ -29,28 +29,6 @@ Must be one of the following:
 | `ci`       | Changes to our CI configuration files and scripts                                                      |
 | `build`    | Changes that affect the build system or external dependencies                                          |
 
-### Scope (Optional)
-
-The scope should be the name of the component affected (e.g., `auth`, `api`, `ui`, `database`).
-
-### Subject
-
-- Use the imperative, present tense: "change" not "changed" nor "changes"
-- Don't capitalize the first letter
-- No dot (.) at the end
-- Maximum 50 characters
-
-### Body (Optional)
-
-- Use the imperative, present tense
-- Wrap at 72 characters
-- Explain what and why vs. how
-- Include motivation for the change and contrast with previous behavior
-
-### Footer (Optional)
-
-- Reference GitHub issues that this commit closes
-- Note any breaking changes
 
 ## Examples
 
