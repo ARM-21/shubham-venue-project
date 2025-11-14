@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Action from '@/components/nav-action/Action.jsx';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthProvider';
 import { House, Info, Menu, X, Images, Contact, LogIn, LogOut } from "lucide-react";
 
 
@@ -19,6 +20,9 @@ const actions = [
 export default function Navbar() {
   const [hamActive, setHamActive] = useState(false);
   const menuRef = useRef(null);
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -72,17 +76,51 @@ export default function Navbar() {
             <Action key={action.id} {...action} onClick={() => setHamActive(false)} />
           ))}
 
-          <span className='flex items-center space-x-4'>
-            <Action name="login" id="login" icon={LogIn} onClick={() => {
-              console.log("logging in");
-              setHamActive(false)
-              // router.push("/login")
-            }} />
-            <Action name="signup" id="signup" icon={LogOut} onClick={() => {
-              console.log("signing in");
-              setHamActive(false)
-              // router.push("/signup")
-            }} />
+          <span className="flex items-center relative">
+            {!user ? (
+              <>
+                <Action name="login" id="auth" icon={LogIn} onClick={() => {
+                  setHamActive(false);
+                  router.push('/auth');
+                }} />
+              </>
+            ) : (
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setProfileOpen((s) => !s); setHamActive(false); }}
+                  className="flex items-center space-x-2 bg-transparent focus:outline-none"
+                  aria-haspopup="true"
+                  aria-expanded={profileOpen}
+                >
+                  {user?.avatar ? (
+                    // show avatar image if provided
+                    <Image src={user.avatar} alt={user?.name || 'avatar'} width={36} height={36} className="rounded-full object-cover" />
+                  ) : (
+                    // fallback to initials
+                    <div className="w-9 h-9 rounded-full bg-maroon-primary text-white flex items-center justify-center font-semibold">
+                      {user?.name ? user.name.split(' ').map(n=>n[0]).slice(0,2).join('') : 'User'}
+                    </div>
+                  )}
+                </button>
+
+                {profileOpen && (
+                  <div className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 z-50">
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => { setProfileOpen(false); router.push('/profile'); }}
+                    >
+                      Profile
+                    </button>
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={async () => { setProfileOpen(false); try { await logout(); } catch(e){ console.error(e); } router.push('/'); }}
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </span>
         </ul>
 

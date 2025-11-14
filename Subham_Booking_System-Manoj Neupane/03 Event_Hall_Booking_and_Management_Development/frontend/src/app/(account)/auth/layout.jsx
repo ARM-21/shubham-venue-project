@@ -5,10 +5,10 @@ export const metadata = {
 }
 
 export default function layout({ children }) {
-    return (
+  return (
 
-                <div>
-                    {children}
-                </div>
-    )
+    <div>
+      {children}
+    </div>
+  )
 }
