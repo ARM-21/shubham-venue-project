@@ -1,79 +1,17 @@
 import express from "express";
 import User from "../models/User.js";
+import { registerUser,loginUser } from "../controllers/authController.js";
+import { isAuthenticated } from "../middleware.js";
+import { logout } from "../controllers/authController.js";
 
 const router = express.Router();
 
 
-router.post("/register", async (req, res) => {
-    console.log("registration started")
-    try {
-        const { email, password } = req.body;
+router.post("/register",registerUser );
 
+router.post("/login", loginUser);
 
-        if (!email || !password) {
-            return res.status(400).json({ message: "Email and password are required" });
-        }
-
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(409).json({ message: "Email already registered" });
-        }
-        const username = email.split("@")[0]
-        const newUser = new User({
-            username,
-            email,
-            password,
-        });
-
-        await newUser.save();
-        res.status(201).json({ message: `User ${username} created with ${email}` });
-
-    } catch (err) {
-        console.error("Registration Error:", err.errorResponse.errInfo.details);
-        res.status(500).json({ message: "Error Occurred! Try Again Later" });
-    }
-});
-
-router.post("/login", async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        // Check for required fields
-        if (!email || !password) {
-            return res.status(400).json({ message: "Email and password are required" });
-        }
-
-        // Find user by email
-        const user = await User.findOne({ email: email.toLowerCase().trim() });
-        if (!user) {
-            return res.status(401).json({ message: "Invalid email or password" });
-        }
-
-        // Compare password
-        const isMatch = await user.comparePassword(password)
-        if (!isMatch) {
-            return res.status(401).json({ message: "Invalid email or password" });
-        }
-
-        req.session.userId = user._id;
-        req.session.role = user.role;
-        req.session.save()
-        res.json({
-            message: "Login successful",
-            user: {
-                id: user._id,
-                email: user.email,
-                role: user.role,
-                first_name: user.first_name,
-                last_name: user.last_name
-            }
-        });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server error. Please try again later.", error: err });
-    }
-});
+router.post("/logout",isAuthenticated,logout)
 
 
 export default router;
