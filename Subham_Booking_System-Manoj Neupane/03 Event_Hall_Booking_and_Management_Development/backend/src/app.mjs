@@ -1,16 +1,19 @@
 import express from "express";
 import cors from "cors";
-import authRoutes from "./routers/authRouter.js"
 import getDBConnection from "./connectDB.js";
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
 
+
+/**ROutes related imports */
+import authRoutes from "./routers/authRouter.js"
+import profileRoutes from "./routers/profileRouter.js"
 const app = express();
 const PORT = 4000;
 
 await getDBConnection()
 app.use(cors({
-    origin: "*",
+    origin: "http://localhost:3000",
     credentials:true
 }))
 app.use(express.urlencoded({extended:true}))
@@ -34,6 +37,7 @@ app.use(session({
 }));
 
 app.use("/api/v1/auth", authRoutes)
+app.use("/api/v1/profile", profileRoutes)
 
 app.listen(PORT, () => {
     console.log("Server is running at PORT: "+ PORT)
