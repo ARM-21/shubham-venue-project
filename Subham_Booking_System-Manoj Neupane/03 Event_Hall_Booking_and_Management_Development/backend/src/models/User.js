@@ -27,9 +27,19 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true
     },
+    provider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local'
+    },
+    profilePicture: {
+      type: String
+    },
     password: {
       type: String,
-      required: [true, "Password is required"]
+      required: function() {
+        return this.provider === 'local';
+      }
     },
     phone: {
       type: String,
@@ -39,6 +49,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['customer', 'admin'],
       default: 'customer'
+    },
+    googleId: {
+      type: String
     },
     isOrganizerEligible: {
       type: Boolean,
