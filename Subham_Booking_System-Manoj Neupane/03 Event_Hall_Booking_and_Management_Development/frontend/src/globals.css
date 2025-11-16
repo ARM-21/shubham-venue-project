@@ -1,0 +1,7 @@
+@import "tailwindcss";
+:root{
+  --maroon-primary: #8B0000;
+  --gold-accent:   #C0A04C;
+  --light-bg:      #F8F8F8;
+  --maroon-hover:  #A52A2A;
+}
