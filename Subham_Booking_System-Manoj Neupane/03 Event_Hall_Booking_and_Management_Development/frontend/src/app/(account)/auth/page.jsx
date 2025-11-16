@@ -1,19 +1,15 @@
 "use client"
-import Image from 'next/image';
-import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useRouter } from 'next/navigation';
-import axiosInstance from '@/lib/axios';
-import dynamic from 'next/dynamic';
 import BrandingSection from "@/components/branding/page.jsx"
-// dynamic import to avoid server-side rendering issues with client components
-const LoginForm = dynamic(() => import('@/components/auth/LoginForm.jsx'), { ssr: false });
-const RegisterForm = dynamic(() => import('@/components/auth/RegisterForm.jsx'), { ssr: false });
+import LoginForm from '@/components/auth/LoginForm';
+import RegisterForm from '@/components/auth/RegisterForm';
+import { GoogleLogin } from '@react-oauth/google';
+import toast from 'react-hot-toast';
 
 export default function AuthPage() {
-    const { login, logout, loading, setLoading, user, setUser } = useAuth();
+    const { login, logout, loading, setLoading, user, setUser, googleLogin } = useAuth();
     const router = useRouter()
     const [mode, setMode] = useState('login')
 
@@ -23,11 +19,23 @@ export default function AuthPage() {
         }
     }, [loading, user, router]);
 
-
-
-    const handleGoogleLogin = () => {
-        console.log('Continue with Google clicked...');
-    };
+    async function onGoogleLoginSuccess(credentialResponse) {
+        try {
+            toast.promise(
+                googleLogin(credentialResponse),
+                {
+                    loading: "Logging in with Google...",
+                    success: "Logged in successfully!",
+                    error: "Google login failed"
+                }
+            );
+            router.push('/');
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    }
 
     if (loading) return (
         <div className="min-h-screen bg-gradient-to-br from-[#250815] to-[#3a0c23] flex items-center justify-center">
@@ -39,13 +47,13 @@ export default function AuthPage() {
     )
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#250815] to-[#3a0c23] flex flex-col lg:flex-row items-center justify-center p-4 md:p-8">
+        <div className="min-h-svh bg-gradient-to-br from-[#250815] to-[#3a0c23] flex flex-col-reverse lg:flex-row items-center justify-center p-2 md:p-2">
 
             {/* Left Side - Branding Section */}
             <BrandingSection />
             {/* Right Side - Auth Card */}
             <div className="w-full max-w-md">
-                <div className="bg-white rounded-3xl shadow-2xl overflow-hidden transform hover:scale-[1.02] transition-transform duration-300">
+                <div className="bg-white rounded-3xl shadow-2xl overflow-hidden transform transition-transform duration-300">
                     {/* Card Header with Gradient */}
                     <div className="bg-gradient-to-r from-[#250815] to-[#3a0c23] p-8 text-center relative overflow-hidden">
                         <div className="absolute inset-0 bg-[#d4af37]/10"></div>
@@ -69,26 +77,30 @@ export default function AuthPage() {
                         )}
 
                         {/* Divider */}
-                        <div className="my-8 flex items-center">
+                        <div className="my-5 flex items-center">
                             <div className="flex-grow border-t border-gray-300"></div>
                             <span className="flex-shrink mx-4 text-gray-500 text-sm font-medium">Or continue with</span>
                             <div className="flex-grow border-t border-gray-300"></div>
                         </div>
 
                         {/* Google Sign In */}
-                        <button
-                            onClick={handleGoogleLogin}
-                            className="w-full flex items-center justify-center gap-4 py-4 px-6 border-2 border-gray-300 rounded-xl hover:border-[#250815] hover:bg-gray-50 transition duration-300 font-semibold text-gray-700 group"
-                        >
-                            <Image
-                                src="/assets/social-media-icons/Google.svg"
-                                width={24}
-                                height={24}
-                                alt="Google"
-                                className="w-6 h-6 group-hover:scale-110 transition-transform"
-                            />
-                            Continue with Google
-                        </button>
+
+                        <div className='flex justify-center w-full'>
+                            <GoogleLogin
+                            onSuccess={credentialResponse => {
+                                onGoogleLoginSuccess(credentialResponse);
+                            }}
+                            onError={(err) => {
+                                toast.error("Google Sign In failed", err);
+                            }}
+                            shape='pill'
+                            text='continue_with'
+                            logo_alignment='center'
+                            theme='outline'
+                            size='large'
+                            // useOneTap
+                        />
+                        </div>
 
                         {/* Terms Notice for Register */}
                         {mode === 'register' && (

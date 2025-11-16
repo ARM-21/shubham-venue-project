@@ -113,7 +113,7 @@ export default function page() {
 
         <div className="mt-4 text-center text-sm">
           <span className="text-gray-600">Already have an account? </span>
-          <a href="/(account)/login" className="text-maroon-primary font-medium hover:underline">Log in</a>
+          <a href="/auth" className="text-maroon-primary font-medium hover:underline">Log in</a>
         </div>
       </div>
     </div>

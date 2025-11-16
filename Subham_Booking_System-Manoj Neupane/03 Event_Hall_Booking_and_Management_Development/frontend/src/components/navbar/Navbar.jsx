@@ -88,23 +88,20 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={(e) => { e.stopPropagation(); setProfileOpen((s) => !s); setHamActive(false); }}
-                  className="flex items-center space-x-2 bg-transparent focus:outline-none"
-                  aria-haspopup="true"
-                  aria-expanded={profileOpen}
+                  className="flex items-center space-x-2 bg-transparent focus:outline-none w-[50px] h-[50px]"
                 >
-                  {user?.avatar ? (
+                  {user?.profilePicture ? (
                     // show avatar image if provided
-                    <Image src={user.avatar} alt={user?.name || 'avatar'} width={36} height={36} className="rounded-full object-cover" />
+                    <Image src={user.profilePicture} alt={user?.name || 'avatar'} width={36} height={36} className="rounded-full object-cover border-2 border-yellow-500" />
                   ) : (
-                    // fallback to initials
                     <div className="w-9 h-9 rounded-full bg-maroon-primary text-white flex items-center justify-center font-semibold">
-                      {user?.name ? user.name.split(' ').map(n=>n[0]).slice(0,2).join('') : 'User'}
+                      {user?.username || 'User'}
                     </div>
                   )}
                 </button>
 
                 {profileOpen && (
-                  <div className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg ring-1 ring-amber-900 ring-opacity-5 py-1 z-50">
                     <button
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       onClick={() => { setProfileOpen(false); router.push('/profile'); }}
@@ -113,7 +110,7 @@ export default function Navbar() {
                     </button>
                     <button
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={async () => { setProfileOpen(false); try { await logout(); } catch(e){ console.error(e); } router.push('/'); }}
+                      onClick={async () => { setProfileOpen(false); try { await logout(); } catch (e) { console.error(e); } router.push('/'); }}
                     >
                       Logout
                     </button>
