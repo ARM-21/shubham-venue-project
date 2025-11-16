@@ -44,7 +44,11 @@ export const loginUser = async (req, res) => {
         }
 
         // Compare password
+        if(user.provider !== 'local' && user.googleId){
+            return res.status(401).json({ message: `Please login using ${user.provider}` });
+        }
         const isMatch = await user.comparePassword(password)
+        
         if (!isMatch) {
             return res.status(401).json({ message: "Invalid email or password" });
         }
@@ -62,7 +66,9 @@ export const loginUser = async (req, res) => {
                 email: user.email,
                 role: user.role,
                 first_name: user.first_name,
-                last_name: user.last_name
+                last_name: user.last_name,
+                profilePicture: user.profilePicture,
+                username: user.username
             }
         });
 
