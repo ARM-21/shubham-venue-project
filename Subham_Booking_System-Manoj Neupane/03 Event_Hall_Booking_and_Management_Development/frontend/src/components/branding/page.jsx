@@ -1,12 +1,12 @@
 import React from 'react'
 
-export default function page() {
+export default function page({className}) {
     return (
-        <div className="w-full lg:w-1/2 max-w-2xl mb-8 lg:mb-0 lg:pr-12 text-center lg:text-left">
+        <div className={`w-full hidden min-[1015px]:block  lg:w-1/2 max-w-2xl mb-8 lg:mb-0 lg:pr-12 text-center lg:text-left`}>
             <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 md:p-12 shadow-2xl border border-white/20">
                 <div className="mb-8">
                     <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight">
-                        Shubham Party Palace
+                        Shubham Venue
                     </h1>
                     <p className="text-xl text-[#d4af37] font-light mb-6">
                         Where Celebrations Come to Life

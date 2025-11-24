@@ -6,7 +6,8 @@ import MongoStore from 'connect-mongo';
 
 
 /**ROutes related imports */
-import authRoutes from "./routers/authRouter.js"
+import googleAuthRoutes from "./routers/auth/googleAuthRouter.js"
+import authRoutes from "./routers/auth/authRouter.js"
 import profileRoutes from "./routers/profileRouter.js"
 const app = express();
 const PORT = 4000;
@@ -37,6 +38,7 @@ app.use(session({
 }));
 
 app.use("/api/v1/auth", authRoutes)
+app.use("/api/v1/auth/google", googleAuthRoutes)
 app.use("/api/v1/profile", profileRoutes)
 
 app.listen(PORT, () => {

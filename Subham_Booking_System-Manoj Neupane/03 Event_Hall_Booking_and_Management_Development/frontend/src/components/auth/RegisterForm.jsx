@@ -70,8 +70,8 @@ export default function RegisterForm({ onSwitch }) {
         Create account
       </button>
 
-      <div className="mt-4 text-center text-sm text-gray-600">
-        Already have an account? <button type="button" onClick={() => onSwitch && onSwitch()} className="text-[#250815] font-medium hover:underline">Sign in</button>
+      <div className="mt-1 text-center text-sm text-gray-600">
+        Already have an account? <button type="button" onClick={() => onSwitch && onSwitch()} className="text-[#250815] cursor-pointer font-medium hover:underline">Sign in</button>
       </div>
     </form>
   );
