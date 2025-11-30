@@ -1,5 +1,4 @@
 "use client";
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -8,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthProvider';
 
 export default function RegisterForm({ onSwitch }) {
-  const { register, handleSubmit, formState: { errors }, watch } = useForm();
+  const { register, handleSubmit, formState: { errors, isSubmitting }, watch } = useForm();
   const router = useRouter();
   const { setUser, setLoading } = useAuth();
   const password = watch('password', '');
@@ -33,45 +32,81 @@ export default function RegisterForm({ onSwitch }) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
         <input
-          {...register('email', { required: 'Email is required', pattern: { value: /^\S+@\S+$/i, message: 'Invalid email' } })}
-          placeholder="you@example.com"
-          className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 transition duration-200 ${errors.email ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-[#250815] focus:ring-[#250815]/20'}`}
+          type="email"
+          {...register('email', { 
+            required: 'Email is required', 
+            pattern: { 
+              value: /^\S+@\S+$/i, 
+              message: 'Please enter a valid email address' 
+            } 
+          })}
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-[#250815] focus:ring-2 focus:ring-[#250815]/20 transition-all duration-300 placeholder-gray-400"
+          placeholder="Enter your email"
         />
-        {errors.email && (<p className="text-sm text-red-600 mt-1">{errors.email.message}</p>)}
+        {errors.email && (
+          <p className="text-red-600 text-sm mt-2 font-medium">{errors.email.message}</p>
+        )}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-        <input
-          type="password"
-          {...register('password', { required: 'Password required', minLength: { value: 6, message: 'Minimum 6 characters' } })}
-          placeholder="••••••••"
-          className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 transition duration-200 ${errors.password ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-[#250815] focus:ring-[#250815]/20'}`}
-        />
-        {errors.password && (<p className="text-sm text-red-600 mt-1">{errors.password.message}</p>)}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Confirm password</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
         <input
           type="password"
-          {...register('confirmPassword', { required: 'Please confirm', validate: (v) => v === password || 'Passwords do not match' })}
-          placeholder="••••••••"
-          className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 transition duration-200 ${errors.confirmPassword ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:border-[#250815] focus:ring-[#250815]/20'}`}
+          {...register('password', { 
+            required: 'Password is required', 
+            minLength: { 
+              value: 6, 
+              message: 'Password must be at least 6 characters' 
+            } 
+          })}
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-[#250815] focus:ring-2 focus:ring-[#250815]/20 transition-all duration-300 placeholder-gray-400"
+          placeholder="Enter your password"
         />
-        {errors.confirmPassword && (<p className="text-sm text-red-600 mt-1">{errors.confirmPassword.message}</p>)}
+        {errors.password && (
+          <p className="text-red-600 text-sm mt-2 font-medium">{errors.password.message}</p>
+        )}
       </div>
 
-      <button type="submit" className="w-full bg-gradient-to-r from-[#250815] to-[#3a0c23] text-white py-3 rounded-xl font-semibold hover:from-[#3a0c23] hover:to-[#250815] transition-shadow shadow-sm">
-        Create account
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label>
+        <input
+          type="password"
+          {...register('confirmPassword', { 
+            required: 'Please confirm your password', 
+            validate: (value) => value === password || 'Passwords do not match' 
+          })}
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-[#250815] focus:ring-2 focus:ring-[#250815]/20 transition-all duration-300 placeholder-gray-400"
+          placeholder="Confirm your password"
+        />
+        {errors.confirmPassword && (
+          <p className="text-red-600 text-sm mt-2 font-medium">{errors.confirmPassword.message}</p>
+        )}
+      </div>
+
+      <button 
+        type="submit" 
+          disabled={isSubmitting}
+          className="w-full bg-[#502538] text-white py-3 px-6 rounded-xl font-semibold shadow-md hover:bg-[#fcfcfc] hover:border-black hover:border-1 cursor-pointer transition-all duration-300 disabled:opacity-50 hover:text-black   disabled:cursor-not-allowed"
+      >
+        {isSubmitting ? (
+          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+        ) : null}
+        Create Account
       </button>
 
-      <div className="mt-1 text-center text-sm text-gray-600">
-        Already have an account? <button type="button" onClick={() => onSwitch && onSwitch()} className="text-[#250815] cursor-pointer font-medium hover:underline">Sign in</button>
+      <div className="text-center text-sm text-gray-600 pt-2">
+        Already have an account?{' '}
+        <button 
+          type="button" 
+          onClick={() => onSwitch && onSwitch()} 
+          className="text-[#502538] font-semibold hover:text-[#3a0c23] hover:underline transition-colors cursor-pointer"
+        >
+          Sign in
+        </button>
       </div>
     </form>
   );

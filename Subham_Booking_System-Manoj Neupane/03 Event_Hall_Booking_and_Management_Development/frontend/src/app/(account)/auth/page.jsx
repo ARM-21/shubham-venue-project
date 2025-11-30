@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthProvider';
 import { useRouter } from 'next/navigation';
-import BrandingSection from "@/components/branding/page.jsx"
+import BrandingSection from "@/components/branding/Branding.jsx"
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
 import { GoogleLogin } from '@react-oauth/google';
@@ -38,37 +38,35 @@ export default function AuthPage() {
     }
 
     if (loading) return (
-        <div className="min-h-screen bg-gradient-to-br from-[#250815] to-[#3a0c23] flex items-center justify-center">
+        <div className="min-h-screen bg-white flex items-center justify-center">
             <div className="text-center">
-                <div className="w-16 h-16 border-4 border-[#d4af37] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-white font-semibold">Loading...</p>
+                <div className="w-16 h-16 border-4 border-[#250815] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-700 font-semibold">Loading...</p>
             </div>
         </div>
     )
 
     return (
-        <div className="min-h-svh bg-gradient-to-br from-[#250815] to-[#3a0c23] flex flex-col-reverse lg:flex-row items-center justify-center p-2 md:p-2">
-
+        <div className="h-[85vh] bg-white flex flex-col-reverse lg:flex-row items-center justify-center p-4 md:p-6">
             {/* Left Side - Branding Section */}
             <BrandingSection />
+            
             {/* Right Side - Auth Card */}
             <div className="w-full max-w-md">
-                <div className="bg-white rounded-3xl shadow-2xl overflow-hidden transform transition-transform duration-300">
-                    {/* Card Header with Gradient */}
-                    <div className="bg-gradient-to-r from-[#250815] to-[#3a0c23] p-8 text-center relative overflow-hidden">
-                        <div className="absolute inset-0 bg-[#d4af37]/10"></div>
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+                    {/* Card Header */}
+                    <div className="bg-white p-8 text-center border-b border-gray-100">
                         <div className="relative z-10">
-                            <h2 className="text-3xl font-bold text-white mb-2">
+                            <h2 className="text-3xl font-bold text-[#502538] mb-2">
                                 {mode === 'login' ? 'Welcome Back' : 'Join Our Family'}
                             </h2>
-                            <p className="text-[#d4af37] font-light">
+                            <p className="text-gray-600 font-light">
                                 {mode === 'login' ? 'Sign in to your account' : 'Create your account to get started'}
                             </p>
                         </div>
                     </div>
 
                     <div className="p-8">
-
                         {/* Login/Register Components */}
                         {mode === 'login' ? (
                             <LoginForm onSwitch={() => setMode('register')} />
@@ -77,38 +75,36 @@ export default function AuthPage() {
                         )}
 
                         {/* Divider */}
-                        <div className="my-5 flex items-center">
+                        <div className="my-6 flex items-center">
                             <div className="flex-grow border-t border-gray-300"></div>
                             <span className="flex-shrink mx-4 text-gray-500 text-sm font-medium">Or continue with</span>
                             <div className="flex-grow border-t border-gray-300"></div>
                         </div>
 
                         {/* Google Sign In */}
-
                         <div className='flex justify-center w-full'>
                             <GoogleLogin
-                            onSuccess={credentialResponse => {
-                                onGoogleLoginSuccess(credentialResponse);
-                            }}
-                            onError={(err) => {
-                                toast.error("Google Sign In failed", err);
-                            }}
-                            shape='pill'
-                            text='continue_with'
-                            logo_alignment='center'
-                            theme='outline'
-                            size='large'
-                            // useOneTap
-                        />
+                                onSuccess={credentialResponse => {
+                                    onGoogleLoginSuccess(credentialResponse);
+                                }}
+                                onError={(err) => {
+                                    toast.error("Google Sign In failed", err);
+                                }}
+                                shape='pill'
+                                text='continue_with'
+                                logo_alignment='center'
+                                theme='outline'
+                                size='large'
+                            />
                         </div>
 
                         {/* Terms Notice for Register */}
                         {mode === 'register' && (
-                            <p className="text-center text-gray-500 text-sm mt-6">
+                            <p className="text-center text-gray-500 text-xs mt-6 leading-relaxed">
                                 By creating an account, you agree to our{' '}
-                                <a href="#" className="text-[#250815] hover:text-[#3a0c23] font-medium underline">Terms of Service</a>{' '}
+                                <a href="#" className="text-[#502538] hover:text-[#3a0c23] font-medium underline transition-colors">Terms of Service</a>{' '}
                                 and{' '}
-                                <a href="#" className="text-[#250815] hover:text-[#3a0c23] font-medium underline">Privacy Policy</a>
+                                <a href="#" className="text-[#502538]    hover:text-[#3a0c23] font-medium underline transition-colors">Privacy Policy</a>
                             </p>
                         )}
                     </div>

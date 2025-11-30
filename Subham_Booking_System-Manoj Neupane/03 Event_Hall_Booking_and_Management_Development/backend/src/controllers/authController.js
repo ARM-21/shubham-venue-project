@@ -82,7 +82,7 @@ export const logout = async (req, res) => {
 
     try{
         req.session.destroy()
-    res.clearCookie("connect.sid")
+    res.clearCookie("sid")
     res.status(200).json({message:"User Logged Out"})
     }
     catch(err){

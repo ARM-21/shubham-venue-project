@@ -37,7 +37,7 @@ export default function Navbar() {
   }, [hamActive]);
 
   return (
-    <div className=" sticky top-0 w-full bg-[#250815] backdrop-blur-md shadow-lg z-50 border-b border-gray-200">
+    <div className=" sticky top-0 w-full bg-[#3a1224] backdrop-blur-md shadow-lg z-50 border-b border-gray-200">
       <nav className="flex justify-between items-center px-4 sm:px-8 py-4 max-w-7xl mx-auto" ref={menuRef}>
         {/* Logo section */}
         <div className="relative">
@@ -71,7 +71,7 @@ export default function Navbar() {
   `}>
           {/* close menu */}
           <Action name="close" id="close" className="absolute min-[850px]:hidden  mb-4 p-2 rounded-lg transition-colors right-0 -top-5" icon={X} onClick={() => setHamActive(false)} />
-          <span className=" w-full bg-black border-1 " />
+          <span className=" w-full bg-black border-1 min-[850px]:hidden " />
           {actions.map((action) => (
             <Action key={action.id} {...action} onClick={() => setHamActive(false)} />
           ))}
@@ -83,7 +83,7 @@ export default function Navbar() {
                   setHamActive(false);
                   router.push('/auth');
                 }} />
-              </>
+              </> 
             ) : (
               <div className="relative">
                 <button
