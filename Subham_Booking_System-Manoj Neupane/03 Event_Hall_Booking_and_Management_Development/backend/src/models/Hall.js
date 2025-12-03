@@ -6,7 +6,7 @@ const hallSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     slug: { type: String, trim: true, lowercase: true, index: true },
     description: { type: String },
-    capacity: { type: Number, required: true, min: 1},
+    capacity: { type: Number, required: true, min: 1 },
     location: {
       address: { type: String },
       city: { type: String },
@@ -24,8 +24,6 @@ const hallSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-hallSchema.index({ name: "text", description: "text", "location.city": "text", amenities: "text" });
 
 hallSchema.pre("save", function (next) {
   if (!this.slug && this.name) {
