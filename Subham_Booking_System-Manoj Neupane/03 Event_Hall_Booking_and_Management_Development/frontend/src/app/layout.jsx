@@ -11,14 +11,15 @@ export const metadata = {
     default: "Shubham"
 
   },
-  description: '...',
+  description: 'Event Hall Booking and Management System',
 }
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
+      <body >
         <AuthProvider>
           <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_API_GOOGLE_CLIENT_ID}>
+
             <header className=" w-full bg-amber-300 relative">
               <p>THis a header for the scroll</p>
               <Navbar />
@@ -26,17 +27,18 @@ export default function RootLayout({ children }) {
             <main className="mt-[10px]">
               {children}
             </main>
-            <Footer />
-            <Toaster
-              position="top-center"
-              toastOptions={{
-                duration: 4000,
-                style: { fontSize: "14px" },
-              }}
-            />
+            <footer className="relative bottom-0 w-ful bg-[#3a1224] text-gray-300 ">
+              <Footer />
+            </footer>
           </GoogleOAuthProvider>
         </AuthProvider>
-
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            duration: 4000,
+            style: { fontSize: "14px" },
+          }}
+        />
       </body>
     </html>
   );
