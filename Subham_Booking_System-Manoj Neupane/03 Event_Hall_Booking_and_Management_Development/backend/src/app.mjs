@@ -9,10 +9,16 @@ import MongoStore from 'connect-mongo';
 import googleAuthRoutes from "./routers/auth/googleAuthRouter.js"
 import authRoutes from "./routers/auth/authRouter.js"
 import profileRoutes from "./routers/profileRouter.js"
+import hallRoutes from "./routers/hallRouter.js"
 const app = express();
 const PORT = 4000;
 
 await getDBConnection()
+app.get("/_health", (req, res) => {
+  return res.status(200).json({ ok: true, pid: process.pid });
+});
+
+
 app.use(cors({
     origin: "http://localhost:3000",
     credentials:true
@@ -40,6 +46,7 @@ app.use(session({
 app.use("/api/v1/auth", authRoutes)
 app.use("/api/v1/auth/google", googleAuthRoutes)
 app.use("/api/v1/profile", profileRoutes)
+app.use("/api/v1/halls", hallRoutes)
 
 app.listen(PORT, () => {
     console.log("Server is running at PORT: "+ PORT)
