@@ -111,7 +111,7 @@ export default function VenuesPage() {
                   </p>
 
                   {/* Description */}
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
                     {hall.description}
                   </p>
 
@@ -166,13 +166,13 @@ export default function VenuesPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleViewDetails(hall.slug)}
-                      className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition font-medium text-sm"
+                      className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition font-medium text-sm cursor-pointer "
                     >
                       View Details
                     </button>
                     <button
                       onClick={() => handleBookNow(hall.slug)}
-                      className="flex-1 bg-[var(--maroon-primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--maroon-hover)] transition font-medium text-sm"
+                      className="flex-1 bg-[var(--maroon-primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--maroon-hover)] transition font-medium text-sm cursor-pointer"
                     >
                       Book Now
                     </button>
