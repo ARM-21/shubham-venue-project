@@ -1,0 +1,10 @@
+[
+{ "title": "Starter", "slug": "starter", "description": "Appetizers to start your meal", "order": 1 },
+{ "title": "Main Course - Veg", "slug": "main-course-veg", "description": "Delicious vegetarian main dishes", "order": 2 },
+{ "title": "Main Course - Non-Veg", "slug": "main-course-non-veg", "description": "Hearty non-vegetarian main dishes", "order": 3 },
+{ "title": "Other (Extra)", "slug": "other-extra", "description": "Special items with extra cost", "order": 4 },
+{ "title": "Pickle", "slug": "pickle", "description": "Traditional pickles to complement your meal", "order": 5 },
+{ "title": "Salad", "slug": "salad", "description": "Fresh and healthy salads", "order": 6 },
+{ "title": "Dessert", "slug": "dessert", "description": "Sweet dishes to finish your meal", "order": 7 }
+
+]

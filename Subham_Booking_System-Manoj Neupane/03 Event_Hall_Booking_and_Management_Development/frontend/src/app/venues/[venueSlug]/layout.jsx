@@ -3,10 +3,10 @@ import axios from '@/lib/axios';
 
 
 export async function generateMetadata({params}) {
-    const { slug } = await params;
+    const { venueSlug } = await params;
     
     try {
-        const response = await axios.get(`/api/v1/halls/${slug}`);
+        const response = await axios.get(`/api/v1/halls/${venueSlug}`);
         const venue = response.data.hall;
 
         return {

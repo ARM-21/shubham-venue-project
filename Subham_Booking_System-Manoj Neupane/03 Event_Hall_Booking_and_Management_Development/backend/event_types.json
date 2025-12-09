@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Wedding",
+    "description": "Premium formal event with high-end requirements. Defaulting to the Diamond Menu.",
+    "defaultMenuId": "69345bce083eced6880967fe", 
+    "createdBy": "60f0c0f0a0b1c2d3e4f5a6b7"
+  },
+  {
+    "name": "Reception",
+    "description": "Standard large celebration event. Defaulting to the Gold Menu.",
+    "defaultMenuId": "69345d7b083eced688096800", 
+    "createdBy": "60f0c0f0a0b1c2d3e4f5a6b7"
+  },
+  {
+    "name": "Engagement",
+    "description": "Mid-level ceremony suitable for a Gold or Silver package.",
+    "defaultMenuId": "69345d7b083eced688096800", 
+    "createdBy": "60f0c0f0a0b1c2d3e4f5a6b7"
+  },
+  {
+    "name": "Bratabanda",
+    "description": "A traditional life-stage ceremony, often requiring specialized arrangements. Defaulting to Silver Menu.",
+    "defaultMenuId": "69345bce083eced6880967fc", 
+    "createdBy": "60f0c0f0a0b1c2d3e4f5a6b7"
+  },
+  {
+    "name": "Annaprasan/Pasni",
+    "description": "A simpler ceremony focused on family. Defaulting to Silver Menu.",
+    "defaultMenuId": "69345bce083eced6880967fc", 
+    "createdBy": "60f0c0f0a0b1c2d3e4f5a6b7"
+  }
+]

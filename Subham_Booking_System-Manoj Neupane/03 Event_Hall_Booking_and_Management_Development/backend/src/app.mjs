@@ -3,6 +3,9 @@ import cors from "cors";
 import getDBConnection from "./connectDB.js";
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
+import menuRoutes from "./routers/menuRoute.js"
+import eventTypeRoutes from "./routers/eventTypeRoute.js"
+import dishRoutes from "./routers/dishRoute.js";
 
 
 /**ROutes related imports */
@@ -26,8 +29,6 @@ app.use(cors({
 app.use(express.urlencoded({extended:true}))
 app.use(express.json())
 
-
-
 app.use(session({
   secret: 'your-secret-key',
   resave: false,
@@ -47,6 +48,9 @@ app.use("/api/v1/auth", authRoutes)
 app.use("/api/v1/auth/google", googleAuthRoutes)
 app.use("/api/v1/profile", profileRoutes)
 app.use("/api/v1/halls", hallRoutes)
+app.use("/api/v1/event-types", eventTypeRoutes)
+app.use("/api/v1/menus", menuRoutes)
+app.use("/api/v1/dishes", dishRoutes)
 
 app.listen(PORT, () => {
     console.log("Server is running at PORT: "+ PORT)

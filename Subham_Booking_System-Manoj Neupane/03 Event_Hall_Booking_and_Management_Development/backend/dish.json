@@ -1,0 +1,444 @@
+[
+  {
+    "name": "Pulao (पुलाउ)",
+    "slug": "pulao",
+    "section": "693434fb083eced688096727",
+    "isVegetarian": true
+  },
+  {
+    "name": "Sada Bhat (सादा भात)",
+    "slug": "sada-bhat",
+    "section": "693434fb083eced688096727",
+    "isVegetarian": true
+  },
+  {
+    "name": "Chicken Biryani (चिकन बिरियानी)",
+    "slug": "chicken-biryani",
+    "section": "693434fb083eced688096726",
+    "isVegetarian": false
+  },
+  {
+    "name": "Mutton Biryani (मटन बिरियानी)",
+    "slug": "mutton-biryani",
+    "section": "693434fb083eced688096726",
+    "isVegetarian": false
+  },
+  {
+    "name": "Tandoori Roti (तन्दूरी रोटी)",
+    "slug": "tandoori-roti",
+    "section": "693434fb083eced688096725",
+    "isVegetarian": true
+  },
+  {
+    "name": "Chicken Gravy (चिकन ग्रेभि)",
+    "slug": "chicken-gravy",
+    "section": "693434fb083eced688096726",
+    "isVegetarian": false
+  },
+  {
+    "name": "Mutton Gravy (मटन ग्रेभि)",
+    "slug": "mutton-gravy",
+    "section": "693434fb083eced688096726",
+    "isVegetarian": false
+  },
+  {
+    "name": "Mix Veg (मिक्स भेज)",
+    "slug": "mix-veg",
+    "section": "693434fb083eced688096725",
+    "isVegetarian": true
+  },
+  {
+    "name": "Daal Makhani (दाल मखनी)",
+    "slug": "daal-makhani",
+    "section": "693434fb083eced688096725",
+    "isVegetarian": true
+  },
+  {
+    "name": "Daal Fry (दाल फ्राइ)",
+    "slug": "daal-fry",
+    "section": "693434fb083eced688096725",
+    "isVegetarian": true
+  },
+  {
+    "name": "Palak Paneer (पालक पनीर)",
+    "slug": "palak-paneer",
+    "section": "693434fb083eced688096725",
+    "isVegetarian": true
+  },
+  {
+    "name": "Cauli Chana (काउली चम्ना)",
+    "slug": "cauli-chana",
+    "section": "693434fb083eced688096725",
+    "isVegetarian": true
+  },
+  {
+    "name": "Rajma (राजमा)",
+    "slug": "rajma",
+    "section": "693434fb083eced688096725",
+    "isVegetarian": true
+  },
+  {
+    "name": "Bodi (बोडी)",
+    "slug": "bodi",
+    "section": "693434fb083eced688096725",
+    "isVegetarian": true
+  },
+  {
+    "name": "Matar Paneer (मटर पनीर)",
+    "slug": "matar-paneer",
+    "section": "693434fb083eced688096725",
+    "isVegetarian": true
+  },
+  {
+    "name": "Butter Paneer (बटर पनीर)",
+    "slug": "butter-paneer",
+    "section": "693434fb083eced688096725",
+    "isVegetarian": true
+  },
+  {
+    "name": "Paneer Kofta (पनीर कोफ्ता)",
+    "slug": "paneer-kofta",
+    "section": "693434fb083eced688096725",
+    "isVegetarian": true
+  },
+  {
+    "name": "Sahi Paneer (साही पनीर)",
+    "slug": "sahi-paneer",
+    "section": "693434fb083eced688096725",
+    "isVegetarian": true
+  },
+  {
+    "name": "Matar Mushroom (मटर मसरूम)",
+    "slug": "matar-mushroom",
+    "section": "693434fb083eced688096725",
+    "isVegetarian": true
+  },
+   {
+    "name": "Mushroom (मसरूम)",
+    "slug": "mushroom",
+    "section": "693434fb083eced688096725",
+    "isVegetarian": true
+  },
+  {
+    "name": "Mushroom Chilli (मसरूम चिल्ली)",
+    "slug": "mushroom-chilli",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Paneer Sadiyo (पनीर सादिको)",
+    "slug": "paneer-sadiyo",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Veg Soup (भेग् सुप्)",
+    "slug": "veg-soup",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Veg Manchurian (भेग् मन्चुरियन)",
+    "slug": "veg-manchurian",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Pani Puri (पानी पुरी)",
+    "slug": "pani-puri",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Aloo Tikki (आलु टिकक्की)",
+    "slug": "aloo-tikki",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Paneer Tikki (पनीर टिकक्की)",
+    "slug": "paneer-tikki",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Paneer Chilli (पनीर चिल्ली)",
+    "slug": "paneer-chilli",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Rara Patties (राडा पटिस्)",
+    "slug": "rara-patties",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "French Fries (फ्रेन्च फ्राइ)",
+    "slug": "french-fries",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Pakoda (पक्वोदा)",
+    "slug": "pakoda",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Chinese Pasta (चाइनिज पास्ता)",
+    "slug": "chinese-pasta",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Hukka Noodles (हुक्का नडस)",
+    "slug": "hukka-noodles",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Chaat Papdi (चार्ड पापडि)",
+    "slug": "chaat-papdi",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Fried Salad (ग्रिद् सलाब)",
+    "slug": "fried-salad",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Chicken Roast (चिकन रोस्ट)",
+    "slug": "chicken-roast",
+    "section": "693434fb083eced688096726",
+    "isVegetarian": false
+  },
+  {
+    "name": "Fish Fry (फिस फ्राइ)",
+    "slug": "fish-fry",
+    "section": "693434fb083eced688096726",
+    "isVegetarian": false
+  },
+  {
+    "name": "Chicken Chilli (चिकन चिल्ली)",
+    "slug": "chicken-chilli",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": false
+  },
+  {
+    "name": "Chicken Tikka (चिकन टिक्का)",
+    "slug": "chicken-tikka",
+    "section": "693434fb083eced688096726",
+    "isVegetarian": false
+  },
+  {
+    "name": "Chicken Lollipop (चिकन लोलिपप्)",
+    "slug": "chicken-lollipop",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": false
+  },
+  {
+    "name": "Chicken Kebab (चिकन कवाव)",
+    "slug": "chicken-kebab",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": false
+  },
+  {
+    "name": "Mutton Kebab (मटन कवाव)",
+    "slug": "mutton-kebab",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": false
+  },
+  {
+    "name": "Chicken Manchurian (चिकन मन्चुरियन)",
+    "slug": "chicken-manchurian",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": false
+  },
+  {
+    "name": "Prawns Cracker (प्राउन्स् क्र्याकर)",
+    "slug": "prawns-cracker",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": false
+  },
+  {
+    "name": "Mushroom Soup (मसरुम सुप्)",
+    "slug": "mushroom-soup",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Chicken Soup (चिकन सुप्)",
+    "slug": "chicken-soup",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": false
+  },
+  {
+    "name": "Papad (पापड)",
+    "slug": "papad",
+    "section": "693434fb083eced688096727",
+    "isVegetarian": true
+  },
+  {
+    "name": "Salad (सलाद)",
+    "slug": "salad",
+    "section": "693434fb083eced688096729",
+    "isVegetarian": true
+  },
+  {
+    "name": "Achar (अचार)",
+    "slug": "achar",
+    "section": "693434fb083eced688096728",
+    "isVegetarian": true
+  },
+  {
+    "name": "Karela Bhindi Achar (करेला भिन्डि अचार)",
+    "slug": "karela-bhindi-achar",
+    "section": "693434fb083eced688096728",
+    "isVegetarian": true
+  },
+  {
+    "name": "Goda Achar (गोदा अंचार)",
+    "slug": "goda-achar",
+    "section": "693434fb083eced688096728",
+    "isVegetarian": true
+  },
+  {
+    "name": "Fruit Dahi (फ्रुट दहि)",
+    "slug": "fruit-dahi",
+    "section": "693434fb083eced688096727",
+    "isVegetarian": true
+  },
+  {
+    "name": "Rasbhari (रासभरी)",
+    "slug": "rasbhari",
+    "section": "693434fb083eced688096727",
+    "isVegetarian": true
+  },
+  {
+    "name": "Lalmohan (लालमोहन)",
+    "slug": "lalmohan",
+    "section": "693434fb083eced688096727",
+    "isVegetarian": true
+  },
+  {
+    "name": "Gajar Halwa (गाजर हलुवा)",
+    "slug": "gajar-halwa",
+    "section": "693434fb083eced688096727",
+    "isVegetarian": true
+  },
+  {
+    "name": "Rasmalai (रसमालाई)",
+    "slug": "rasmalai",
+    "section": "693434fb083eced688096727",
+    "isVegetarian": true
+  },
+  {
+    "name": "Jalebi (जेरी)",
+    "slug": "jalebi",
+    "section": "693434fb083eced688096727",
+    "isVegetarian": true
+  },
+  {
+    "name": "Ice Cream (आइसक्रिम)",
+    "slug": "ice-cream",
+    "section": "693434fb083eced688096727",
+    "isVegetarian": true
+  },
+  {
+    "name": "Semiya (सेमिया)",
+    "slug": "semiya",
+    "section": "693434fb083eced688096727",
+    "isVegetarian": true
+  },
+  {
+    "name": "Soft Curd Sweet (सफ्ट कर्टु मिठि)",
+    "slug": "soft-curd-sweet",
+    "section": "693434fb083eced688096727",
+    "isVegetarian": true
+  },
+  {
+    "name": "Coca (कोका)",
+    "slug": "coca",
+    "section": "693434fb083eced688096727"
+  },
+  {
+    "name": "Froot (फ्रुटा)",
+    "slug": "froot",
+    "section": "693434fb083eced688096727"
+  },
+  {
+    "name": "Sprite (स्प्राईट)",
+    "slug": "sprite",
+    "section": "693434fb083eced688096727"
+  },
+  {
+    "name": "Juice (जुस)",
+    "slug": "juice",
+    "section": "693434fb083eced688096727"
+  },
+  {
+    "name": "Black Chiya (ब्ल्याक चिया)",
+    "slug": "black-chiya",
+    "section": "693434fb083eced688096727"
+  },
+  {
+    "name": "Milk Chiya (मिल्क चिया)",
+    "slug": "milk-chiya",
+    "section": "693434fb083eced688096727"
+  },
+  {
+    "name": "Black Coffee (ब्ल्याक कफि)",
+    "slug": "black-coffee",
+    "section": "693434fb083eced688096727"
+  },
+  {
+    "name": "Milk Coffee (मिल्क कफि)",
+    "slug": "milk-coffee",
+    "section": "693434fb083eced688096727"
+  },
+  {
+    "name": "Chicken Chilli (चिकन चिल्ली)",
+    "slug": "chicken-chilli-starter",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": false
+  },
+  {
+    "name": "Paneer Chilli (पनीर चिल्ली)",
+    "slug": "paneer-chilli-starter",
+    "section": "693434fb083eced688096724",
+    "isVegetarian": true
+  },
+  {
+    "name": "Aloo Dum (आलु दम)",
+    "slug": "aloo-dum",
+    "section": "693434fb083eced688096729",
+    "isVegetarian": true
+  },
+  {
+    "name": "Saag (साग)",
+    "slug": "saag",
+    "section": "693434fb083eced688096729",
+    "isVegetarian": true
+  },
+  {
+    "name": "Achar, Mula Gajar (अचार, मुला गाजर)",
+    "slug": "achar-mula-gajar",
+    "section": "693434fb083eced688096728",
+    "isVegetarian": true
+  },
+  {
+    "name": "Achar Alun Kera (अचार आलु केरा)",
+    "slug": "achar-alun-kera",
+    "section": "693434fb083eced688096728",
+    "isVegetarian": true
+  },
+  {
+    "name": "Bhata Gundruk Sadiko (भटु गन्दु सादिको)",
+    "slug": "bhata-gundruk-sadiko",
+    "section": "693434fb083eced688096727",
+    "isVegetarian": true
+  }
+]

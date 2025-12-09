@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import axiosInstance from '@/lib/axios';
 
 export default function Venue({ params }) {
-  const { slug } = React.use(params);
+  const { venueSlug } = React.use(params);
   const [venueData, setVenueData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,8 +20,8 @@ export default function Venue({ params }) {
         setLoading(false);
       }
     }
-    fetchVenueData(slug);
-  }, [slug]);
+    fetchVenueData(venueSlug);
+  }, [venueSlug]);
 
   if (error) {
     return (
