@@ -11,9 +11,10 @@ router.get("/",  async (req, res) => {
     res.status(200).json(menus);
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:slug", async (req, res) => {
   try {
-    const menu = await Menu.findById(req.params.id)
+    console.log(req.params.slug);
+    const menu = await Menu.findOne({slug: req.params.slug})
       .populate("sections.section")
       .populate("sections.dishes")
       .lean();

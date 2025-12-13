@@ -3,10 +3,11 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import Action from '@/components/nav-action/Action.jsx';
+import Action from '@/components/navbar/nav-action/Action.jsx';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthProvider';
 import { House, Info, Menu, X, Images, Contact, LogIn, LogOut } from "lucide-react";
+import { Icon } from 'lucide-react';
 
 
 const actions = [
@@ -70,7 +71,8 @@ export default function Navbar() {
     ${hamActive ? "max-[850px]:opacity-100 max-[850px]:pointer-events-auto" : "max-[850px]:opacity-0 max-[850px]:pointer-events-none"}
   `}>
           {/* close menu */}
-          <Action name="close" id="close" className="absolute min-[850px]:hidden  mb-4 p-2 rounded-lg transition-colors right-0 -top-5" icon={X} onClick={() => setHamActive(false)} />
+          <X  size={40} className="absolute min-[850px]:hidden  mb-4 p-2 rounded-lg transition-colors right-0 -top-5 cursor-pointer" onClick={() => setHamActive(false)} />
+          {/* <Action name="close" id="close" className="absolute min-[850px]:hidden  mb-4 p-2 rounded-lg transition-colors right-0 -top-5" icon={X} onClick={() => setHamActive(false)} /> */}
           <span className=" w-full bg-black border-1 min-[850px]:hidden " />
           {actions.map((action) => (
             <Action key={action.id} {...action} onClick={() => setHamActive(false)} />
