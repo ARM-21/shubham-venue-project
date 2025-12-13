@@ -1,0 +1,46 @@
+
+Document: proposal 
+chapter 1 introduction
+(introduction of project , problem domain, project as a solution aims and objective, tools and resources required) 
+
+chapter 2 literature review / background
+(elaboration of chapter 1, journals/ articles 3 or more, similar projects(3 or more), comparison with similar projects)
+
+chapter 3 methodology
+(different sw development models and the 1/2 you try to choose with your reasoning)
+
+chapter 4 expected outcomes
+(what you are trying to make/give (may be documentation, file, exe, help files )
+
+chapter 5 wbs 
+figure and working and short description of work how you are doing it. 
+
+chapter 6 milestones listing
+figure and working and short description of work how you are doing it. 
+
+chapter 7 project gantt chart
+figure and working and short description of work how you are doing it. 
+
+(Note: wbs , milestones and project gantt chart should be as methodology stated) 
+
+bibliography and references
+
+Document : interim report
+chapter 1 introduction
+(introduction of project , problem domain, project as a solution aims and objective, tools and resources required) 
+
+chapter 2 literature review / background
+(elaboration of chapter 1, similar projects, comparision with similar projects)
+
+chapter 3 methodology
+(different sw development models and the 1/2 that you are using with your reasoning)+ wbs, milestone, gantt chart old (from proposal) and revised. (if changed)
+
+chapter 4: work done
+proof of work performed (better with methodology steps)
+else random placement of work
+(may include research work, diagrams, database , code, ui, crud operations, screenshots, error message and solutions)
+
+chapter 5 further work
+ work remaining listed and its projected start/end date in table  and its elaboration with timeline and its solution
+
+bibliography and references
