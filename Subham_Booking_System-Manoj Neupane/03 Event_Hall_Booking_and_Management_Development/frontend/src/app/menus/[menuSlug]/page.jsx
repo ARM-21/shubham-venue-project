@@ -1,41 +1,60 @@
-// frontend/src/app/menus/[menuSlug]/page.jsx
-import React from "react";
+"use client";
+import React, { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import axiosInstance from "@/lib/axios";
+import MenuPageSkeletonLoading from "@/components/menu/page/MenuPageSkeletonLoading";
+import { Menu } from "lucide-react";
 
-export default async function Page({ params }) {
-  const { menuSlug } = params;
+export default function Page({ params }) {
+  const { menuSlug } = React.use(params);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [menu, setMenu] = React.useState(null);
 
-  const API_BASE =
-    process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || "http://localhost:4000";
+  useEffect(() => {
+    const fetchMenu = async () => {
+      setIsLoading(true);
+      try {
+        const res = await axiosInstance.get(`/api/v1/menus/${menuSlug}`);
+        const data = res.data;
+        console.debug("Fetched menu data:", data);
+        setMenu(data);
+      } catch (err) {
+        console.error("Failed to load menu:", err);
+        setMenu(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // Fetch menus (server-side). Use cache: 'no-store' if you want always fresh
-  let menus = [];
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/menus`, { cache: "no-store" });
-    const data = await res.json();
-    // Handle both shapes: array or { menus: [...] } or wrapper
-    menus = Array.isArray(data) ? data : data?.menus ?? (Array.isArray(data?.data) ? data.data : []);
-  } catch (err) {
-    console.error("Failed to load menus:", err);
+    if (menuSlug) fetchMenu();
+  }, [menuSlug]);
+
+  const STATIC_MENU_IMAGES = {
+    "gold-menu": "/assets/business-images/menu-images/placeholder.jpg",
+    "silver-menu": "/assets/business-images/menu-images/placeholder.jpg",
+    "diamond-menu": "/assets/business-images/menu-images/placeholder.jpg",
+  };
+
+  const imageSrc = menu ? (STATIC_MENU_IMAGES[menu.slug] ?? "/assets/business-images/menu-images/placeholder.jpg") : "/assets/business-images/menu-images/placeholder.jpg";
+
+  if (isLoading) {
+    return (
+    <MenuPageSkeletonLoading/>
+    );
   }
-
-  const menu = menus.find((m) => (m.slug || m._id || "").toString() === menuSlug.toString());
-
-   const STATIC_MENU_IMAGES = {
-  "gold-menu": "/assets/business-images/menu-images/placeholder.jpg",
-  "silver-menu": "/assets/business-images/menu-images/placeholder.jpg",
-  "diamond-menu": "/assets/business-images/menu-images/placeholder.jpg",
-};
-  const imageSrc = (menu && STATIC_MENU_IMAGES[menu.slug]) || "/assets/business-images/menu-images/placeholder.jpg";
 
   if (!menu) {
     return (
       <main className="max-w-4xl mx-auto p-6">
         <div className="bg-white shadow rounded p-6 text-center">
           <h1 className="text-2xl font-semibold mb-4">Menu not found</h1>
-          <p className="text-gray-600 mb-4">We couldn't find a menu named <span className="font-medium">{menuSlug}</span>.</p>
-          <Link href="/menus" className="inline-block px-4 py-2 bg-indigo-600 text-white rounded">Back to menus</Link>
+          <p className="text-gray-600 mb-4">
+            We couldn't find a menu named <span className="font-medium">{menuSlug}</span>.
+          </p>
+          <Link href="/" className="inline-block px-4 py-2 bg-indigo-600 text-white rounded">
+            Back to menus
+          </Link>
         </div>
       </main>
     );
@@ -45,27 +64,24 @@ export default async function Page({ params }) {
     <main className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded shadow overflow-hidden">
         <div className="w-full h-64 relative">
-          <Image
-            src={imageSrc}
-            alt={menu.name}
-            fill
-  
-          />
+          <Image src={imageSrc} alt={menu.name} fill className="object-cover" />
         </div>
 
         <div className="p-6">
           <h1 className="text-3xl font-bold mb-2">{menu.name}</h1>
-          <p className="text-gray-600 mb-4">{menu.description ?? menu.short ?? ""}</p>
+          <p className="text-gray-600 mb-4">{menu.description ?? ""}</p>
 
           <div className="flex items-center gap-6 mb-6">
             <div className="text-sm text-gray-500">
               <div className="font-medium text-gray-800">{menu.dishCount ?? "—"}</div>
-              <div> dishes</div>
+              <div>dishes</div>
             </div>
 
             <div className="text-sm text-gray-500">
               <div className="font-medium text-gray-800">
-                {typeof menu.pricePerPerson === "number" ? `${menu.pricePerPerson} ${menu.currency ?? "NPR"}` : (menu.pricePerPerson ?? "—")}
+                {typeof menu.pricePerPerson === "number"
+                  ? `${menu.pricePerPerson} ${menu.currency ?? "NPR"}`
+                  : menu.pricePerPerson ?? "—"}
               </div>
               <div>price / person</div>
             </div>
@@ -81,17 +97,39 @@ export default async function Page({ params }) {
             {Array.isArray(menu.sections) && menu.sections.length > 0 ? (
               <div className="space-y-4">
                 {menu.sections.map((s, idx) => {
-                  // s.section may be populated object or an id string; handle both
-                  const sectionTitle = s.section?.title ?? s.section ?? `Section ${idx + 1}`;
+                  const sectionTitle = s.section?.title ?? `Section ${idx + 1}`;
                   const dishCount = Array.isArray(s.dishes) ? s.dishes.length : "—";
 
                   return (
-                    <div key={idx} className="border rounded p-4 flex justify-between items-center">
-                      <div>
-                        <div className="font-medium">{sectionTitle}</div>
-                        <div className="text-sm text-gray-500">Select limit: {s.selectLimit ?? 0}</div>
+                    <div key={idx} className="border rounded p-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <div>
+                          <div className="font-medium">{sectionTitle}</div>
+                          <div className="text-sm text-gray-500">Select limit: {s.selectLimit ?? 0}</div>
+                        </div>
+                        <div className="text-sm text-gray-600">{dishCount} dishes</div>
                       </div>
-                      <div className="text-sm text-gray-600">{dishCount} dishes</div>
+
+                      {/* Visible list of dishes */}
+                      {Array.isArray(s.dishes) && s.dishes.length > 0 ? (
+                        <ul className="divide-y">
+                          {s.dishes.map((d, dishIdx) => (
+                            <li key={dishIdx} className="py-3 flex justify-between items-start gap-4">
+                              <div>
+                                <div className="font-medium text-gray-800">
+                                  {d.name} {d.isVegetarian ? <span className="text-green-600 ml-2 text-sm">🌿</span> : null}
+                                </div>
+                                {d.description ? <div className="text-sm text-gray-500">{d.description}</div> : null}
+                              </div>
+                              <div className="text-sm text-gray-700 whitespace-nowrap">
+                                {typeof d.price === "number" ? `${d.price} ${menu.currency ?? "NPR"}` : (d.price ?? "N/A")}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="text-gray-600">No dishes available in this section.</div>
+                      )}
                     </div>
                   );
                 })}
@@ -102,7 +140,9 @@ export default async function Page({ params }) {
           </section>
 
           <div className="flex gap-3">
-            <Link href="/menus" className="inline-block px-4 py-2 border rounded text-gray-700 hover:bg-gray-50">Back</Link>
+            <Link href="/" className="inline-block px-4 py-2 border rounded text-gray-700 hover:bg-gray-50">
+              Back
+            </Link>
             <button className="inline-block px-4 py-2 bg-emerald-600 text-white rounded">Select this menu</button>
           </div>
         </div>
