@@ -1,0 +1,246 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" version="29.2.9">
+  <diagram name="Page-1" id="SkBf1XDdIwQSKRcR5zBU">
+    <mxGraphModel dx="-1435" dy="3560" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-60" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Registered Customer" vertex="1">
+          <mxGeometry height="60" width="30" x="3560" y="-1150" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-61" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;" value="BookHallUI" vertex="1">
+          <mxGeometry height="700" width="100" x="3690" y="-1150" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-107" parent="bV-lK3LbCu6mI1z3CPzl-61" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#CFFFFD;strokeColor=#000000;shape=rectangle;gradientColor=none;gradientDirection=radial;" value="" vertex="1">
+          <mxGeometry height="610" width="10" x="46" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-62" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;" value="BookHall" vertex="1">
+          <mxGeometry height="742" width="100" x="3860" y="-1150" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-105" parent="bV-lK3LbCu6mI1z3CPzl-62" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#9EFFFD;strokeColor=#000000;shape=rectangle;" value="" vertex="1">
+          <mxGeometry height="75" width="10" x="45" y="105" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-106" parent="bV-lK3LbCu6mI1z3CPzl-62" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#B4FFFA;strokeColor=#000000;shape=rectangle;" value="" vertex="1">
+          <mxGeometry height="40" width="10" x="45" y="198" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-63" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;" value="Booking" vertex="1">
+          <mxGeometry height="742" width="143" x="4017" y="-1150" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-89" parent="bV-lK3LbCu6mI1z3CPzl-63" style="shape=umlFrame;html=1;width=600;height=150;" value="" vertex="1">
+          <mxGeometry height="120" width="366" x="-106" y="299" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-90" parent="bV-lK3LbCu6mI1z3CPzl-89" style="text;html=1;align=left;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;[Online Payment (Khalti/Esewa)]&lt;/font&gt;" vertex="1">
+          <mxGeometry height="30" width="160" x="4.88" y="-7" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-91" parent="bV-lK3LbCu6mI1z3CPzl-89" style="line;html=1;strokeWidth=1;dashed=1;" value="" vertex="1">
+          <mxGeometry height="10" width="366" y="69" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-92" parent="bV-lK3LbCu6mI1z3CPzl-89" style="text;html=1;align=left;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;[Cash on Arrival]&lt;/font&gt;" vertex="1">
+          <mxGeometry height="30" width="90" x="8.133333333333333" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-112" parent="bV-lK3LbCu6mI1z3CPzl-63" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#CCFFFD;strokeColor=#000000;shape=rectangle;" value="" vertex="1">
+          <mxGeometry height="40" width="10" x="66.5" y="522" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-64" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;" value="Payment" vertex="1">
+          <mxGeometry height="700" width="100" x="4200" y="-1150" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-65" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;" value="Invoice" vertex="1">
+          <mxGeometry height="700" width="100" x="4370" y="-1150" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-66" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;" value="User" vertex="1">
+          <mxGeometry height="700" width="100" x="4540" y="-1150" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-67" parent="1" style="shape=line;strokeWidth=1;direction=south;dashed=1;html=1;perimeter=none;" vertex="1">
+          <mxGeometry height="640" width="10" x="3575" y="-1090" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-68" parent="1" style="shape=line;strokeWidth=1;direction=south;dashed=1;html=1;perimeter=none;fillColor=default;gradientColor=default;" vertex="1">
+          <mxGeometry height="640" width="10" x="3735" y="-1090" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-69" parent="1" style="shape=line;strokeWidth=1;direction=south;dashed=1;html=1;perimeter=none;" vertex="1">
+          <mxGeometry height="640" width="10" x="3905" y="-1090" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-71" parent="1" style="shape=line;strokeWidth=1;direction=south;dashed=1;html=1;perimeter=none;" vertex="1">
+          <mxGeometry height="640" width="10" x="4245" y="-1090" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-72" parent="1" style="shape=line;strokeWidth=1;direction=south;dashed=1;html=1;perimeter=none;" vertex="1">
+          <mxGeometry height="640" width="10" x="4415" y="-1090" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-73" parent="1" style="shape=line;strokeWidth=1;direction=south;dashed=1;html=1;perimeter=none;" vertex="1">
+          <mxGeometry height="640" width="10" x="4585" y="-1090" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-74" parent="1" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#B9FCFF;strokeColor=#000000;shape=rectangle;" value="" vertex="1">
+          <mxGeometry height="370" width="10" x="3905" y="-860" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-75" parent="1" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#A8FFF6;strokeColor=#000000;shape=rectangle;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="4070" y="-1023" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-76" parent="1" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#BAFCFF;strokeColor=#000000;shape=rectangle;" value="" vertex="1">
+          <mxGeometry height="38" width="10" x="4240" y="-824" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-77" parent="1" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#CCFFFD;strokeColor=#000000;shape=rectangle;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="4410" y="-574" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-78" parent="1" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#C3F7FF;strokeColor=#000000;shape=rectangle;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="4580" y="-532" as="geometry" />
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-79" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="1: sendPaymentRequest()">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="3580" y="-1065" as="sourcePoint" />
+            <mxPoint x="3740" y="-1065" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-80" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="1.1: requestBookingDetails()">
+          <mxGeometry relative="1" x="-0.3" y="4" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="3750" y="-1044" as="sourcePoint" />
+            <mxPoint x="3910" y="-1044" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-81" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="1.1.1: getBookingDetails(BookingNumber)">
+          <mxGeometry relative="1" x="-0.625" y="3" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="3910" y="-1023" as="sourcePoint" />
+            <mxPoint x="4070" y="-1023" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-82" edge="1" parent="1" style="endArrow=open;endSize=12;dashed=1;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="1.1.1.1: return TotalAmount, HallID, BookingNumber">
+          <mxGeometry relative="1" x="-1" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="4070" y="-999" as="sourcePoint" />
+            <mxPoint x="3910" y="-999" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-83" edge="1" parent="1" style="endArrow=open;endSize=12;dashed=1;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="1.2: displayPaymentConfirmation(TotalAmount, BookingNumber)">
+          <mxGeometry relative="1" x="-1" y="-50" as="geometry">
+            <mxPoint x="50" y="50" as="offset" />
+            <mxPoint x="3900" y="-976" as="sourcePoint" />
+            <mxPoint x="3740" y="-976" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-84" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="2: confirmPaymentDetails()">
+          <mxGeometry relative="1" x="-0.25" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="3580" y="-965" as="sourcePoint" />
+            <mxPoint x="3740" y="-965" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-85" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="2.1: requestPaymentMethods()">
+          <mxGeometry relative="1" x="-0.1875" y="-1" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="3745" y="-951" as="sourcePoint" />
+            <mxPoint x="3905" y="-951" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-86" edge="1" parent="1" style="endArrow=open;endSize=12;dashed=1;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="2.2: displayPaymentMethods(Khalti, Esewa, CashOnArrival)">
+          <mxGeometry relative="1" x="-1" y="-13" as="geometry">
+            <mxPoint x="10" y="4" as="offset" />
+            <mxPoint x="3900" y="-913" as="sourcePoint" />
+            <mxPoint x="3740" y="-913" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-87" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="3: selectPaymentMethod(Method)">
+          <mxGeometry relative="1" y="-10" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="3580" y="-886" as="sourcePoint" />
+            <mxPoint x="3740" y="-886" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-88" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="3.1: initiatePaymentProcess(Method)">
+          <mxGeometry relative="1" x="-0.5" y="2" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="3745" y="-854" as="sourcePoint" />
+            <mxPoint x="3905" y="-854" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-93" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="3.1.1: processPayment(TotalAmount, Method)">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="3913" y="-824" as="sourcePoint" />
+            <mxPoint x="4243" y="-824" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-94" edge="1" parent="1" style="endArrow=open;endSize=12;dashed=1;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="3.1.1.1: return PaymentStatus, TransactionID">
+          <mxGeometry relative="1" x="-0.0303" y="-15" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="4244" y="-789" as="sourcePoint" />
+            <mxPoint x="3914" y="-789" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-111" connectable="0" parent="bV-lK3LbCu6mI1z3CPzl-94" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="alternative" vertex="1">
+          <mxGeometry relative="1" x="-0.3957" y="6" as="geometry">
+            <mxPoint x="-87" y="9" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-95" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="3.1.2: recordCashOnArrival()">
+          <mxGeometry relative="1" x="0.1248" y="-80" as="geometry">
+            <mxPoint x="76" y="80" as="offset" />
+            <Array as="points">
+              <mxPoint x="3950" y="-750" />
+              <mxPoint x="3950" y="-740" />
+            </Array>
+            <mxPoint x="3915" y="-752" as="sourcePoint" />
+            <mxPoint x="3915" y="-742" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-96" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="4: enterPaymentCredentials() / confirmCashOnArrival()">
+          <mxGeometry relative="1" y="-15" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="3580" y="-672" as="sourcePoint" />
+            <mxPoint x="3740" y="-672" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-97" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="4.1: finalizePayment()">
+          <mxGeometry relative="1" x="-0.1625" y="1" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="3746" y="-640" as="sourcePoint" />
+            <mxPoint x="3906" y="-640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-98" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="4.1.1: updateBookingStatus(PendingAdminApproval)">
+          <mxGeometry relative="1" x="-0.8706" y="-5" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="3919" y="-625" as="sourcePoint" />
+            <mxPoint x="4089" y="-625" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-99" edge="1" parent="1" style="endArrow=open;endSize=12;dashed=1;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="4.1.1.1: return StatusUpdateConfirmation">
+          <mxGeometry relative="1" x="-0.7647" y="7" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="4080" y="-597" as="sourcePoint" />
+            <mxPoint x="3910" y="-597" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-100" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="4.2: generateInvoice(BookingDetails, PaymentDetails)">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="3915" y="-571.4999999999995" as="sourcePoint" />
+            <mxPoint x="4410" y="-571.4999999999995" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-101" edge="1" parent="1" style="endArrow=open;endSize=12;dashed=1;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="4.2.1: return InvoiceID">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="4410" y="-547" as="sourcePoint" />
+            <mxPoint x="3915" y="-547" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-102" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="4.3: sendNotification(InvoiceID)">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="3915" y="-532" as="sourcePoint" />
+            <mxPoint x="4580" y="-532" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-103" edge="1" parent="1" style="endArrow=open;endSize=12;dashed=1;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="4.4: displayInvoiceConfirmation(InvoiceID)">
+          <mxGeometry relative="1" x="-0.625" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="3900" y="-507" as="sourcePoint" />
+            <mxPoint x="3740" y="-507" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bV-lK3LbCu6mI1z3CPzl-104" edge="1" parent="1" style="endArrow=block;endSize=12;html=1;edgeStyle=orthogonalEdge;rounded=0;" value="4.4.1: sendInvoice(InvoiceID)">
+          <mxGeometry relative="1" y="-9" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="3740" y="-464" as="sourcePoint" />
+            <mxPoint x="3580" y="-464" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

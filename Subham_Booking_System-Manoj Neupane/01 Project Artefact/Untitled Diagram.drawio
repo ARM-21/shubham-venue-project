@@ -1,0 +1,115 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" version="29.2.9">
+  <diagram name="System Architecture" id="2BYu1CZJbuiW5R1WvpvM">
+    <mxGraphModel dx="1572" dy="1088" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-13" parent="1" style="rounded=1;dashed=1;dashPattern=6 4;whiteSpace=wrap;html=1;align=center;verticalAlign=top;spacingTop=8;" value="&lt;b&gt;AWS Hosting&amp;nbsp;&lt;/b&gt;" vertex="1">
+          <mxGeometry height="610" width="760" x="780" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-20" edge="1" parent="1" style="endArrow=block;dashed=1;dashPattern=4 4;html=1;strokeWidth=1;" value="&lt;b&gt;send HTTPS response&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="925.1707317073169" y="535" as="sourcePoint" />
+            <mxPoint x="923.0975609756097" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-1" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;" value="Shubham Venue Booking Platform&amp;nbsp;" vertex="1">
+          <mxGeometry height="30" width="700" x="490" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-2" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;" value="&lt;b&gt;User&lt;/b&gt;" vertex="1">
+          <mxGeometry height="120" width="60" x="270" y="535" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-3" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;" value="&lt;b&gt;Event Organizer&lt;/b&gt;" vertex="1">
+          <mxGeometry height="130" width="90" x="920" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-4" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;" value="&lt;b&gt;Admin&lt;/b&gt;" vertex="1">
+          <mxGeometry height="130" width="90" x="925" y="950" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Customer Web App&lt;br&gt;(Next.js / React)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="90" width="220" x="440" y="555" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Organizer Dashboard&lt;br&gt;(Next.js / React)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="90" width="220" x="860" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Admin Dashboard&lt;br&gt;(Next.js / React)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="90" width="220" x="860" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-8" parent="1" style="shape=mxgraph.basic.server;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Backend API Server&lt;br&gt;(Node.js + Express)&lt;br&gt;Auth/RBAC • Booking Logic • Reporting&lt;/b&gt;" vertex="1">
+          <mxGeometry height="150" width="210" x="870" y="535" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-9" parent="1" style="shape=cylinder;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;MongoDB Database&lt;/b&gt;" vertex="1">
+          <mxGeometry height="110" width="170" x="1320" y="555" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Payment Gateway&lt;br&gt;(Khalti / eSewa)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="80" width="170" x="1260" y="730" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Notification Service&lt;br&gt;(Email / SMS)(ReSEND)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="170" x="1290" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;OAuth Provider&lt;br&gt;(Google Sign-In)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="170" x="1150" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-14" edge="1" parent="1" source="wsvSaVtOVO_740nEJ2-l-2" style="endArrow=block;html=1;rounded=0;strokeWidth=1;" target="wsvSaVtOVO_740nEJ2-l-5" value="Interact">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-15" edge="1" parent="1" source="wsvSaVtOVO_740nEJ2-l-3" style="endArrow=block;html=1;rounded=0;strokeWidth=1;" target="wsvSaVtOVO_740nEJ2-l-6" value="&lt;b&gt;Interact&lt;/b&gt;">
+          <mxGeometry relative="1" x="-0.2006" y="-2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-16" edge="1" parent="1" source="wsvSaVtOVO_740nEJ2-l-4" style="endArrow=block;html=1;rounded=0;strokeWidth=1;" target="wsvSaVtOVO_740nEJ2-l-7" value="&lt;b&gt;Interact&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-17" edge="1" parent="1" source="wsvSaVtOVO_740nEJ2-l-5" style="endArrow=block;html=1;strokeWidth=1;exitX=0.985;exitY=0.661;exitDx=0;exitDy=0;exitPerimeter=0;" value="&lt;b&gt;send HTTPS request&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="740" y="617.1884057971015" as="sourcePoint" />
+            <mxPoint x="870" y="620.9565217391305" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-18" edge="1" parent="1" style="endArrow=block;dashed=1;dashPattern=4 4;html=1;strokeWidth=1;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" target="wsvSaVtOVO_740nEJ2-l-5" value="&lt;b&gt;send HTTPS response&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="870" y="581.9565217391305" as="sourcePoint" />
+            <mxPoint x="740" y="578.1884057971015" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-19" edge="1" parent="1" style="endArrow=block;html=1;strokeWidth=1;" value="&lt;b&gt;send HTTPS request&lt;/b&gt;">
+          <mxGeometry relative="1" x="-0.5297" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="1027.0975609756097" y="450" as="sourcePoint" />
+            <mxPoint x="1029.170731707317" y="535" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-21" edge="1" parent="1" source="wsvSaVtOVO_740nEJ2-l-7" style="endArrow=block;html=1;strokeWidth=1;exitX=0.799;exitY=0.036;exitDx=0;exitDy=0;exitPerimeter=0;" value="&lt;b&gt;send HTTPS request&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1035.2162162162163" y="750" as="sourcePoint" />
+            <mxPoint x="1036.972972972973" y="685" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-22" edge="1" parent="1" style="endArrow=block;dashed=1;dashPattern=4 4;html=1;strokeWidth=1;entryX=0.141;entryY=0.008;entryDx=0;entryDy=0;entryPerimeter=0;" target="wsvSaVtOVO_740nEJ2-l-7" value="&lt;b&gt;send HTTPS response&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="893.9729729729727" y="685" as="sourcePoint" />
+            <mxPoint x="892.216216216216" y="750" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-23" edge="1" parent="1" source="wsvSaVtOVO_740nEJ2-l-8" style="endArrow=block;html=1;strokeWidth=1;" target="wsvSaVtOVO_740nEJ2-l-9" value="data request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-24" edge="1" parent="1" source="wsvSaVtOVO_740nEJ2-l-9" style="endArrow=block;dashed=1;dashPattern=4 4;html=1;strokeWidth=1;" target="wsvSaVtOVO_740nEJ2-l-8" value="&lt;b&gt;data response&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-25" edge="1" parent="1" source="wsvSaVtOVO_740nEJ2-l-8" style="endArrow=block;html=1;strokeWidth=1;" target="wsvSaVtOVO_740nEJ2-l-12" value="&lt;b&gt;OAuth token verify&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-26" edge="1" parent="1" source="wsvSaVtOVO_740nEJ2-l-8" style="endArrow=block;html=1;strokeWidth=1;" target="wsvSaVtOVO_740nEJ2-l-11" value="&lt;b&gt;send email/SMS&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-27" edge="1" parent="1" source="wsvSaVtOVO_740nEJ2-l-8" style="endArrow=block;html=1;strokeWidth=1;" target="wsvSaVtOVO_740nEJ2-l-10" value="&lt;b&gt;payment init/verify&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wsvSaVtOVO_740nEJ2-l-28" parent="1" style="opacity=0;" vertex="1">
+          <mxGeometry x="440" y="220" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
