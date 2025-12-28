@@ -1,18 +1,18 @@
 import express from "express";
 import User from "../../models/User.js";
 import { OAuth2Client } from "google-auth-library";
+import { ENV } from "../../config/env.js";
 
 const router = express.Router()
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
+const client = new OAuth2Client(ENV.GOOGLE_CLIENT_ID);
 router.post("/login", async (req, res) => {
 
     try {
 
         const response = await client.verifyIdToken({
             idToken: req.body.token,
-            audience: process.env.GOOGLE_CLIENT_ID,
+            audience: ENV.GOOGLE_CLIENT_ID,
         })
         const { email, fullname: fullname, picture, given_name: firstname, family_name: lastname, sub: gid } = response.getPayload();
 
