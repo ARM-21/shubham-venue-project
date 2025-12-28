@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import secrets from "./constants/index.js"
+import { ENV } from "./config/env.js";
 let isConnected = false;
 
 export default async function getDBConnection() {
@@ -9,12 +9,13 @@ export default async function getDBConnection() {
     }
     try {
         console.log("Connecting to Database.....");
-        await mongoose.connect(secrets.DATABASE_URL);
+        await mongoose.connect(ENV.MONGODB_URI);
         isConnected = true;
         console.log("....Database Connection Successfull...");
-        
+
     } catch (error) {
         console.error("Database connection failed ❌ :", error.message);
         throw new Error("Database connection error");
+
     }
 }
