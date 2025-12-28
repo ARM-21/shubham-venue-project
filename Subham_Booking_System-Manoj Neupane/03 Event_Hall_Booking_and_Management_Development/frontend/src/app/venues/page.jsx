@@ -32,7 +32,7 @@ export default function VenuesPage() {
   };
 
   const handleBookNow = (slug) => {
-    router.push(`/booking/${slug}`);
+    router.push(`/search-availability/${slug}`);
   };
 
   if (loading) {

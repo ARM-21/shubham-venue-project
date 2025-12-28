@@ -17,7 +17,7 @@ export default function Hero({ images = [], interval = 4000 }) {
               <h3 className="sm:text-2xl md:text-[19px] lg:text-lg font-bold text-[#250815] mr-2">Ready to book?</h3>
               <div className="flex flex-col md:flex-row gap-3 ">
                 <button
-                  onClick={() => router.push('/search')}
+                  onClick={() => router.push('/search-availability')}
                   className="bg-[var(--maroon-primary)] text-white px-4 py-2  max-w-xl font-semibold rounded-lg hover:bg-[var(--maroon-hover)] transition cursor-pointer"
                   aria-label="View availability"
                 >

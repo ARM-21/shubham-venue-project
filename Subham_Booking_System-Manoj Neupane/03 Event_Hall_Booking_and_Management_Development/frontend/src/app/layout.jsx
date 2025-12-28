@@ -16,7 +16,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body >
+      <body className="min-h-screen flex flex-col bg-gray-50">
         <AuthProvider>
           <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_API_GOOGLE_CLIENT_ID}>
 
@@ -24,7 +24,7 @@ export default function RootLayout({ children }) {
               <p>THis a header for the scroll</p>
               <Navbar />
             </header>
-            <main className="mt-[10px]">
+            <main className="mt-[10px] flex-1">
               {children}
             </main>
             <footer className="relative bottom-0 w-ful bg-[#3a1224] text-gray-300 ">
