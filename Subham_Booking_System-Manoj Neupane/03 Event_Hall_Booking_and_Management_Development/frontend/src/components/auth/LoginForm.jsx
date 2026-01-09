@@ -2,13 +2,17 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation'; // ✅ Add useSearchParams
 import { useAuth } from '@/contexts/AuthProvider';
 
 export default function LoginForm({ onSwitch }) {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
   const { login, setLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams(); //  Get query params
+  
+  // Get redirect URL from query params
+  const redirectUrl = searchParams.get('redirect');
 
   async function onSubmit(data) {
     setLoading(true);
@@ -19,7 +23,13 @@ export default function LoginForm({ onSwitch }) {
         success: (r) => r?.data?.message || 'Logged in successfully!',
         error: (err) => err?.response?.data?.message || 'Login failed',
       });
-      router.push('/');
+      
+      // Redirect to saved URL or home
+      if (redirectUrl) {
+        router.push(redirectUrl);
+      } else {
+        router.push('/');
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -51,7 +61,7 @@ export default function LoginForm({ onSwitch }) {
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-sm font-semibold text-gray-700">Password</label>
-          <a href="#" className="text-sm text-[#502538]] hover:text-[#3a0c23] transition-colors duration-200 font-medium hover:underline">
+          <a href="#" className="text-sm text-[#502538] hover:text-[#3a0c23] transition-colors duration-200 font-medium hover:underline">
             Forgot password?
           </a>
         </div>

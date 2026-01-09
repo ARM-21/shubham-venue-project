@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthProvider';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation'; // ✅ Add useSearchParams
 import BrandingSection from "@/components/branding/Branding.jsx"
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
@@ -10,18 +10,26 @@ import toast from 'react-hot-toast';
 
 export default function AuthPage() {
     const { login, logout, loading, setLoading, user, setUser, googleLogin } = useAuth();
-    const router = useRouter()
-    const [mode, setMode] = useState('login')
+    const router = useRouter();
+    const searchParams = useSearchParams(); 
+    const [mode, setMode] = useState('login');
+
+    const redirectUrl = searchParams.get('redirect');
 
     useEffect(() => {
         if (!loading && user) {
-            router.replace('/');
+           
+            if (redirectUrl) {
+                router.replace(redirectUrl);
+            } else {
+                router.replace('/');
+            }
         }
-    }, [loading, user, router]);
+    }, [loading, user, router, redirectUrl]);
 
     async function onGoogleLoginSuccess(credentialResponse) {
         try {
-            toast.promise(
+            await toast.promise(
                 googleLogin(credentialResponse),
                 {
                     loading: "Logging in with Google...",
@@ -29,7 +37,13 @@ export default function AuthPage() {
                     error: "Google login failed"
                 }
             );
-            router.push('/');
+            
+            // ✅ Redirect to saved URL or home after Google login
+            if (redirectUrl) {
+                router.push(redirectUrl);
+            } else {
+                router.push('/');
+            }
         } catch (err) {
             console.error(err);
         } finally {
@@ -56,6 +70,21 @@ export default function AuthPage() {
                 <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
                     {/* Card Header */}
                     <div className="bg-white p-8 text-center border-b border-gray-100">
+                        {/* ✅ Show booking context if redirect URL exists */}
+                        {redirectUrl && redirectUrl.includes('/book') && (
+                            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex items-center justify-center text-blue-800 mb-1">
+                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span className="font-semibold text-sm">Login Required</span>
+                                </div>
+                                <p className="text-xs text-blue-700">
+                                    Please login to complete your booking
+                                </p>
+                            </div>
+                        )}
+                        
                         <div className="relative z-10">
                             <h2 className="text-3xl font-bold text-[#502538] mb-2">
                                 {mode === 'login' ? 'Welcome Back' : 'Join Our Family'}
@@ -67,11 +96,17 @@ export default function AuthPage() {
                     </div>
 
                     <div className="p-8">
-                        {/* Login/Register Components */}
+                        {/* Login/Register Components - ✅ Pass redirectUrl */}
                         {mode === 'login' ? (
-                            <LoginForm onSwitch={() => setMode('register')} />
+                            <LoginForm 
+                                onSwitch={() => setMode('register')} 
+                                redirectUrl={redirectUrl}  // ✅ Pass redirect URL
+                            />
                         ) : (
-                            <RegisterForm onSwitch={() => setMode('login')} />
+                            <RegisterForm 
+                                onSwitch={() => setMode('login')}
+                                redirectUrl={redirectUrl}  // ✅ Pass redirect URL
+                            />
                         )}
 
                         {/* Divider */}
@@ -104,7 +139,7 @@ export default function AuthPage() {
                                 By creating an account, you agree to our{' '}
                                 <a href="#" className="text-[#502538] hover:text-[#3a0c23] font-medium underline transition-colors">Terms of Service</a>{' '}
                                 and{' '}
-                                <a href="#" className="text-[#502538]    hover:text-[#3a0c23] font-medium underline transition-colors">Privacy Policy</a>
+                                <a href="#" className="text-[#502538] hover:text-[#3a0c23] font-medium underline transition-colors">Privacy Policy</a>
                             </p>
                         )}
                     </div>

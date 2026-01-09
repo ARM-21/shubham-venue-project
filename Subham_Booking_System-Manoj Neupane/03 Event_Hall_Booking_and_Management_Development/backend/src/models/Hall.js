@@ -1,10 +1,9 @@
-// ...existing code...
 import mongoose from "mongoose";
 
 const hallSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    slug: { type: String, trim: true, lowercase: true, index: true },
+    slug: { type: String, trim: true, lowercase: true, index: true, unique: true },
     description: { type: String },
     capacity: { type: Number, required: true, min: 1 },
     location: {
@@ -13,7 +12,7 @@ const hallSchema = new mongoose.Schema(
       state: { type: String },
       country: { type: String },
     },
-    images: [{ type: Array }],
+    images: [{ type: String }],
     amenities: [{ type: String }],
     pricePerHour: { type: Number, default: 0, min: 0, required: true },
     currency: { type: String, default: "NPR" },
@@ -24,6 +23,8 @@ const hallSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+hallSchema.index({ slug: 1 });
 
 hallSchema.pre("save", function (next) {
   if (!this.slug && this.name) {

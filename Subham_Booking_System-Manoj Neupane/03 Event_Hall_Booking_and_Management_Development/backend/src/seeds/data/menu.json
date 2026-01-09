@@ -1,220 +1,268 @@
 [{
-  "name": "Silver Menu (Basic Vegetarian)",
+  "_id": {
+    "$oid": "69345bce083eced6880967fc"
+  },
+  "name": "Silver Menu",
   "pricePerPerson": 800,
   "sections": [
     {
-      "section": "ObjectId('693434fb083eced688096724')",
+      "section": "693434fb083eced688096724",
       "selectLimit": 3,
       "dishes": [
-        "ObjectId('6934582b083eced6880967bd')",
-        "ObjectId('6934582b083eced6880967c4')",
-        "ObjectId('6934582b083eced6880967c5')"
+        "6934582b083eced6880967bd",
+        "6934582b083eced6880967c4",
+        "6934582b083eced6880967c5"
       ]
     },
     {
-      "section": "ObjectId('693434fb083eced688096725')",
+      "section": "693434fb083eced688096725",
       "selectLimit": 4,
       "dishes": [
-        "ObjectId('6934582b083eced6880967ae')",
-        "ObjectId('6934582b083eced6880967af')",
-        "ObjectId('6934582b083eced6880967b1')",
-        "ObjectId('6934582b083eced6880967b5')"
+        "6934582b083eced6880967ae",
+        "6934582b083eced6880967af",
+        "6934582b083eced6880967b1",
+        "6934582b083eced6880967b5"
       ]
     },
     {
-      "section": "ObjectId('693434fb083eced688096727')",
+      "section": "693434fb083eced688096727",
       "selectLimit": 0,
       "dishes": [
-        "ObjectId('6934582b083eced6880967a7')",
-        "ObjectId('6934582b083eced6880967a8')",
-        "ObjectId('6934582b083eced6880967ab')",
-        "ObjectId('6934582b083eced6880967d5')",
-        "ObjectId('6934582b083eced6880967db')",
-        "ObjectId('6934582b083eced6880967dc')",
-        "ObjectId('6934582b083eced6880967e3')",
-        "ObjectId('6934582b083eced6880967e5')",
-        "ObjectId('6934582b083eced6880967e7')",
-        "ObjectId('6934582b083eced6880967e8')"
+        "6934582b083eced6880967a7",
+        "6934582b083eced6880967a8",
+        "6934582b083eced6880967ab",
+        "6934582b083eced6880967d5",
+        "6934582b083eced6880967db",
+        "6934582b083eced6880967dc",
+        "6934582b083eced6880967e3",
+        "6934582b083eced6880967e5",
+        "6934582b083eced6880967e7",
+        "6934582b083eced6880967e8"
       ]
     },
     {
-      "section": "ObjectId('693434fb083eced688096728')",
+      "section": "693434fb083eced688096728",
       "selectLimit": 1,
       "dishes": [
-        "ObjectId('6934582b083eced6880967d7')"
+        "6934582b083eced6880967d7"
       ]
     },
     {
-      "section": "ObjectId('693434fb083eced688096729')",
+      "section": "693434fb083eced688096729",
       "selectLimit": 1,
       "dishes": [
-        "ObjectId('6934582b083eced6880967d6')"
+        "6934582b083eced6880967d6"
       ]
     }
   ],
   "isCustomMenu": false,
-  "createdByUser": "ObjectId('60f0c0f0a0b1c2d3e4f5a6b7')",
-  "isActive": true
+  "createdByUser": "60f0c0f0a0b1c2d3e4f5a6b7",
+  "isActive": true,
+  "slug": "silver-menu",
+  "dishCount": 20
 },
 {
-  "name": "Gold Menu (Full Vegetarian + Basic Non-Veg)",
-  "pricePerPerson": 1500,
-  "sections": [
-    {
-      "section": "ObjectId('693434fb083eced688096724')",
-      "selectLimit": 0,
-      "dishes": [
-        "ObjectId('6934582b083eced6880967cc')",
-        "ObjectId('6934582b083eced6880967ce')",
-        "ObjectId('6934582b083eced6880967cf')",
-        "ObjectId('6934582b083eced6880967d4')"
-      ]
-    },
-    {
-      "section": "ObjectId('693434fb083eced688096726')",
-      "selectLimit": 3,
-      "dishes": [
-        "ObjectId('6934582b083eced6880967a9')",
-        "ObjectId('6934582b083eced6880967aa')",
-        "ObjectId('6934582b083eced6880967ac')"
-      ]
-    },
-    {
-      "section": "ObjectId('693434fb083eced688096727')",
-      "selectLimit": 0,
-      "dishes": [
-        "ObjectId('6934582b083eced6880967e3')",
-        "ObjectId('6934582b083eced6880967e4')",
-        "ObjectId('6934582b083eced6880967e5')",
-        "ObjectId('6934582b083eced6880967e6')",
-        "ObjectId('6934582b083eced6880967e7')",
-        "ObjectId('6934582b083eced6880967e8')",
-        "ObjectId('6934582b083eced6880967e9')",
-        "ObjectId('6934582b083eced6880967ea')"
-      ]
-    }
-  ],
-  "isCustomMenu": false,
-  "createdByUser": "ObjectId('60f0c0f0a0b1c2d3e4f5a6b7')",
-  "isActive": true
-},
-{
-  "name": "Diamond Menu (Premium All Inclusive)",
+  "_id": {
+    "$oid": "69345bce083eced6880967fe"
+  },
+  "name": "Diamond Menu",
   "pricePerPerson": 2500,
   "sections": [
     {
-      "section": "ObjectId('693434fb083eced688096724')",
+      "section": "693434fb083eced688096724",
       "selectLimit": 0,
       "dishes": [
-        "ObjectId('6934582b083eced6880967bb')",
-        "ObjectId('6934582b083eced6880967bc')",
-        "ObjectId('6934582b083eced6880967bd')",
-        "ObjectId('6934582b083eced6880967be')",
-        "ObjectId('6934582b083eced6880967bf')",
-        "ObjectId('6934582b083eced6880967c0')",
-        "ObjectId('6934582b083eced6880967c1')",
-        "ObjectId('6934582b083eced6880967c2')",
-        "ObjectId('6934582b083eced6880967c3')",
-        "ObjectId('6934582b083eced6880967c4')",
-        "ObjectId('6934582b083eced6880967c5')",
-        "ObjectId('6934582b083eced6880967c6')",
-        "ObjectId('6934582b083eced6880967c7')",
-        "ObjectId('6934582b083eced6880967c8')",
-        "ObjectId('6934582b083eced6880967c9')",
-        "ObjectId('6934582b083eced6880967cc')",
-        "ObjectId('6934582b083eced6880967ce')",
-        "ObjectId('6934582b083eced6880967cf')",
-        "ObjectId('6934582b083eced6880967d0')",
-        "ObjectId('6934582b083eced6880967d1')",
-        "ObjectId('6934582b083eced6880967d2')",
-        "ObjectId('6934582b083eced6880967d3')",
-        "ObjectId('6934582b083eced6880967d4')",
-        "ObjectId('6934582b083eced6880967eb')",
-        "ObjectId('6934582b083eced6880967ec')"
+        "6934582b083eced6880967bb",
+        "6934582b083eced6880967bc",
+        "6934582b083eced6880967bd",
+        "6934582b083eced6880967be",
+        "6934582b083eced6880967bf",
+        "6934582b083eced6880967c0",
+        "6934582b083eced6880967c1",
+        "6934582b083eced6880967c2",
+        "6934582b083eced6880967c3",
+        "6934582b083eced6880967c4",
+        "6934582b083eced6880967c5",
+        "6934582b083eced6880967c6",
+        "6934582b083eced6880967c7",
+        "6934582b083eced6880967c8",
+        "6934582b083eced6880967c9",
+        "6934582b083eced6880967cc",
+        "6934582b083eced6880967ce",
+        "6934582b083eced6880967cf",
+        "6934582b083eced6880967d0",
+        "6934582b083eced6880967d1",
+        "6934582b083eced6880967d2",
+        "6934582b083eced6880967d3",
+        "6934582b083eced6880967d4",
+        "6934582b083eced6880967eb",
+        "6934582b083eced6880967ec"
       ]
     },
     {
-      "section": "ObjectId('693434fb083eced688096725')",
+      "section": "693434fb083eced688096725",
       "selectLimit": 0,
       "dishes": [
-        "ObjectId('6934582b083eced6880967ab')",
-        "ObjectId('6934582b083eced6880967ae')",
-        "ObjectId('6934582b083eced6880967af')",
-        "ObjectId('6934582b083eced6880967b0')",
-        "ObjectId('6934582b083eced6880967b1')",
-        "ObjectId('6934582b083eced6880967b2')",
-        "ObjectId('6934582b083eced6880967b3')",
-        "ObjectId('6934582b083eced6880967b4')",
-        "ObjectId('6934582b083eced6880967b5')",
-        "ObjectId('6934582b083eced6880967b6')",
-        "ObjectId('6934582b083eced6880967b7')",
-        "ObjectId('6934582b083eced6880967b8')",
-        "ObjectId('6934582b083eced6880967b9')",
-        "ObjectId('6934582b083eced6880967ba')"
+        "6934582b083eced6880967ab",
+        "6934582b083eced6880967ae",
+        "6934582b083eced6880967af",
+        "6934582b083eced6880967b0",
+        "6934582b083eced6880967b1",
+        "6934582b083eced6880967b2",
+        "6934582b083eced6880967b3",
+        "6934582b083eced6880967b4",
+        "6934582b083eced6880967b5",
+        "6934582b083eced6880967b6",
+        "6934582b083eced6880967b7",
+        "6934582b083eced6880967b8",
+        "6934582b083eced6880967b9",
+        "6934582b083eced6880967ba"
       ]
     },
     {
-      "section": "ObjectId('693434fb083eced688096726')",
+      "section": "693434fb083eced688096726",
       "selectLimit": 0,
       "dishes": [
-        "ObjectId('6934582b083eced6880967a9')",
-        "ObjectId('6934582b083eced6880967aa')",
-        "ObjectId('6934582b083eced6880967ac')",
-        "ObjectId('6934582b083eced6880967ad')",
-        "ObjectId('6934582b083eced6880967ca')",
-        "ObjectId('6934582b083eced6880967cb')",
-        "ObjectId('6934582b083eced6880967cd')"
+        "6934582b083eced6880967a9",
+        "6934582b083eced6880967aa",
+        "6934582b083eced6880967ac",
+        "6934582b083eced6880967ad",
+        "6934582b083eced6880967ca",
+        "6934582b083eced6880967cb",
+        "6934582b083eced6880967cd"
       ]
     },
     {
-      "section": "ObjectId('693434fb083eced688096727')",
+      "section": "693434fb083eced688096727",
       "selectLimit": 0,
       "dishes": [
-        "ObjectId('6934582b083eced6880967a7')",
-        "ObjectId('6934582b083eced6880967a8')",
-        "ObjectId('6934582b083eced6880967d5')",
-        "ObjectId('6934582b083eced6880967da')",
-        "ObjectId('6934582b083eced6880967db')",
-        "ObjectId('6934582b083eced6880967dc')",
-        "ObjectId('6934582b083eced6880967dd')",
-        "ObjectId('6934582b083eced6880967de')",
-        "ObjectId('6934582b083eced6880967df')",
-        "ObjectId('6934582b083eced6880967e0')",
-        "ObjectId('6934582b083eced6880967e1')",
-        "ObjectId('6934582b083eced6880967e2')",
-        "ObjectId('6934582b083eced6880967e3')",
-        "ObjectId('6934582b083eced6880967e4')",
-        "ObjectId('6934582b083eced6880967e5')",
-        "ObjectId('6934582b083eced6880967e6')",
-        "ObjectId('6934582b083eced6880967e7')",
-        "ObjectId('6934582b083eced6880967e8')",
-        "ObjectId('6934582b083eced6880967e9')",
-        "ObjectId('6934582b083eced6880967ea')",
-        "ObjectId('6934582b083eced6880967f1')"
+        "6934582b083eced6880967a7",
+        "6934582b083eced6880967a8",
+        "6934582b083eced6880967d5",
+        "6934582b083eced6880967da",
+        "6934582b083eced6880967db",
+        "6934582b083eced6880967dc",
+        "6934582b083eced6880967dd",
+        "6934582b083eced6880967de",
+        "6934582b083eced6880967df",
+        "6934582b083eced6880967e0",
+        "6934582b083eced6880967e1",
+        "6934582b083eced6880967e2",
+        "6934582b083eced6880967e3",
+        "6934582b083eced6880967e4",
+        "6934582b083eced6880967e5",
+        "6934582b083eced6880967e6",
+        "6934582b083eced6880967e7",
+        "6934582b083eced6880967e8",
+        "6934582b083eced6880967e9",
+        "6934582b083eced6880967ea",
+        "6934582b083eced6880967f1"
       ]
     },
     {
-      "section": "ObjectId('693434fb083eced688096728')",
+      "section": "693434fb083eced688096728",
       "selectLimit": 0,
       "dishes": [
-        "ObjectId('6934582b083eced6880967d7')",
-        "ObjectId('6934582b083eced6880967d8')",
-        "ObjectId('6934582b083eced6880967d9')",
-        "ObjectId('6934582b083eced6880967ef')",
-        "ObjectId('6934582b083eced6880967f0')"
+        "6934582b083eced6880967d7",
+        "6934582b083eced6880967d8",
+        "6934582b083eced6880967d9",
+        "6934582b083eced6880967ef",
+        "6934582b083eced6880967f0"
       ]
     },
     {
-      "section": "ObjectId('693434fb083eced688096729')",
+      "section": "693434fb083eced688096729",
       "selectLimit": 0,
       "dishes": [
-        "ObjectId('6934582b083eced6880967d6')",
-        "ObjectId('6934582b083eced6880967ed')",
-        "ObjectId('6934582b083eced6880967ee')"
+        "6934582b083eced6880967d6",
+        "6934582b083eced6880967ed",
+        "6934582b083eced6880967ee"
       ]
     }
   ],
   "isCustomMenu": false,
-  "createdByUser": "ObjectId('60f0c0f0a0b1c2d3e4f5a6b7')",
-  "isActive": true
+  "createdByUser": "60f0c0f0a0b1c2d3e4f5a6b7",
+  "isActive": true,
+  "slug": "diamond-menu",
+  "dishCount": 75
+},
+{
+  "_id": {
+    "$oid": "69345d7b083eced688096800"
+  },
+  "name": "Gold Menu",
+  "pricePerPerson": 1500,
+  "sections": [
+    {
+      "section": "693434fb083eced688096724",
+      "selectLimit": 0,
+      "dishes": [
+        "6934582b083eced6880967cc",
+        "6934582b083eced6880967ce",
+        "6934582b083eced6880967cf",
+        "6934582b083eced6880967d4"
+      ]
+    },
+    {
+      "section": "693434fb083eced688096725",
+      "selectLimit": 0,
+      "dishes": [
+        "6934582b083eced6880967ab",
+        "6934582b083eced6880967ae",
+        "6934582b083eced6880967af",
+        "6934582b083eced6880967b0",
+        "6934582b083eced6880967b1",
+        "6934582b083eced6880967b2",
+        "6934582b083eced6880967b3",
+        "6934582b083eced6880967b4",
+        "6934582b083eced6880967b5",
+        "6934582b083eced6880967b6",
+        "6934582b083eced6880967b7",
+        "6934582b083eced6880967b8",
+        "6934582b083eced6880967b9",
+        "6934582b083eced6880967ba"
+      ]
+    },
+    {
+      "section": "693434fb083eced688096726",
+      "selectLimit": 3,
+      "dishes": [
+        "6934582b083eced6880967a9",
+        "6934582b083eced6880967aa",
+        "6934582b083eced6880967ac"
+      ]
+    },
+    {
+      "section": "693434fb083eced688096727",
+      "selectLimit": 0,
+      "dishes": [
+        "6934582b083eced6880967e3",
+        "6934582b083eced6880967e4",
+        "6934582b083eced6880967e5",
+        "6934582b083eced6880967e6",
+        "6934582b083eced6880967e7",
+        "6934582b083eced6880967e8",
+        "6934582b083eced6880967e9",
+        "6934582b083eced6880967ea"
+      ]
+    },
+    {
+      "section": "693434fb083eced688096728",
+      "selectLimit": 1,
+      "dishes": [
+        "6934582b083eced6880967d7"
+      ]
+    },
+    {
+      "section": "693434fb083eced688096729",
+      "selectLimit": 1,
+      "dishes": [
+        "6934582b083eced6880967d6"
+      ]
+    }
+  ],
+  "dishCount": 31,
+  "isCustomMenu": false,
+  "isActive": true,
+  "slug": "gold-menu"
 }]
