@@ -3,14 +3,18 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import axiosInstance from '@/lib/axios';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation'; // ✅ Add useSearchParams
 import { useAuth } from '@/contexts/AuthProvider';
 
 export default function RegisterForm({ onSwitch }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, watch } = useForm();
   const router = useRouter();
+  const searchParams = useSearchParams(); // ✅ Get query params
   const { setUser, setLoading } = useAuth();
   const password = watch('password', '');
+  
+  // ✅ Get redirect URL from query params
+  const redirectUrl = searchParams.get('redirect');
 
   async function onSubmit(data) {
     setLoading(true);
@@ -22,8 +26,15 @@ export default function RegisterForm({ onSwitch }) {
         success: (r) => r?.data?.message || 'Account created successfully!',
         error: (err) => err?.response?.data?.message || 'Registration failed',
       });
+      
       if (res?.data?.user) setUser(res.data.user);
-      router.push('/');
+      
+      // ✅ Redirect to saved URL or home
+      if (redirectUrl) {
+        router.push(redirectUrl);
+      } else {
+        router.push('/');
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -89,8 +100,8 @@ export default function RegisterForm({ onSwitch }) {
 
       <button 
         type="submit" 
-          disabled={isSubmitting}
-          className="w-full bg-[#502538] text-white py-3 px-6 rounded-xl font-semibold shadow-md hover:bg-[#fcfcfc] hover:border-black hover:border-1 cursor-pointer transition-all duration-300 disabled:opacity-50 hover:text-black   disabled:cursor-not-allowed"
+        disabled={isSubmitting}
+        className="w-full bg-[#502538] text-white py-3 px-6 rounded-xl font-semibold shadow-md hover:bg-[#fcfcfc] hover:border-black hover:border-1 cursor-pointer transition-all duration-300 disabled:opacity-50 hover:text-black disabled:cursor-not-allowed"
       >
         {isSubmitting ? (
           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>

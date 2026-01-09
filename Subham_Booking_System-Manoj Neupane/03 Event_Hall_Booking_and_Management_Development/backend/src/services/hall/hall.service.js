@@ -1,7 +1,7 @@
 import Hall from "../../models/Hall.js";
+import Booking from "../../models/Booking.js";
 import { httpError } from "../../utils/http.utils.js";
 
-// ...existing code...
 
 export async function listHalls(query = {}) {
   const filter = { isDeleted: false, isActive: true };
@@ -25,3 +25,48 @@ export async function getHallBySlug(slug) {
   return hall;
 }
 
+/**Booking availability check */
+const BLOCKING_STATUSES = ["pending", "approved"];
+
+function getConflictSlots(slot) {
+  if (slot === "wholeday") return ["morning", "evening", "wholeday"];
+  if (slot === "morning") return ["morning", "wholeday"];
+  if (slot === "evening") return ["evening", "wholeday"];
+  throw httpError(400, "slot must be morning|evening|wholeday");
+}
+
+export async function checkHallAvailability({ hallId, date, slot, guests }) {
+  if (!date || typeof date !== "string") throw httpError(400, "date is required (yyyy-mm-dd)");
+  if (!slot) throw httpError(400, "slot is required");
+  if (!Number.isFinite(Number(guests)) || Number(guests) < 1) throw httpError(400, "guests must be >= 1");
+
+  const hall = await Hall.findById(hallId).select("capacity isActive isDeleted").lean();
+  if (!hall || hall.isDeleted) throw httpError(404, "Hall not found");
+
+  if (!hall.isActive) return { available: false, reason: "HALL_INACTIVE" };
+
+  if (Number(guests) > hall.capacity) return { available: false, reason: "EXCEEDS_CAPACITY" };
+
+  const conflictSlots = getConflictSlots(slot);
+  console.log(conflictSlots,hallId, date, slot)
+
+  const blocking = await Booking.findOne({
+    hallId,
+    date,
+    slot: { $in: conflictSlots },
+    status: { $in: BLOCKING_STATUSES },
+  })
+    .select("status slot")
+    .lean();
+  console.log(blocking)
+  if (blocking) {
+    return {
+      available: false,
+      reason: "BOOKED",
+      blockingStatus: blocking.status,
+      blockingSlot: blocking.slot,
+    };
+  }
+
+  return { available: true };
+}
