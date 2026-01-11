@@ -8,7 +8,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       unique: true,
       required: true,
-      trim: true
+      trim: true,
+      lowercase: true,
+      default: function() {
+        return this.email.split('@')[0];
+      }
     },
     first_name: {
       type: String,
@@ -52,6 +56,15 @@ const userSchema = new mongoose.Schema(
     },
     googleId: {
       type: String
+    },
+    isVerified:{
+      type: Boolean,
+      required: function() {
+        return this.provider === 'local';
+      },
+      default: function() {
+        return this.provider === 'google' ? true : false;
+      }
     },
     isOrganizerEligible: {
       type: Boolean,

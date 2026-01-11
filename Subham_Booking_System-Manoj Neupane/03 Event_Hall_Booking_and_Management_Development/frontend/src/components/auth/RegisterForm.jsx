@@ -1,48 +1,126 @@
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import axiosInstance from '@/lib/axios';
-import { useRouter, useSearchParams } from 'next/navigation'; // ✅ Add useSearchParams
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthProvider';
+import { useEffect } from 'react';
+import EnterOTP from '../otp/EnterOTP';
+import Modal from '../ui/Modal';
 
 export default function RegisterForm({ onSwitch }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, watch } = useForm();
   const router = useRouter();
-  const searchParams = useSearchParams(); // ✅ Get query params
+  const searchParams = useSearchParams();
   const { setUser, setLoading } = useAuth();
   const password = watch('password', '');
   
-  // ✅ Get redirect URL from query params
+  // OTP verification state
+  const [showOTPForm, setShowOTPForm] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [userEmail, setUserEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  
   const redirectUrl = searchParams.get('redirect');
 
+  useEffect(()=>{
+    console.log(showOTPForm)
+  })
+
+  // Step 1: Register and send OTP
   async function onSubmit(data) {
-    setLoading(true);
+    // setLoading(true);
     try {
       const { confirmPassword, ...payload } = data;
       const promise = axiosInstance.post('/api/v1/auth/register', payload);
-      const res = await toast.promise(promise, {
+      
+      const response  = await toast.promise(promise, {
         loading: 'Creating your account...',
-        success: (r) => r?.data?.message || 'Account created successfully!',
+        success: (r) => r?.data?.message || 'OTP sent to your email!',
         error: (err) => err?.response?.data?.message || 'Registration failed',
       });
-      
-      if (res?.data?.user) setUser(res.data.user);
-      
-      // ✅ Redirect to saved URL or home
-      if (redirectUrl) {
-        router.push(redirectUrl);
-      } else {
-        router.push('/');
-      }
+      console.log("Registration response:", response);
+          if (response?.data?.userId) {
+            console.log("Setting userId and showing OTP form");
+            setShowOTPForm(true);
+            setUserId(response.data.userId);
+            setUserEmail(response.data.email);
+          }
     } catch (err) {
-      console.error(err);
+      console.error("Registration error:", err);
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   }
 
+  //  Verify OTP
+  async function handleVerifyOTP(e) {
+    e.preventDefault();
+    
+    if (!otpCode || otpCode.length !== 6) {
+      toast.error('Please enter a valid 6-digit OTP');
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const promise = axiosInstance.post('/api/v1/auth/verify-otp', {
+        userId,
+        code: otpCode
+      });
+
+      const res = await toast.promise(promise, {
+        loading: 'Verifying OTP...',
+        success: (r) => r?.data?.message || 'Account verified successfully!',
+        error: (err) => err?.response?.data?.message || 'Invalid OTP',
+      });
+
+      // Set user data and redirect
+      if (res?.data) {
+        setUser(res.data);
+        
+        // Redirect after successful verification
+        if (redirectUrl) {
+          router.replace(redirectUrl);
+        } else {
+          router.replace('/');
+        }
+      }
+    } catch (err) {
+      console.error("Verification error:", err);
+    } finally {
+      setIsVerifying(false);
+    }
+  }
+
+  // Resend OTP
+  async function handleResendOTP() {
+    setIsResending(true);
+    try {
+      const promise = axiosInstance.post('/api/v1/auth/resend-otp', {
+        userId
+      });
+
+      await toast.promise(promise, {
+        loading: 'Resending OTP...',
+        success: (r) => r?.data?.message || 'New OTP sent to your email!',
+        error: (err) => err?.response?.data?.message || 'Failed to resend OTP',
+      });
+
+      setOtpCode('');
+    } catch (err) {
+      console.error("Resend error:", err);
+    } finally {
+      setIsResending(false);
+    }
+  }
+
+
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
@@ -101,12 +179,16 @@ export default function RegisterForm({ onSwitch }) {
       <button 
         type="submit" 
         disabled={isSubmitting}
-        className="w-full bg-[#502538] text-white py-3 px-6 rounded-xl font-semibold shadow-md hover:bg-[#fcfcfc] hover:border-black hover:border-1 cursor-pointer transition-all duration-300 disabled:opacity-50 hover:text-black disabled:cursor-not-allowed"
+        className="w-full bg-[#502538] text-white py-3 px-6 rounded-xl font-semibold shadow-md hover:bg-[#3a0c23] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
       >
         {isSubmitting ? (
-          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-        ) : null}
-        Create Account
+          <>
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+            Creating Account...
+          </>
+        ) : (
+          'Create Account'
+        )}
       </button>
 
       <div className="text-center text-sm text-gray-600 pt-2">
@@ -120,5 +202,28 @@ export default function RegisterForm({ onSwitch }) {
         </button>
       </div>
     </form>
+    {/* OTP Modal  */}
+      <Modal 
+        isOpen={showOTPForm}
+        onClose={() => {
+          setShowOTPForm(false);
+          setOtpCode('');
+        }}
+        closeOnBackdrop={false} 
+      >
+        <EnterOTP
+          userEmail={userEmail}
+          otpCode={otpCode}
+          setOtpCode={setOtpCode}
+          handleVerifyOTP={handleVerifyOTP}
+          isVerifying={isVerifying}
+          handleResendOTP={handleResendOTP}
+          isResending={isResending}
+          setShowOTPForm={setShowOTPForm}
+          setUserId={setUserId}
+        />
+      </Modal>
+
+      </>
   );
 }
