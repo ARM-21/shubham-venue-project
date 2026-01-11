@@ -11,21 +11,17 @@ import toast from 'react-hot-toast';
 export default function AuthPage() {
     const { login, logout, loading, setLoading, user, setUser, googleLogin } = useAuth();
     const router = useRouter();
-    const searchParams = useSearchParams(); 
+    const searchParams = useSearchParams();
     const [mode, setMode] = useState('login');
 
     const redirectUrl = searchParams.get('redirect');
 
     useEffect(() => {
-        if (!loading && user) {
-           
-            if (redirectUrl) {
-                router.replace(redirectUrl);
-            } else {
-                router.replace('/');
-            }
+        if (!loading && user?.isVerified) {
+            router.replace(redirectUrl ?? "/");
         }
-    }, [loading, user, router, redirectUrl]);
+    }, [loading, user?.isVerified, ]);
+
 
     async function onGoogleLoginSuccess(credentialResponse) {
         try {
@@ -37,8 +33,8 @@ export default function AuthPage() {
                     error: "Google login failed"
                 }
             );
-            
-            // ✅ Redirect to saved URL or home after Google login
+
+            // Redirect to saved URL or home after Google login
             if (redirectUrl) {
                 router.push(redirectUrl);
             } else {
@@ -64,13 +60,13 @@ export default function AuthPage() {
         <div className="h-[85vh] bg-white flex flex-col-reverse lg:flex-row items-center justify-center p-4 md:p-6">
             {/* Left Side - Branding Section */}
             <BrandingSection />
-            
+
             {/* Right Side - Auth Card */}
             <div className="w-full max-w-md">
                 <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
                     {/* Card Header */}
                     <div className="bg-white p-8 text-center border-b border-gray-100">
-                        {/* ✅ Show booking context if redirect URL exists */}
+                        {/* Show booking context if redirect URL exists */}
                         {redirectUrl && redirectUrl.includes('/book') && (
                             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                 <div className="flex items-center justify-center text-blue-800 mb-1">
@@ -84,7 +80,7 @@ export default function AuthPage() {
                                 </p>
                             </div>
                         )}
-                        
+
                         <div className="relative z-10">
                             <h2 className="text-3xl font-bold text-[#502538] mb-2">
                                 {mode === 'login' ? 'Welcome Back' : 'Join Our Family'}
@@ -96,16 +92,16 @@ export default function AuthPage() {
                     </div>
 
                     <div className="p-8">
-                        {/* Login/Register Components - ✅ Pass redirectUrl */}
+                        {/* Login/Register Components - Pass redirectUrl */}
                         {mode === 'login' ? (
-                            <LoginForm 
-                                onSwitch={() => setMode('register')} 
-                                redirectUrl={redirectUrl}  // ✅ Pass redirect URL
+                            <LoginForm
+                                onSwitch={() => setMode('register')}
+                                redirectUrl={redirectUrl}  // Pass redirect URL
                             />
                         ) : (
-                            <RegisterForm 
+                            <RegisterForm
                                 onSwitch={() => setMode('login')}
-                                redirectUrl={redirectUrl}  // ✅ Pass redirect URL
+                                redirectUrl={redirectUrl}  // Pass redirect URL
                             />
                         )}
 
