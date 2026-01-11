@@ -71,7 +71,7 @@ export default function Navbar() {
     ${hamActive ? "max-[850px]:opacity-100 max-[850px]:pointer-events-auto" : "max-[850px]:opacity-0 max-[850px]:pointer-events-none"}
   `}>
           {/* close menu */}
-          <X  size={40} className="absolute min-[850px]:hidden  mb-4 p-2 rounded-lg transition-colors right-0 -top-5 cursor-pointer" onClick={() => setHamActive(false)} />
+          <X size={40} className="absolute min-[850px]:hidden  mb-4 p-2 rounded-lg transition-colors right-0 -top-5 cursor-pointer" onClick={() => setHamActive(false)} />
           {/* <Action name="close" id="close" className="absolute min-[850px]:hidden  mb-4 p-2 rounded-lg transition-colors right-0 -top-5" icon={X} onClick={() => setHamActive(false)} /> */}
           <span className=" w-full bg-black border-1 min-[850px]:hidden " />
           {actions.map((action) => (
@@ -83,36 +83,42 @@ export default function Navbar() {
               <>
                 <Action name="login" id="auth" icon={LogIn} onClick={() => {
                   setHamActive(false);
-                  router.push('/auth');
+                  router.replace('/auth');
                 }} />
-              </> 
+              </>
             ) : (
               <div className="relative">
                 <button
                   onClick={(e) => { e.stopPropagation(); setProfileOpen((s) => !s); setHamActive(false); }}
-                  className="flex items-center space-x-2 bg-transparent focus:outline-none w-[50px] h-[50px]"
+                  className="flex items-center space-x-2 bg-transparent focus:outline-none w-[80px] h-[50px]"
                 >
                   {user?.profilePicture ? (
                     // show avatar image if provided
-                    <Image src={user.profilePicture} alt={user?.name || 'avatar'} width={36} height={36} className="rounded-full object-cover border-2 border-yellow-500" />
+                    <Image src={user.profilePicture} alt={user?.name || 'avatar'} width={36} height={36} className="rounded-full object-cover border-2 border-purple-400" />
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-maroon-primary text-white flex items-center justify-center font-semibold">
-                      {user?.username || 'User'}
+                    <div className="w-9 h-9 rounded-full bg-gray-600 font-thin text-white flex items-center justify-center  cursor-pointer border-2 border-purple-400">
+                      {user?.username.charAt(0).toUpperCase() || user?.email.charAt(0).toUpperCase()}
                     </div>
                   )}
                 </button>
 
                 {profileOpen && (
-                  <div className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg ring-1 ring-amber-900 ring-opacity-5 py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg ring-1 ring-amber-900 ring-opacity-5 py-1 z-50 cursor-pointer">
                     <button
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => { setProfileOpen(false); router.push('/profile'); }}
+                      className="w-full text-left px-4 py-2 text-[12px] text-gray-700 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => { setProfileOpen(false); router.replace('/profile'); }}
+                    >
+                      {user.email}
+                    </button>
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => { setProfileOpen(false); router.replace('/profile'); }}
                     >
                       Profile
                     </button>
                     <button
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={async () => { setProfileOpen(false); try { await logout(); } catch (e) { console.error(e); } router.push('/'); }}
+                      onClick={async () => { setProfileOpen(false); try { await logout(); } catch (e) { console.error(e); } router.replace('/'); }}
                     >
                       Logout
                     </button>
@@ -122,8 +128,6 @@ export default function Navbar() {
             )}
           </span>
         </ul>
-
-
 
         {/* Hamburger menu */}
         <button

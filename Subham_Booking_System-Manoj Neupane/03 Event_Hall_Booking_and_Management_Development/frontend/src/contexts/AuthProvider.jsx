@@ -8,16 +8,23 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    async function getProfile() {
-        try {
-            const res = await axiosInstance.get("/api/v1/profile/me");
-            setUser(res?.data?.user ?? res?.data ?? null);
-        } catch (err) {
+   async function getProfile() {
+    try {
+        const res = await axiosInstance.get("/api/v1/profile/me");
+        const user = res?.data?.user ?? res?.data ?? null;
+
+        if (user && user.isEmailVerified === false) {
             setUser(null);
-        } finally {
-            setLoading(false);
+        } else {
+            setUser(user);
         }
+    } catch (err) {
+        setUser(null);
+    } finally {
+        setLoading(false);
     }
+}
+
 
     useEffect(() => {
         getProfile();
