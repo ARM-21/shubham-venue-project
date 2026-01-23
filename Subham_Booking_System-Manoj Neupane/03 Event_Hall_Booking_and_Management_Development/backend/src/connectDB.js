@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { ENV } from "./config/env.js";
+import  ENV  from "./config/env.config.js";
 let isConnected = false;
 
 export default async function getDBConnection() {

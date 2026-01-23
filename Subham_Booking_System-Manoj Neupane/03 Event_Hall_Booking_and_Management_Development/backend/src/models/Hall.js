@@ -24,7 +24,6 @@ const hallSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-hallSchema.index({ slug: 1 });
 
 hallSchema.pre("save", function (next) {
   if (!this.slug && this.name) {

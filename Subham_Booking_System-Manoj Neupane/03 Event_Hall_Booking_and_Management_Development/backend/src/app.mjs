@@ -4,9 +4,9 @@ import cors from "cors";
 import getDBConnection from "./connectDB.js";
 import apiRouter from "./routes/index.js";
 
-import { ENV, assertEnv } from "./config/env.js";
-import { corsOptions } from "./config/cors.js";
-import { sessionMiddleware } from "./config/session.js";
+import ENV ,{assertEnv } from "./config/env.config.js";
+import { corsOptions } from "./config/cors.config.js";
+import { sessionMiddleware } from "./config/session.config.js";
 import errorMiddleware from "./middleware/error.middleware.js";
 
 const app = express();
