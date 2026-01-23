@@ -1,21 +1,25 @@
 import express from "express";
-import { isAuthenticated, isAdmin } from "../../middleware/auth.middleware.js";
-import User from "../../models/User.js";
-import { getUserProfile, updateUserProfile } from "../../controllers/user/profile.controller.js";
+import { isAuthenticated } from "../../middleware/auth.middleware.js";
+import {
+  getUserProfile,
+  updateUserProfile,
+  changeUserPassword,
+  getAvatarUploadUrl,
+  confirmUserAvatarUpload,
+  deleteUserAvatar,
+} from "../../controllers/user/profile.controller.js";
 
 const router = express.Router();
 
+router.get("/me", isAuthenticated, getUserProfile);
+router.put("/me", isAuthenticated, updateUserProfile);
+router.patch("/me/password", isAuthenticated, changeUserPassword);
 
-router.get("/me", isAuthenticated, getUserProfile)
+// Presigned URL flow (2 steps)
+router.post("/me/avatar/upload-url", isAuthenticated, getAvatarUploadUrl);
+router.post("/me/avatar/confirm", isAuthenticated, confirmUserAvatarUpload);
 
-router.put("/me", isAuthenticated,updateUserProfile)
-
-router.patch("/me/password",isAuthenticated,async (req,res)=>{
-
-})
-router.delete("/me",isAuthenticated,async (req,res)=>{
-
-})
-
+// Delete avatar
+router.delete("/me/avatar", isAuthenticated, deleteUserAvatar);
 
 export default router;

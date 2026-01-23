@@ -1,7 +1,7 @@
 import express from "express";
 import User from "../../models/User.js";
 import { OAuth2Client } from "google-auth-library";
-import { ENV } from "../../config/env.js";
+import  ENV  from "../../config/env.config.js";
 
 const router = express.Router()
 

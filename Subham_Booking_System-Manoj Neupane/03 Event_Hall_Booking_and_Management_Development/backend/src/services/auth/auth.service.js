@@ -52,7 +52,7 @@ export const registerWithOTP = async (userData) => {
   const otpCode = await generateOTP(user._id, user.email);
 
   // Send OTP via email
-  // await sendOTPEmail(email, otpCode, username);
+  await sendOTPEmail(email, otpCode, username);
   console.log(`OTP for ${email}: ${otpCode}`); 
 
   return {

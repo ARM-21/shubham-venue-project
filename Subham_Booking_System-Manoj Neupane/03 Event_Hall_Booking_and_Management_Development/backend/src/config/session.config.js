@@ -1,6 +1,6 @@
 import session from "express-session";
 import MongoStore from "connect-mongo";
-import { ENV } from "./env.js";
+import  ENV  from "./env.config.js";
 
 export function sessionMiddleware() {
   return session({
