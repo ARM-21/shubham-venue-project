@@ -10,10 +10,10 @@ export default async function BookingPage({ params, searchParams }) {
   const { date, slot, guests } = await searchParams;
 
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('shubham.sid'); // Your session cookie name
+  const sessionCookie = cookieStore.get('shubham.sid'); 
   console.log(sessionCookie)
   
-  if (!sessionCookie) {
+  if (!sessionCookie || !sessionCookie.value) {
     const currentUrl = `/venues/${slug}/book?date=${date}&slot=${slot}&guests=${guests}`;
     redirect(`/auth/login?redirect=${encodeURIComponent(currentUrl)}`);
   }
@@ -22,7 +22,7 @@ export default async function BookingPage({ params, searchParams }) {
   try {
     console.log(slug)
     const res = await axiosInstance.get(`/api/v1/halls/${slug}`);
-    hall = res.data;
+    hall = res.data?.hall;
     console.log(hall);
   } catch (error) {
     redirect('/404');

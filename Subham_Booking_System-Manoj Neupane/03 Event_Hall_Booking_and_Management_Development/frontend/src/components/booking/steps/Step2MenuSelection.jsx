@@ -34,7 +34,7 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
         axiosInstance.get('/api/v1/menus'),
         axiosInstance.get('/api/v1/dishes')
       ]);
-      
+
       setMenuPackages(packagesRes.data || []);
       setCustomItems(itemsRes.data || []);
     } catch (error) {
@@ -70,7 +70,7 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
   // Handle custom item quantity change
   const handleCustomItemToggle = (item) => {
     const existingIndex = selectedCustomItems.findIndex(i => i.itemId === item._id);
-    
+
     if (existingIndex >= 0) {
       // Remove item
       setSelectedCustomItems(prev => prev.filter((_, index) => index !== existingIndex));
@@ -115,6 +115,7 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
 
     // Prepare data
     const menuData = {
+      
       menuMode,
       selectedPackage: menuMode === 'package' ? selectedPackage : null,
       selectedMenu: menuMode === 'custom' ? selectedCustomItems : [],
@@ -171,186 +172,187 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
           `}
         >
           <div className="flex items-center justify-center">
-           <PlusIcon className="w-5 h-5 mr-2" />
+            <PlusIcon className="w-5 h-5 mr-2" />
             Custom Menu
           </div>
         </button>
       </div>
 
       {/* Package Selection */}
-     {menuPackages.map((pkg) => (
-  <div
-    key={pkg._id}
-    onClick={() => handlePackageSelect(pkg)}
-    className={`
+      {menuPackages.map((pkg) => (
+
+        <div
+          key={pkg._id}
+          onClick={() => handlePackageSelect(pkg)}
+          className={`
       relative border-2 rounded-lg p-5 cursor-pointer transition-all duration-300 
       ${selectedPackage?._id === pkg._id
-        ? 'border-[#66213f] shadow-lg'
-        : 'border-gray-200 hover:border-[#66213f] hover:shadow-md'
-      }
+              ? 'border-[#66213f] shadow-lg'
+              : 'border-gray-200 hover:border-[#66213f] hover:shadow-md'
+            }
     `}
-  >
-    {/* Hover Overlay with View Full Menu Button */}
-    <div className={`
+        >
+          {/* Hover Overlay with View Full Menu Button */}
+          <div className={`
       absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center
       opacity-0 group-hover:opacity-100 transition-opacity duration-300
       ${selectedPackage?._id === pkg._id ? 'opacity-0 hover:opacity-100' : ''}
     `}>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          window.location.href = `/menus/${pkg.slug}`;
-        }}
-        className="bg-white text-[#66213f] px-6 py-3 rounded-lg font-semibold 
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                window.location.href = `/menus/${pkg.slug}`;
+              }}
+              className="bg-white text-[#66213f] px-6 py-3 rounded-lg font-semibold 
                    hover:bg-[#66213f] hover:text-white transition-colors duration-300
                    shadow-lg cursor-pointer"
-      >
-        View Full Menu
-      </button>
-    </div>
+            >
+              View Full Menu
+            </button>
+          </div>
 
-    {/* Package Header */}
-    <div className="flex items-start justify-between mb-3">
-      <div>
-        <h4 className="text-lg font-bold text-gray-800">{pkg.name}</h4>
-        <p className="text-sm text-gray-600 mt-1">{pkg.description}</p>
-      </div>
-      <div className={`
+          {/* Package Header */}
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h4 className="text-lg font-bold text-gray-800">{pkg.name}</h4>
+              <p className="text-sm text-gray-600 mt-1">{pkg.description}</p>
+            </div>
+            <div className={`
         w-6 h-6 rounded-full border-2 flex items-center justify-center
         ${selectedPackage?._id === pkg._id ? 'border-[#66213f] bg-[#66213f]' : 'border-gray-300'}
       `}>
-        {selectedPackage?._id === pkg._id && (
-          <CheckIcon width={20} color='white'/>
-        )}
-      </div>
-    </div>
+              {selectedPackage?._id === pkg._id && (
+                <CheckIcon width={20} color='white' />
+              )}
+            </div>
+          </div>
 
-    {/* Package Items */}
-    <div className="space-y-2 mb-4">
-      <p className="text-xs font-semibold text-gray-500 uppercase">Includes:</p>
-      <ul className="space-y-1">
-        {pkg.sections.slice(0, 5).map((item, index) => (
-          <li key={index} className="text-sm text-gray-700 flex items-start">
-            <span className="text-[#66213f] mr-2">•</span>
-            {item.section.title}
-          </li>
-        ))}
-        {pkg.sections.length > 5 && (
-          <li className="text-sm text-gray-500 italic">
-            +{pkg.sections.length - 5} more items...
-          </li>
-        )}
-      </ul>
-    </div>
+          {/* Package Items */}
+          <div className="space-y-2 mb-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase">Includes:</p>
+            <ul className="space-y-1">
+              {pkg.sections.slice(0, 5).map((item, index) => (
+                <li key={index} className="text-sm text-gray-700 flex items-start">
+                  <span className="text-[#66213f] mr-2">•</span>
+                  {item.section.title}
+                </li>
+              ))}
+              {pkg.sections.length > 5 && (
+                <li className="text-sm text-gray-500 italic">
+                  +{pkg.sections.length - 5} more items...
+                </li>
+              )}
+            </ul>
+          </div>
 
-    {/* Price */}
-    <div className="pt-3 border-t border-gray-200">
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-600">Per person</span>
-        <span className="text-lg font-bold text-[#66213f]">
-          NPR {pkg.pricePerPerson.toLocaleString()}
-        </span>
-      </div>
-      <div className="flex items-center justify-between mt-2">
-        <span className="text-sm font-semibold text-gray-700">
-          Total for {data.guests} guests
-        </span>
-        <span className="text-xl font-bold text-gray-800">
-          NPR {(pkg.pricePerPerson * data.guests).toLocaleString()}
-        </span>
-      </div>
-    </div>
-  </div>
-))}
+          {/* Price */}
+          <div className="pt-3 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Per person</span>
+              <span className="text-lg font-bold text-[#66213f]">
+                NPR {pkg.pricePerPerson.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-sm font-semibold text-gray-700">
+                Total for {data.guests} guests
+              </span>
+              <span className="text-xl font-bold text-gray-800">
+                NPR {(pkg.pricePerPerson * data.guests).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
 
 
       {/* Custom Menu Selection */}
       {
         menuMode === 'custom' && (
-        <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-gray-700">Build Your Custom Menu</h3>
-          
-          {/* Group items by category */}
-          {Object.entries(
-            customItems.reduce((acc, item) => {
-              const category = item.category || 'Other';
-              if (!acc[category]) acc[category] = [];
-              acc[category].push(item);
-              return acc;
-            }, {})
-          ).map(([category, items]) => (
-            <div key={category} className="space-y-3">
-              <h4 className="text-md font-semibold text-gray-700 flex items-center">
-                <span className="w-2 h-2 bg-[#66213f] rounded-full mr-2"></span>
-                {category}
-              </h4>
-              <div className="grid grid-cols-1 gap-3">
-                {items.map((item) => {
-                  const isSelected = selectedCustomItems.some(i => i.itemId === item._id);
-                  const selectedItem = selectedCustomItems.find(i => i.itemId === item._id);
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-700">Build Your Custom Menu</h3>
 
-                  return (
-                    <div
-                      key={item._id}
-                      className={`
+            {/* Group items by category */}
+            {Object.entries(
+              customItems.reduce((acc, item) => {
+                const category = item.category || 'Other';
+                if (!acc[category]) acc[category] = [];
+                acc[category].push(item);
+                return acc;
+              }, {})
+            ).map(([category, items]) => (
+              <div key={category} className="space-y-3">
+                <h4 className="text-md font-semibold text-gray-700 flex items-center">
+                  <span className="w-2 h-2 bg-[#66213f] rounded-full mr-2"></span>
+                  {category}
+                </h4>
+                <div className="grid grid-cols-1 gap-3">
+                  {items.map((item) => {
+                    const isSelected = selectedCustomItems.some(i => i.itemId === item._id);
+                    const selectedItem = selectedCustomItems.find(i => i.itemId === item._id);
+
+                    return (
+                      <div
+                        key={item._id}
+                        className={`
                         border-2 rounded-lg p-4 transition-all duration-300
                         ${isSelected
-                          ? 'border-[#66213f] bg-[#66213f]'
-                          : 'border-gray-200 hover:border-gray-300'
-                        }
+                            ? 'border-[#66213f] bg-[#66213f]'
+                            : 'border-gray-200 hover:border-gray-300'
+                          }
                       `}
-                    >
-                      <div className="flex items-center justify-between">
-                        {/* Item Info */}
-                        <div className="flex-1">
-                          <div className="flex items-start">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => handleCustomItemToggle(item)}
-                              className="mt-1 mr-3 w-5 h-5 text-[#66213f] border-gray-300 rounded focus:ring-[#66213f]"
-                            />
-                            <div>
-                              <h5 className="font-semibold text-gray-800">{item.name}</h5>
-                              {item.description && (
-                                <p className="text-sm text-gray-600 mt-1">{item.description}</p>
-                              )}
-                              <p className="text-sm font-medium text-[#66213f] mt-2">
-                                NPR {item.pricePerPerson} / person
-                              </p>
+                      >
+                        <div className="flex items-center justify-between">
+                          {/* Item Info */}
+                          <div className="flex-1">
+                            <div className="flex items-start">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleCustomItemToggle(item)}
+                                className="mt-1 mr-3 w-5 h-5 text-[#66213f] border-gray-300 rounded focus:ring-[#66213f]"
+                              />
+                              <div>
+                                <h5 className="font-semibold text-gray-800">{item.name}</h5>
+                                {item.description && (
+                                  <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                                )}
+                                <p className="text-sm font-medium text-[#66213f] mt-2">
+                                  NPR {item.pricePerPerson} / person
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Quantity Selector */}
-                        {isSelected && (
-                          <div className="ml-4 flex items-center gap-2">
-                            <label className="text-sm font-medium text-gray-700">Qty:</label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedItem.quantity}
-                              onChange={(e) => handleQuantityChange(item._id, e.target.value)}
-                              className="w-20 px-2 py-1 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-#66213f-500 text-center"
-                            />
-                            <span className="text-sm font-semibold text-gray-700 ml-2">
-                              NPR {(selectedItem.total || 0).toLocaleString()}
-                            </span>
-                          </div>
-                        )}
+                          {/* Quantity Selector */}
+                          {isSelected && (
+                            <div className="ml-4 flex items-center gap-2">
+                              <label className="text-sm font-medium text-gray-700">Qty:</label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={selectedItem.quantity}
+                                onChange={(e) => handleQuantityChange(item._id, e.target.value)}
+                                className="w-20 px-2 py-1 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-#66213f-500 text-center"
+                              />
+                              <span className="text-sm font-semibold text-gray-700 ml-2">
+                                NPR {(selectedItem.total || 0).toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )
+            ))}
+          </div>
+        )
       }
 
       {/* Additional Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-300">
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-300">
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
             Serving Style
@@ -376,7 +378,7 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-#66213f-500"
           />
         </div>
-      </div>
+      </div> */}
 
       {/* Total Summary */}
       <div className="bg-gray-50 rounded-lg p-6 border-2 border-gray-200">

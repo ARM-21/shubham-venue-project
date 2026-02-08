@@ -1,6 +1,7 @@
 import React from 'react'
 
 export default function BookingSummary({hall, bookingData, calculateTotal}) {
+  console.log(hall);
   return (
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h3 className="text-lg font-semibold mb-4">Booking Summary</h3>
@@ -26,7 +27,7 @@ export default function BookingSummary({hall, bookingData, calculateTotal}) {
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold">Total</span>
                 <span className="text-2xl font-bold text-[#66213f]">
-                  NPR {calculateTotal().toLocaleString()}
+                  NPR {calculateTotal()}
                 </span>
               </div>
             </div>
