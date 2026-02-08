@@ -27,8 +27,10 @@ export default function HallPage() {
 
   return (
     <CheckAvailability
+    
       hallId={hall._id}
       hallName={hall.name}
+      hallSlug={hallSlug}
       hallCapacity={hall.capacity}
     />
   );

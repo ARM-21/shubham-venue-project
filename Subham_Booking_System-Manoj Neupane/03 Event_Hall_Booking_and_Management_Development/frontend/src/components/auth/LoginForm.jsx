@@ -2,7 +2,7 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { useRouter, useSearchParams } from 'next/navigation'; // ✅ Add useSearchParams
+import { useRouter, useSearchParams } from 'next/navigation'; 
 import { useAuth } from '@/contexts/AuthProvider';
 
 export default function LoginForm({ onSwitch }) {

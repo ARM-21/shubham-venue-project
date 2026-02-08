@@ -9,6 +9,7 @@ import StepIndicator from './indicator/StepIndicator';
 import Step2MenuSelection from './steps/Step2MenuSelection';
 import Step3Decorations from './steps/Step3Decorations';
 import BookingSummary from './BookingSummary';
+import Step4Payment from './steps/Step4Payment';
 
 export default function BookingFlow({ hall, initialDate, initialSlot, initialGuests }) {
   const router = useRouter();
@@ -23,13 +24,15 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     eventType: '',
     eventName: '',
     specialRequirements: '',
+    menuMode: 'package',
+    selectedPackage: null,
     selectedMenu: [],
     menuTotal: 0,
     decorationScheme: null,
     addons: [],
     decorationTotal: 0,
   });
-  
+
   // Only needed for Step 4
   const [reservationId, setReservationId] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
@@ -40,9 +43,11 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     if (currentStep !== 4 || !timeLeft) return;
 
     if (timeLeft <= 0) {
+      releaseReservation();
       toast.error('Reservation expired. Please try again.');
       setIsReserved(false);
       setReservationId(null);
+      setCurrentStep(1);
       router.push(`/venues/${hall.slug}`);
       return;
     }
@@ -54,28 +59,28 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     return () => clearInterval(timer);
   }, [timeLeft, currentStep, router, hall.slug]);
 
-  // ✅ Create reservation ONLY when entering Step 4
+  // Create reservation ONLY when entering Step 4
   const createReservation = async () => {
     try {
       toast.loading('Reserving hall...');
-      
+
       const res = await axiosInstance.post('/api/v1/bookings/reserve', {
         hallId: hall._id,
         date: initialDate,
         slot: initialSlot,
         guests: initialGuests,
       });
-      
+
       toast.dismiss();
       toast.success('Hall reserved for 5 minutes!');
-      
+
       setReservationId(res.data.reservationId);
       setTimeLeft(res.data.expiresIn); // 300 seconds (5 min)
       setIsReserved(true);
-      
+
     } catch (error) {
       toast.dismiss();
-      
+
       if (error.response?.status === 400) {
         // Hall was just booked by someone else
         toast.error('Sorry, this hall was just booked. Please select another time.');
@@ -83,7 +88,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
       } else {
         toast.error(error.response?.data?.message || 'Failed to reserve hall');
       }
-      
+
       throw error;
     }
   };
@@ -112,7 +117,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     if (currentStep === 4 && reservationId) {
       releaseReservation();
     }
-    
+
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
@@ -120,7 +125,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
 
   const releaseReservation = async () => {
     if (!reservationId) return;
-    
+
     try {
       await axiosInstance.delete(`/api/v1/bookings/reserve/${reservationId}`);
       setReservationId(null);
@@ -132,8 +137,13 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
   };
 
   const calculateTotal = () => {
-    const hallPrice = hall.pricePerHour * (bookingData.slot === 'wholeday' ? 15 : 5);
-    return hallPrice + bookingData.menuTotal + bookingData.decorationTotal;
+    const pricePerHour = Number(hall?.pricePerHour) || 0;
+    const multiplier = (bookingData?.slot === 'wholeday') ? 15 : 5;
+    const hallPrice = pricePerHour * multiplier;
+    const menuTotal = Number(bookingData?.menuTotal) || 0;
+    const decorationTotal = Number(bookingData?.decorationTotal) || 0;
+    const total = hallPrice + menuTotal + decorationTotal;
+    return Number.isFinite(total) ? total : 0;
   };
 
   return (
@@ -164,7 +174,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
       <StepIndicator currentStep={currentStep} />
 
       {/* Booking Summary Card */}
-  
+
       <BookingSummary
         hall={hall}
         bookingData={bookingData}
@@ -187,9 +197,18 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
             onPrev={prevStep}
           />
         )}
-         {currentStep === 3 && (
+        {currentStep === 3 && (
           <Step3Decorations
             data={bookingData}
+            onUpdate={updateBookingData}
+            onNext={nextStep}
+            onPrev={prevStep}
+          />
+        )}
+        {currentStep === 4 && (
+          <Step4Payment
+            data={bookingData}
+            reservationId={reservationId}
             onUpdate={updateBookingData}
             onNext={nextStep}
             onPrev={prevStep}

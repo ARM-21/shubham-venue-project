@@ -30,6 +30,7 @@ const bookingSchema = new mongoose.Schema({
   specialRequirements: { type: String },
   
   // Menu
+  menuMode: { type: String, enum: ["package", "custom"], default: "package" },
   selectedMenu: [{
     itemId: String,
     name: String,

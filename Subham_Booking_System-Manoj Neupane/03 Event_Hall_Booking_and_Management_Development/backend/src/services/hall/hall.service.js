@@ -26,7 +26,8 @@ export async function getHallBySlug(slug) {
 }
 
 /**Booking availability check */
-const BLOCKING_STATUSES = ["pending", "approved"];
+// Keep in sync with Booking.status enum
+const BLOCKING_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"];
 
 function getConflictSlots(slot) {
   if (slot === "wholeday") return ["morning", "evening", "wholeday"];

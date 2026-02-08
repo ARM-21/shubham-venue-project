@@ -1,120 +1,234 @@
-// routes/booking.routes.js
-import express from 'express';
-import { requireAuth } from '../middleware/auth.middleware.js';
-import Booking from '../models/booking.model.js';
+import express from "express";
+import Booking from "../../models/Booking.js";
+import Hall from "../../models/Hall.js";
+import { isAuthenticated } from "../../middleware/auth.middleware.js";
+import { checkHallAvailability } from "../../services/hall/hall.service.js";
 
 const router = express.Router();
 
-// Create temporary reservation
-router.post('/bookings/reserve', requireAuth, async (req, res) => {
+const HOLD_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+
+function calculateHallPrice(hall, slot) {
+  const multiplier = slot === "wholeday" ? 15 : 5;
+  return (Number(hall?.pricePerHour) || 0) * multiplier;
+}
+
+// POST /reserve -> create a 5-minute hold
+router.post("/reserve", isAuthenticated, async (req, res, next) => {
   try {
-    const { hallId, date, slot, guests } = req.body;
-    const userId = req.session.userId;
-
-    // Check availability
-    const existingBooking = await Booking.findOne({
-      hallId,
-      date,
-      slot,
-      $or: [
-        { status: 'CONFIRMED' },
-        { 
-          status: 'PENDING',
-          reservedUntil: { $gt: new Date() }  // Still valid reservation
-        }
-      ]
-    });
-
-    if (existingBooking) {
-      return res.status(400).json({ 
-        message: 'This slot was just booked. Please select another time.' 
-      });
+    const { hallId, date, slot, guests } = req.body || {};
+    if (!hallId || !date || !slot || !guests) {
+      return res.status(400).json({ message: "hallId, date, slot, guests are required" });
     }
 
-    // reate reservation 
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-    
+    const availability = await checkHallAvailability({ hallId, date, slot, guests: Number(guests) });
+    if (!availability.available) {
+      return res.status(400).json({ message: "Hall not available", reason: availability.reason });
+    }
+
+    const expiresAt = new Date(Date.now() + HOLD_DURATION_MS);
+
     const reservation = await Booking.create({
-      userId,
+      userId: req.currentUser._id,
+      hallId,
+      date: new Date(date),
+      slot,
+      guests: Number(guests),
+      status: "PENDING",
+      reservedUntil: expiresAt,
+      totalAmount: 0,
+    });
+
+    return res.json({
+      reservationId: reservation._id,
+      expiresIn: Math.floor(HOLD_DURATION_MS / 1000),
+      expiresAt,
+      message: "Hall reserved for 5 minutes",
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// DELETE /reserve/:id -> release hold
+router.delete("/reserve/:id", isAuthenticated, async (req, res, next) => {
+  try {
+    const reservation = await Booking.findOne({
+      _id: req.params.id,
+      userId: req.currentUser._id,
+      status: "PENDING",
+    });
+
+    if (!reservation) {
+      return res.status(404).json({ message: "Reservation not found" });
+    }
+
+    await reservation.deleteOne();
+    return res.json({ message: "Reservation released" });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// POST / -> finalize booking (cash or online)
+router.post("/", isAuthenticated, async (req, res, next) => {
+  try {
+    const {
+      reservationId,
       hallId,
       date,
       slot,
       guests,
-      status: 'PENDING',
-      reservedUntil: expiresAt  
-    });
+      eventType,
+      eventName,
+      specialRequirements,
+      menuMode = "package",
+      selectedMenu = [],
+      selectedPackage = null,
+      menuTotal,
+      decorationScheme = null,
+      addons = [],
+      decorationTotal = 0,
+      paymentMethod = "cash",
+    } = req.body || {};
 
-    const expiresIn = 300; // 5 minutes in seconds
+    const menuModeValue = menuMode === "custom" ? "custom" : "package";
+    let selectedMenuValue = Array.isArray(selectedMenu) ? selectedMenu : [];
 
-    res.json({
-      reservationId: reservation._id,
-      expiresIn,
-      expiresAt,
-      message: 'Hall reserved for 5 minutes'
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    if (!hallId || !date || !slot || !guests) {
+      return res.status(400).json({ message: "hallId, date, slot, guests are required" });
+    }
+
+    const hall = await Hall.findById(hallId);
+    if (!hall || hall.isDeleted || !hall.isActive) {
+      return res.status(404).json({ message: "Hall not found or inactive" });
+    }
+
+    if (menuModeValue === "custom" && (!selectedMenuValue || selectedMenuValue.length === 0)) {
+      return res.status(400).json({ message: "Please select at least one menu item" });
+    }
+
+    let bookingDoc;
+
+    if (reservationId) {
+      bookingDoc = await Booking.findOne({
+        _id: reservationId,
+        userId: req.currentUser._id,
+        status: "PENDING",
+      });
+
+      if (!bookingDoc) {
+        return res.status(404).json({ message: "Reservation not found or expired" });
+      }
+
+      if (bookingDoc.reservedUntil && bookingDoc.reservedUntil < new Date()) {
+        return res.status(400).json({ message: "Reservation expired" });
+      }
+
+      if (
+        bookingDoc.hallId.toString() !== hallId ||
+        bookingDoc.slot !== slot ||
+        new Date(bookingDoc.date).toISOString().slice(0, 10) !== date
+      ) {
+        return res.status(400).json({ message: "Reservation details mismatch" });
+      }
+    } else {
+      const availability = await checkHallAvailability({ hallId, date, slot, guests: Number(guests) });
+      if (!availability.available) {
+        return res.status(400).json({ message: "Hall not available", reason: availability.reason });
+      }
+    }
+
+    const guestsNum = Number(guests);
+
+    if (menuModeValue === "package" && (!selectedMenuValue || selectedMenuValue.length === 0) && selectedPackage) {
+      const pricePerPerson = Number(selectedPackage.pricePerPerson || 0);
+      selectedMenuValue = [{
+        itemId: selectedPackage._id || selectedPackage.packageId || "package",
+        name: selectedPackage.name || "Package",
+        quantity: guestsNum,
+        pricePerUnit: pricePerPerson,
+        total: pricePerPerson * guestsNum,
+      }];
+    }
+
+    const totalMenu = Number.isFinite(Number(menuTotal))
+      ? Number(menuTotal)
+      : selectedMenuValue.reduce((sum, item) => sum + Number(item?.total || 0), 0);
+
+    const hallPrice = calculateHallPrice(hall, slot);
+    const totalDecoration = Number(decorationTotal || 0);
+    const totalAmount = hallPrice + totalMenu + totalDecoration;
+
+    const decorationPayload = decorationScheme
+      ? {
+          schemeId: decorationScheme._id || decorationScheme.schemeId || null,
+          name: decorationScheme.name,
+          price: decorationScheme.price,
+        }
+      : null;
+
+    const nextStatus = paymentMethod === "cash" ? "CONFIRMED" : "PENDING";
+    const confirmedAt = paymentMethod === "cash" ? new Date() : null;
+
+    if (bookingDoc) {
+      bookingDoc.status = nextStatus;
+      bookingDoc.reservedUntil = null;
+      bookingDoc.guests = guestsNum;
+      bookingDoc.eventType = eventType;
+      bookingDoc.eventName = eventName;
+      bookingDoc.specialRequirements = specialRequirements;
+      bookingDoc.menuMode = menuModeValue;
+      bookingDoc.selectedMenu = selectedMenuValue;
+      bookingDoc.menuTotal = totalMenu;
+      bookingDoc.decorationScheme = decorationPayload;
+      bookingDoc.addons = addons;
+      bookingDoc.decorationTotal = totalDecoration;
+      bookingDoc.hallPrice = hallPrice;
+      bookingDoc.totalAmount = totalAmount;
+      bookingDoc.confirmedAt = confirmedAt;
+      bookingDoc.cancelledAt = null;
+      bookingDoc.cancellationReason = null;
+      await bookingDoc.save();
+    } else {
+      bookingDoc = await Booking.create({
+        userId: req.currentUser._id,
+        hallId,
+        date: new Date(date),
+        slot,
+        guests: guestsNum,
+        eventType,
+        eventName,
+        specialRequirements,
+        menuMode: menuModeValue,
+        selectedMenu: selectedMenuValue,
+        menuTotal: totalMenu,
+        decorationScheme: decorationPayload,
+        addons,
+        decorationTotal: totalDecoration,
+        hallPrice,
+        totalAmount,
+        status: nextStatus,
+        confirmedAt,
+        cancelledAt: null,
+        cancellationReason: null,
+      });
+    }
+
+    return res.status(201).json({ message: "Booking created", booking: bookingDoc });
+  } catch (err) {
+    return next(err);
   }
 });
 
-// Confirm payment
-router.post('/bookings/confirm', requireAuth, async (req, res) => {
+// GET /:id -> simple fetch (for redirect targets)
+router.get("/:id", isAuthenticated, async (req, res, next) => {
   try {
-    const { reservationId, paymentMethod, transactionId, ...bookingDetails } = req.body;
-    const userId = req.session.userId;
-
-    // Find reservation
-    const reservation = await Booking.findOne({
-      _id: reservationId,
-      userId,
-      status: 'PENDING'
-    });
-
-    if (!reservation) {
-      return res.status(404).json({ 
-        message: 'Reservation not found or already expired' 
-      });
-    }
-
-    // Check if still valid (shouldn't happen with TTL, but safety check)
-    if (reservation.reservedUntil < new Date()) {
-      return res.status(400).json({ message: 'Reservation expired' });
-    }
-
-    // Final availability check
-    const conflict = await Booking.findOne({
-      hallId: reservation.hallId,
-      date: reservation.date,
-      slot: reservation.slot,
-      status: 'CONFIRMED',
-      _id: { $ne: reservationId }
-    });
-
-    if (conflict) {
-      return res.status(400).json({ 
-        message: 'Hall was booked by another user.' 
-      });
-    }
-
-    // Confirm booking - remove TTL
-    reservation.status = 'CONFIRMED';
-    reservation.paymentStatus = 'PAID';
-    reservation.paymentMethod = paymentMethod;
-    reservation.transactionId = transactionId;
-    reservation.confirmedAt = new Date();
-    reservation.reservedUntil = null;  // Remove TTL - won't expire now
-    
-    // Add all booking details
-    Object.assign(reservation, bookingDetails);
-    
-    await reservation.save();
-
-    res.json({ 
-      message: 'Booking confirmed successfully!',
-      booking: reservation 
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const booking = await Booking.findOne({ _id: req.params.id, userId: req.currentUser._id });
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+    return res.json({ booking });
+  } catch (err) {
+    return next(err);
   }
 });
 

@@ -23,6 +23,10 @@ const ENV = Object.freeze({
   AWS_REGION: process.env.AWS_REGION,
   AWS_S3_BUCKET_NAME: process.env.AWS_S3_BUCKET_NAME,
   AWS_S3_AVATAR_FOLDER: process.env.AWS_S3_AVATAR_FOLDER,
+
+  KHALTI_SECRET_KEY: process.env.KHALTI_SECRET_KEY,
+  KHALTI_RETURN_URL: process.env.KHALTI_RETURN_URL,
+  KHALTI_WEBSITE_URL: process.env.KHALTI_WEBSITE_URL,
 });
 
 export default ENV;
