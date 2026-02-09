@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import axiosInstance from '@/lib/axios';
 import toast from 'react-hot-toast';
 import { CheckIcon, PlusIcon } from 'lucide-react';
+import { ROUTES } from '@/config/routes';
 
 export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
   const [menuPackages, setMenuPackages] = useState([]);
@@ -31,8 +32,8 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
     try {
       setLoading(true);
       const [packagesRes, itemsRes] = await Promise.all([
-        axiosInstance.get('/api/v1/menus'),
-        axiosInstance.get('/api/v1/dishes')
+        axiosInstance.get(ROUTES.API.MENUS.ROOT),
+        axiosInstance.get(ROUTES.API.DISHES.ROOT)
       ]);
 
       setMenuPackages(packagesRes.data || []);
@@ -201,7 +202,7 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                window.location.href = `/menus/${pkg.slug}`;
+                window.location.href = ROUTES.SITE.MENU_DETAILS(pkg.slug);
               }}
               className="bg-white text-[#66213f] px-6 py-3 rounded-lg font-semibold 
                    hover:bg-[#66213f] hover:text-white transition-colors duration-300

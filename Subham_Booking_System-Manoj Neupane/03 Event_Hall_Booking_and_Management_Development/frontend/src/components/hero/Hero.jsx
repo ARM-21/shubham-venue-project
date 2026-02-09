@@ -2,6 +2,7 @@
 
 import Carousel from '@/components/carousel/slider.jsx';
 import { useRouter } from 'next/navigation';
+import { ROUTES } from '@/config/routes';
 
 export default function Hero({ images = [], interval = 4000 }) {
   const router = useRouter();
@@ -17,14 +18,14 @@ export default function Hero({ images = [], interval = 4000 }) {
               <h3 className="sm:text-2xl md:text-[19px] lg:text-lg font-bold text-[#250815] mr-2">Ready to book?</h3>
               <div className="flex flex-col md:flex-row gap-3 ">
                 <button
-                  onClick={() => router.push('/search-availability')}
+                  onClick={() => router.push(ROUTES.SITE.SEARCH_AVAILABILITY())}
                   className="bg-[var(--maroon-primary)] text-white px-4 py-2  max-w-xl font-semibold rounded-lg hover:bg-[var(--maroon-hover)] transition cursor-pointer"
                   aria-label="View availability"
                 >
                   View availability
                 </button>
                 <button
-                  onClick={() => router.push('/venues')}
+                  onClick={() => router.push(ROUTES.SITE.VENUES())}
                   className="px-4 py-2 rounded-lg font-normal border border-gray-200 text-gray-700 hover:bg-gray-50 transition cursor-pointer max-w-xl"
                   aria-label="Browse halls"
                 >

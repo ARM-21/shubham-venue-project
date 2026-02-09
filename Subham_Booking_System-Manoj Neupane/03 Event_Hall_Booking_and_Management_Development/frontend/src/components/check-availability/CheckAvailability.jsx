@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import axiosInstance from '@/lib/axios';
 import { useAuth } from '@/contexts/AuthProvider';
+import { ROUTES } from '@/config/routes';
 import { Castle, CalendarCheck, Clock, Users } from 'lucide-react';
 
 const SLOT_LABELS = {
@@ -48,8 +49,8 @@ export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapa
       };
 
       const res = hallId
-        ? await axiosInstance.post(`/api/v1/halls/${hallId}/availability`, payload)
-        : await axiosInstance.get(`/api/v1/halls/availability`, { params: payload });
+        ? await axiosInstance.post(ROUTES.API.HALLS.BY_ID_AVAILABILITY(hallId), payload)
+        : await axiosInstance.get(ROUTES.API.HALLS.AVAILABILITY, { params: payload });
 
       setStatus(res.data.halls || res.data);
     } catch (e) {
@@ -73,11 +74,11 @@ export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapa
       localStorage.setItem('bookingIntent', JSON.stringify(bookingIntent));
 
       // Redirect to login with return URL
-      const returnUrl = `/venues/${hall.slug}/book?date=${date}&slot=${slot}&guests=${guests}`;
-      router.push(`/auth?redirect=${encodeURIComponent(returnUrl)}`);
+      const returnUrl = `${ROUTES.SITE.VENUE_BOOK(hall.slug)}?date=${date}&slot=${slot}&guests=${guests}`;
+      router.push(`${ROUTES.AUTH.ROOT}?redirect=${encodeURIComponent(returnUrl)}`);
     } else {
       // User is authenticated, go to booking page
-      router.push(`/venues/${hall.slug}/book?date=${date}&slot=${slot}&guests=${guests}`);
+      router.push(`${ROUTES.SITE.VENUE_BOOK(hall.slug)}?date=${date}&slot=${slot}&guests=${guests}`);
     }
   };
 

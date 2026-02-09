@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import axiosInstance from '@/lib/axios';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthProvider';
+import { ROUTES } from '@/config/routes';
 
 export default function ProfilePage() {
   const { user: authUser, loading, logout, setUser } = useAuth();
@@ -50,13 +51,13 @@ export default function ProfilePage() {
   const newPassword = watch('newPassword');
 
   useEffect(() => {
-    if (!loading && !authUser) router.replace('/auth');
+    if (!loading && !authUser) router.replace(ROUTES.AUTH.ROOT);
   }, [loading, authUser, router]);
 
   useEffect(() => {
     async function fetchProfile() {
       try {
-        const res = await axiosInstance.get('/api/v1/profile/me');
+        const res = await axiosInstance.get(ROUTES.API.PROFILE.ME);
         const userData = res.data.user ?? res.data;
         setLocalUser(userData);
 
@@ -85,7 +86,7 @@ export default function ProfilePage() {
   async function saveProfile(data) {
     setStatus({ loading: true, message: null, error: null });
     try {
-      const res = await axiosInstance.put('/api/v1/profile/me', {
+      const res = await axiosInstance.put(ROUTES.API.PROFILE.UPDATE, {
         first_name: data.first_name.trim(),
         last_name: data.last_name.trim(),
         phone: data.phone?.trim() || null
@@ -114,7 +115,7 @@ export default function ProfilePage() {
     try {
       // Get presigned URL from backend
       const fileExtension = avatarFile.name.substring(avatarFile.name.lastIndexOf('.'));
-      const urlResponse = await axiosInstance.post('/api/v1/profile/me/avatar/upload-url', {
+      const urlResponse = await axiosInstance.post(ROUTES.API.PROFILE.AVATAR_UPLOAD_URL, {
         fileExtension: fileExtension,
         contentType: avatarFile.type,
       });
@@ -131,7 +132,7 @@ export default function ProfilePage() {
       });
 
       // Confirm upload with backend
-      const confirmResponse = await axiosInstance.post('/api/v1/profile/me/avatar/confirm', {
+      const confirmResponse = await axiosInstance.post(ROUTES.API.PROFILE.AVATAR_CONFIRM, {
         s3Key: key,
         publicUrl: publicUrl,
       });
@@ -175,7 +176,7 @@ export default function ProfilePage() {
   async function changePassword(data) {
     setStatus({ loading: true, message: null, error: null });
     try {
-      await axiosInstance.put('/api/v1/profile/password', {
+      await axiosInstance.put(ROUTES.API.PROFILE.PASSWORD, {
         currentPassword: data.currentPassword,
         newPassword: data.newPassword
       });
@@ -193,7 +194,7 @@ export default function ProfilePage() {
 
   async function handleLogout() {
     await logout();
-    router.push('/');
+    router.push(ROUTES.HOME);
   }
 
   function handleCancelEdit() {
@@ -318,7 +319,7 @@ export default function ProfilePage() {
                 {/* Quick Actions */}
                 <div className="mt-6 w-full space-y-2">
                   <button
-                    onClick={() => router.push('/bookings')}
+                    onClick={() => router.push(ROUTES.SITE.BOOKINGS)}
                     className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition"
                   >
                     My Bookings

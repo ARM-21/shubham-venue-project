@@ -2,6 +2,7 @@ import { useState } from 'react';
 import axiosInstance from '@/lib/axios';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { ROUTES } from '@/config/routes';
 
 export default function Step4Payment({ data, reservationId, onPrev }) {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
 
     try {
       // 1. Create booking
-      const bookingRes = await axiosInstance.post("/api/v1/bookings", {
+      const bookingRes = await axiosInstance.post(ROUTES.API.BOOKINGS.ROOT, {
         ...data,
         reservationId,
         paymentMethod,
@@ -22,7 +23,7 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
 
       const bookingId = bookingRes.data.booking._id;
 
-      const fallbackRedirect = data?.hallSlug ? `/venues/${data.hallSlug}` : "/";
+      const fallbackRedirect = data?.hallSlug ? ROUTES.SITE.VENUES(data.hallSlug) : ROUTES.HOME;
 
       if (paymentMethod === "cash") {
         // Cash: just confirm and redirect
@@ -32,7 +33,7 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
       }
 
       // 2. Online payment: initiate
-      const paymentRes = await axiosInstance.post("/api/v1/payments/initiate", {
+      const paymentRes = await axiosInstance.post(ROUTES.API.PAYMENTS.INITIATE, {
         bookingId,
         gateway,
       });

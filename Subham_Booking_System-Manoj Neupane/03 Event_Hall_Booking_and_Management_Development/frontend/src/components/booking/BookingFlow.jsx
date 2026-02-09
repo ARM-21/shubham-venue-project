@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axiosInstance from '@/lib/axios';
+import { ROUTES } from '@/config/routes';
 import toast from 'react-hot-toast';
 import Step1EventDetails from './steps/Step1EventDetails';
 import StepIndicator from './indicator/StepIndicator';
@@ -48,7 +49,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
       setIsReserved(false);
       setReservationId(null);
       setCurrentStep(1);
-      router.push(`/venues/${hall.slug}`);
+      router.push(ROUTES.SITE.VENUES(hall.slug));
       return;
     }
 
@@ -64,7 +65,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     try {
       toast.loading('Reserving hall...');
 
-      const res = await axiosInstance.post('/api/v1/bookings/reserve', {
+      const res = await axiosInstance.post(ROUTES.API.BOOKINGS.RESERVE, {
         hallId: hall._id,
         date: initialDate,
         slot: initialSlot,
@@ -84,7 +85,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
       if (error.response?.status === 400) {
         // Hall was just booked by someone else
         toast.error('Sorry, this hall was just booked. Please select another time.');
-        router.push(`/venues/${hall.slug}`);
+        router.push(ROUTES.SITE.VENUES(hall.slug));
       } else {
         toast.error(error.response?.data?.message || 'Failed to reserve hall');
       }
@@ -127,7 +128,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     if (!reservationId) return;
 
     try {
-      await axiosInstance.delete(`/api/v1/bookings/reserve/${reservationId}`);
+      await axiosInstance.delete(ROUTES.API.BOOKINGS.RESERVE_BY_ID(reservationId));
       setReservationId(null);
       setTimeLeft(null);
       setIsReserved(false);

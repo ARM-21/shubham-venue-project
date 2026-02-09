@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import axiosInstance from "@/lib/axios";
+import { ROUTES } from "@/config/routes";
 
 export default function page() {
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
@@ -16,21 +17,21 @@ export default function page() {
   
   // Redirect authenticated users away from signup
   useEffect(() => {
-    if (!authLoading && user) router.replace('/');
+    if (!authLoading && user) router.replace(ROUTES.HOME);
   }, [authLoading, user, router]);
   const password = watch("password", "");
 
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      const promise = axiosInstance.post("/api/v1/auth/register", data);
+      const promise = axiosInstance.post(ROUTES.API.AUTH.REGISTER, data);
       const res = await toast.promise(promise, {
         loading: "Creating account…",
         success: (r) => r?.data?.message || "Account created",
         error: (err) => err?.response?.data?.message || "Registration failed",
       });
 
-      router.push("/login");
+      router.push(ROUTES.AUTH.LOGIN);
     } catch (err) {
       // error already shown by toast.promise
       console.error(err);

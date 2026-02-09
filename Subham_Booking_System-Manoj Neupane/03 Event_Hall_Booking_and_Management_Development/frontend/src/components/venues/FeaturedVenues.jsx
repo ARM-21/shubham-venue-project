@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import axiosInstance from '@/lib/axios';
 import { useEffect, useState } from 'react';
 import Skeleton from './skeleton-loading/Skeleton';
+import { ROUTES } from '@/config/routes';
 
 export default function FeaturedVenues() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function FeaturedVenues() {
     async function fetchFeaturedVenues() {
       try {
         setLoading(true);
-        const response = await axiosInstance.get('/api/v1/halls');
+        const response = await axiosInstance.get(ROUTES.API.HALLS.ROOT);
         setFeaturedVenues(response.data.halls || []);
         console.log('Featured Venues:', response.data);
       } catch (error) {
@@ -46,7 +47,7 @@ export default function FeaturedVenues() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {featuredVenues.map((v) => (
-              <article key={v._id} className="bg-white rounded-xl shadow-sm overflow-hidden border cursor-pointer transition-transform"  onClick={() => router.push(`/venues/${v.slug}`)}>
+              <article key={v._id} className="bg-white rounded-xl shadow-sm overflow-hidden border cursor-pointer transition-transform"  onClick={() => router.push(ROUTES.SITE.VENUES(v.slug))}>
                 <div className="h-40 w-full relative">
                  {/* v.image || v.images?.[0] ||  */}
                   <Image src={ '/assets/business-images/placeholder.jpg'} alt={v.slug || v.name} fill className="object-cover" priority sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
@@ -57,7 +58,7 @@ export default function FeaturedVenues() {
                   <p className="text-sm text-gray-500 mb-3">Capacity: {v.capacity}</p>
                   <div className="flex items-center justify-between">
                     <div className="text-sm font-semibold">{v.price}</div>
-                    <button onClick={() => router.push(`/venues/${v.slug}`)} className="text-sm text-[var(--maroon-primary)] font-medium hover:underline cursor-pointer">View / Book</button>
+                    <button onClick={() => router.push(ROUTES.SITE.VENUES(v.slug))} className="text-sm text-[var(--maroon-primary)] font-medium hover:underline cursor-pointer">View / Book</button>
                   </div>
                 </div>
               </article>

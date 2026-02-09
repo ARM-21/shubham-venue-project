@@ -7,6 +7,7 @@ import MenuSkeleton from "@/components/menu/menus-page/MenuSkeleton";
 import FilterSkeleton from "@/components/menu/menus-page/FilterSkeleton";
 import SearchFilter from "@/components/menu/menus-page/SearchFilter";
 import MenuStats from "@/components/menu/menus-page/MenuStats";
+import { ROUTES } from "@/config/routes";
 
 
 const STATIC_MENU_IMAGES = {
@@ -29,7 +30,7 @@ export default function MenuListPage() {
         const fetchMenus = async () => {
             setIsLoading(true);
             try {
-                const res = await axiosInstance.get("/api/v1/menus");
+                const res = await axiosInstance.get(ROUTES.API.MENUS.ROOT);
                 const data = res.data;
                 console.debug("Fetched menus data:", data);
                 setMenus(data);
@@ -228,7 +229,7 @@ export default function MenuListPage() {
                                 {/* Action Buttons */}
                                 <div className="flex gap-3">
                                     <Link
-                                        href={`/menus/${menu.slug}`}
+                                        href={ROUTES.SITE.MENU_DETAILS(menu.slug)}
                                         className="flex-1 text-center px-4 py-2 bg-white border-1 border-gray-200  text-black rounded-lg hover:border-black transition-colors font-medium"
                                     >
                                         View Details

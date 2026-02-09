@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthProvider';
 import { useEffect } from 'react';
 import EnterOTP from '../otp/EnterOTP';
 import Modal from '../ui/Modal';
+import { ROUTES } from '@/config/routes';
 
 export default function RegisterForm({ onSwitch }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, watch } = useForm();
@@ -35,7 +36,7 @@ export default function RegisterForm({ onSwitch }) {
     // setLoading(true);
     try {
       const { confirmPassword, ...payload } = data;
-      const promise = axiosInstance.post('/api/v1/auth/register', payload);
+      const promise = axiosInstance.post(ROUTES.API.AUTH.REGISTER, payload);
       
       const response  = await toast.promise(promise, {
         loading: 'Creating your account...',
@@ -67,7 +68,7 @@ export default function RegisterForm({ onSwitch }) {
 
     setIsVerifying(true);
     try {
-      const promise = axiosInstance.post('/api/v1/auth/verify-otp', {
+      const promise = axiosInstance.post(ROUTES.API.AUTH.VERIFY_OTP, {
         userId,
         code: otpCode
       });
@@ -100,7 +101,7 @@ export default function RegisterForm({ onSwitch }) {
   async function handleResendOTP() {
     setIsResending(true);
     try {
-      const promise = axiosInstance.post('/api/v1/auth/resend-otp', {
+      const promise = axiosInstance.post(ROUTES.API.AUTH.RESEND_OTP, {
         userId
       });
 

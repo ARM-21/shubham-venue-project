@@ -2,6 +2,7 @@ import React from "react";
 import axiosInstance from "@/lib/axios";
 import Image from "next/image";
 import Link from "next/link";
+import { ROUTES } from '@/config/routes';
 
 
 export default async function Menus({ limit = 3 }) {
@@ -28,7 +29,7 @@ export default async function Menus({ limit = 3 }) {
   if (!Array.isArray(menus) && menus?.menus) menus = menus.menus;
 
   menus = Array.isArray(menus) ? menus.slice(0, limit) : [];
-
+      const res = await axiosInstance.get(ROUTES.API.MENUS.ROOT);
   return (
     <section style={{ padding: "2rem 1rem", maxWidth: 1000, margin: "0 auto" }}>
       <h2 style={{ marginBottom: "1rem" }}>Explore Our Menus</h2>

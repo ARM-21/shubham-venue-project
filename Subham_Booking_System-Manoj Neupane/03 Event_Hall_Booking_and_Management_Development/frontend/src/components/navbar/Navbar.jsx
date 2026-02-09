@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthProvider';
 import { House, Info, Menu, X, Images, Contact, LogIn, LogOut } from "lucide-react";
 import { Icon } from 'lucide-react';
+import { ROUTES } from '@/config/routes';
 
 
 const actions = [
@@ -42,7 +43,7 @@ export default function Navbar() {
       <nav className="flex justify-between items-center px-4 sm:px-8 py-4 max-w-7xl mx-auto" ref={menuRef}>
         {/* Logo section */}
         <div className="relative">
-          <Link href="/" className="flex items-center">
+          <Link href={ROUTES.HOME} className="flex items-center">
             <Image
               src="/assets/business-icons/video.gif"
               alt="Shubham Party Palace Logo"
@@ -83,7 +84,7 @@ export default function Navbar() {
               <>
                 <Action name="login" id="auth" icon={LogIn} onClick={() => {
                   setHamActive(false);
-                  router.replace('/auth');
+                  router.replace(ROUTES.AUTH.ROOT);
                 }} />
               </>
             ) : (
@@ -106,19 +107,27 @@ export default function Navbar() {
                   <div className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg ring-1 ring-amber-900 ring-opacity-5 py-1 z-50 cursor-pointer">
                     <button
                       className="w-full text-left px-4 py-2 text-[12px] text-gray-700 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => { setProfileOpen(false); router.replace('/profile'); }}
+                      onClick={() => { setProfileOpen(false); router.replace(ROUTES.SITE.PROFILE); }}
                     >
                       {user.email}
                     </button>
                     <button
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => { setProfileOpen(false); router.replace('/profile'); }}
+                      onClick={() => { setProfileOpen(false); router.replace(ROUTES.SITE.PROFILE); }}
                     >
                       Profile
                     </button>
+                    {user?.role?.toLowerCase?.() === 'admin' && (
+                      <button
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => { setProfileOpen(false); router.replace(ROUTES.ADMIN.DASHBOARD); }}
+                      >
+                        Admin Dashboard
+                      </button>
+                    )}
                     <button
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={async () => { setProfileOpen(false); try { await logout(); } catch (e) { console.error(e); } router.replace('/'); }}
+                      onClick={async () => { setProfileOpen(false); try { await logout(); } catch (e) { console.error(e); } router.replace(ROUTES.HOME); }}
                     >
                       Logout
                     </button>

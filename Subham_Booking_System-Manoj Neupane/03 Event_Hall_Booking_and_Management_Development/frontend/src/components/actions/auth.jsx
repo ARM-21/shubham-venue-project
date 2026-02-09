@@ -1,10 +1,11 @@
 import axiosInstance from '@/lib/axios';
 import toast from 'react-hot-toast';
 import React from 'react'
+import { ROUTES } from '@/config/routes';
 
 export async function loginAction(data) {
     console.log(data)
-    const response = axiosInstance.post(`/api/v1/auth/login`, data);
+    const response = axiosInstance.post(ROUTES.API.AUTH.LOGIN, data);
     console.log(response)
 
     const res = await toast.promise(response, {

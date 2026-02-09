@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import BookingFlow from '@/components/booking/BookingFlow';
 import axiosInstance from '@/lib/axios';
+import { ROUTES } from '@/config/routes';
 
 export default async function BookingPage({ params, searchParams }) {
   console.log(await params)
@@ -14,14 +15,14 @@ export default async function BookingPage({ params, searchParams }) {
   console.log(sessionCookie)
   
   if (!sessionCookie || !sessionCookie.value) {
-    const currentUrl = `/venues/${slug}/book?date=${date}&slot=${slot}&guests=${guests}`;
-    redirect(`/auth/login?redirect=${encodeURIComponent(currentUrl)}`);
+    const currentUrl = `${ROUTES.SITE.VENUE_BOOK(slug)}?date=${date}&slot=${slot}&guests=${guests}`;
+    redirect(`${ROUTES.AUTH.LOGIN}?redirect=${encodeURIComponent(currentUrl)}`);
   }
 
   let hall;
   try {
     console.log(slug)
-    const res = await axiosInstance.get(`/api/v1/halls/${slug}`);
+    const res = await axiosInstance.get(ROUTES.API.HALLS.BY_SLUG(slug));
     hall = res.data?.hall;
     console.log(hall);
   } catch (error) {
@@ -29,7 +30,7 @@ export default async function BookingPage({ params, searchParams }) {
   }
 
   if (!date || !slot || !guests) {
-    redirect(`/venues/${slug}`);
+    redirect(ROUTES.SITE.VENUES(slug));
   }
 
   return (

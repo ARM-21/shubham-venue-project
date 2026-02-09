@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import axiosInstance from "@/lib/axios";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { ROUTES } from "@/config/routes";
 
 const STATUS_COLORS = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -47,7 +48,7 @@ export default function BookingsPage() {
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const res = await axiosInstance.get("/api/v1/bookings/my", {
+      const res = await axiosInstance.get(ROUTES.API.BOOKINGS.MINE, {
         params: {
           status: statusFilter || undefined,
           limit: 50,
@@ -59,7 +60,7 @@ export default function BookingsPage() {
       const msg = err?.response?.data?.message || "Failed to load bookings";
       toast.error(msg);
       if (err?.response?.status === 401) {
-        router.push("/auth/login");
+        router.push(ROUTES.AUTH.LOGIN);
       }
     } finally {
       setLoading(false);
@@ -137,7 +138,7 @@ export default function BookingsPage() {
                   <button
                     onClick={() => {
                       const slug = hallSlug(b.hallId);
-                      if (slug) router.push(`/venues/${slug}`);
+                      if (slug) router.push(ROUTES.SITE.VENUES(slug));
                     }}
                     className="text-sm text-[#66213f] hover:underline"
                   >

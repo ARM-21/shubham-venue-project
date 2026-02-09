@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axiosInstance from '@/lib/axios';
 import Image from 'next/image';
+import { ROUTES } from '@/config/routes';
 
 export default function VenuesPage() {
   const [halls, setHalls] = useState([]);
@@ -14,7 +15,7 @@ export default function VenuesPage() {
     async function fetchHalls() {
       try {
         setLoading(true);
-        const response = await axiosInstance.get('/api/v1/halls');
+        const response = await axiosInstance.get(ROUTES.API.HALLS.ROOT);
         setHalls(response.data.halls || []);
         console.log('Venues:', response.data);
       } catch (error) {
@@ -28,11 +29,11 @@ export default function VenuesPage() {
   }, []);
 
   const handleViewDetails = (slug) => {
-    router.push(`/venues/${slug}`);
+    router.push(ROUTES.SITE.VENUES(slug));
   };
 
   const handleBookNow = (slug) => {
-    router.push(`/search-availability/${slug}`);
+    router.push(ROUTES.SITE.SEARCH_AVAILABILITY(slug));
   };
 
   if (loading) {
@@ -48,7 +49,7 @@ export default function VenuesPage() {
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="text-lg text-gray-600 mb-4">No venues available</div>
         <button
-          onClick={() => router.push('/')}
+          onClick={() => router.push(ROUTES.HOME)}
           className="bg-[var(--maroon-primary)] text-white px-6 py-2 rounded-lg hover:bg-[var(--maroon-hover)] transition"
         >
           Go Home

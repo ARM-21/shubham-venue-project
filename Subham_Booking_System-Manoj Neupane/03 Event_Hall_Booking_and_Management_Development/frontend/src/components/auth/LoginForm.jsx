@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useRouter, useSearchParams } from 'next/navigation'; 
 import { useAuth } from '@/contexts/AuthProvider';
+import { ROUTES } from '@/config/routes';
 
 export default function LoginForm({ onSwitch }) {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
@@ -18,17 +19,21 @@ export default function LoginForm({ onSwitch }) {
     setLoading(true);
     try {
       const promise = login(data);
-      await toast.promise(promise, {
+      const res = await toast.promise(promise, {
         loading: 'Logging in...',
         success: (r) => r?.data?.message || 'Logged in successfully!',
         error: (err) => err?.response?.data?.message || 'Login failed',
       });
-      
-      // Redirect to saved URL or home
+
+      const loggedInUser = res?.data?.user ?? res?.data ?? null;
+
+      // Redirect to saved URL first, otherwise admins go to dashboard, others go home
       if (redirectUrl) {
         router.push(redirectUrl);
+      } else if (loggedInUser?.role?.toLowerCase?.() === 'admin') {
+        router.push(ROUTES.ADMIN.DASHBOARD);
       } else {
-        router.push('/');
+        router.push(ROUTES.HOME);
       }
     } catch (err) {
       console.error(err);

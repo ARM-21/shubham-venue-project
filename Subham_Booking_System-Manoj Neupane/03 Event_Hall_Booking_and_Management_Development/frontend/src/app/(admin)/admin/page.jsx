@@ -4,6 +4,7 @@ import StatCard from "@/components/admin/dashboard/StatCard";
 import RevenueOverview from "@/components/admin/dashboard/RevenueOverview";
 import OccupancyCard from "@/components/admin/dashboard/OccupancyCard";
 import BookingsTable from "@/components/admin/dashboard/BookingsTable";
+import { ROUTES } from "@/config/routes";
 import {
   CalendarCheck,
   CircleDollarSign,
@@ -17,12 +18,12 @@ export const metadata = {
 };
 
 const navItems = [
-  { key: "dashboard", label: "Dashboard", href: "/admin", active: true },
-  { key: "bookings", label: "Bookings", href: "/admin/bookings" },
-  { key: "halls", label: "Halls", href: "/admin/halls" },
-  { key: "users", label: "Users", href: "/admin/users" },
-  { key: "reports", label: "Reports", href: "/admin/reports" },
-  { key: "settings", label: "Settings", href: "/admin/settings" },
+  { key: "dashboard", label: "Dashboard", href: ROUTES.ADMIN.DASHBOARD, active: true },
+  { key: "bookings", label: "Bookings", href: ROUTES.ADMIN.BOOKINGS },
+  { key: "halls", label: "Halls", href: ROUTES.ADMIN.HALLS },
+  { key: "users", label: "Users", href: ROUTES.ADMIN.USERS },
+  { key: "reports", label: "Reports", href: ROUTES.ADMIN.REPORTS },
+  { key: "settings", label: "Settings", href: ROUTES.ADMIN.SETTINGS },
 ];
 
 const profile = {

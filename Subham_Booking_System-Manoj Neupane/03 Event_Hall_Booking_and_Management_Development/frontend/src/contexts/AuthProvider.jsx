@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import axiosInstance from "@/lib/axios";
+import { ROUTES } from "@/config/routes";
 
 const AuthContext = createContext(null);
 
@@ -10,7 +11,7 @@ export function AuthProvider({ children }) {
 
    async function getProfile() {
     try {
-        const res = await axiosInstance.get("/api/v1/profile/me");
+        const res = await axiosInstance.get(ROUTES.API.PROFILE.ME);
         const user = res?.data?.user ?? res?.data ?? null;
 
         if (user && user.isEmailVerified === false) {
@@ -32,12 +33,12 @@ export function AuthProvider({ children }) {
 
 
     const login = async (credentials) => {
-        const res = await axiosInstance.post("/api/v1/auth/login", credentials);
+        const res = await axiosInstance.post(ROUTES.API.AUTH.LOGIN, credentials);
              const maybeUser = res?.data?.user ?? res?.data ?? null;
         if (maybeUser) setUser(maybeUser);
 
         try {
-            const me = await axiosInstance.get("/api/v1/profile/me");
+            const me = await axiosInstance.get(ROUTES.API.PROFILE.ME);
             setUser(me?.data?.user ?? me?.data ?? maybeUser);
         } catch (e) {
             console.log("login failed",e)
@@ -47,7 +48,7 @@ export function AuthProvider({ children }) {
 
     const logout = async () => {
         try {
-            await axiosInstance.post("/api/v1/auth/logout");
+            await axiosInstance.post(ROUTES.API.AUTH.LOGOUT);
         } catch (e) {
             console.error("Logout failed:", e);
         } finally {

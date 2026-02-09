@@ -5,6 +5,7 @@ import Link from "next/link";
 import axiosInstance from "@/lib/axios";
 import MenuPageSkeletonLoading from "@/components/menu/page/MenuPageSkeletonLoading";
 import { Menu } from "lucide-react";
+import { ROUTES } from "@/config/routes";
 
 export default function Page({ params }) {
   const { menuSlug } = React.use(params);
@@ -15,7 +16,7 @@ export default function Page({ params }) {
     const fetchMenu = async () => {
       setIsLoading(true);
       try {
-        const res = await axiosInstance.get(`/api/v1/menus/${menuSlug}`);
+        const res = await axiosInstance.get(ROUTES.API.MENUS.BY_SLUG(menuSlug));
         const data = res.data;
         console.debug("Fetched menu data:", data);
         setMenu(data);
@@ -52,7 +53,7 @@ export default function Page({ params }) {
           <p className="text-gray-600 mb-4">
             We couldn't find a menu named <span className="font-medium">{menuSlug}</span>.
           </p>
-          <Link href="/" className="inline-block px-4 py-2 bg-indigo-600 text-white rounded">
+          <Link href={ROUTES.HOME} className="inline-block px-4 py-2 bg-indigo-600 text-white rounded">
             Back to menus
           </Link>
         </div>
@@ -140,7 +141,7 @@ export default function Page({ params }) {
           </section>
 
           <div className="flex gap-3">
-            <Link href="/" className="inline-block px-4 py-2 border rounded text-gray-700 hover:bg-gray-50">
+            <Link href={ROUTES.HOME} className="inline-block px-4 py-2 border rounded text-gray-700 hover:bg-gray-50">
               Back
             </Link>
             <button className="inline-block px-4 py-2 bg-emerald-600 text-white rounded">Select this menu</button>

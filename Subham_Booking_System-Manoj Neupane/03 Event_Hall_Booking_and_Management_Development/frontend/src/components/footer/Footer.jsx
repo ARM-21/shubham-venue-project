@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ROUTES } from '@/config/routes';
 
 export default function Footer() {
   return (
@@ -23,12 +24,12 @@ export default function Footer() {
             <h3 className="text-white text-lg font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/" className="text-sm hover:text-white transition">
+                <Link href={ROUTES.HOME} className="text-sm hover:text-white transition">
                   Home
                 </Link>
               </li>
               <li>
-                <Link href="/venues" className="text-sm hover:text-white transition">
+                <Link href={ROUTES.SITE.VENUES()} className="text-sm hover:text-white transition">
                   Browse Venues
                 </Link>
               </li>
@@ -50,22 +51,22 @@ export default function Footer() {
             <h3 className="text-white text-lg font-semibold mb-4">Services</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/venues?type=wedding" className="text-sm hover:text-white transition">
+                <Link href={`${ROUTES.SITE.VENUES()}?type=wedding`} className="text-sm hover:text-white transition">
                   Wedding Halls
                 </Link>
               </li>
               <li>
-                <Link href="/venues?type=birthday" className="text-sm hover:text-white transition">
+                <Link href={`${ROUTES.SITE.VENUES()}?type=birthday`} className="text-sm hover:text-white transition">
                   Birthday Parties
                 </Link>
               </li>
               <li>
-                <Link href="/venues?type=corporate" className="text-sm hover:text-white transition">
+                <Link href={`${ROUTES.SITE.VENUES()}?type=corporate`} className="text-sm hover:text-white transition">
                   Corporate Events
                 </Link>
               </li>
               <li>
-                <Link href="/venues?type=conference" className="text-sm hover:text-white transition">
+                <Link href={`${ROUTES.SITE.VENUES()}?type=conference`} className="text-sm hover:text-white transition">
                   Conferences
                 </Link>
               </li>
