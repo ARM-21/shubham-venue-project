@@ -1,6 +1,7 @@
 import express from "express";
 import Booking from "../../models/Booking.js";
 import Hall from "../../models/Hall.js";
+import mongoose from "mongoose";
 import { isAuthenticated } from "../../middleware/auth.middleware.js";
 import { checkHallAvailability } from "../../services/hall/hall.service.js";
 
@@ -221,9 +222,47 @@ router.post("/", isAuthenticated, async (req, res, next) => {
   }
 });
 
+// GET /my -> list current user's bookings (most recent first)
+router.get("/my", isAuthenticated, async (req, res, next) => {
+  try {
+    const { status, limit = 20, page = 1 } = req.query || {};
+    const lim = Math.min(Number(limit) || 20, 100);
+    const skip = Math.max((Number(page) - 1) * lim, 0);
+
+    const filter = { userId: req.currentUser._id };
+    if (status && ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED"].includes(status)) {
+      filter.status = status;
+    }
+
+    const [items, total] = await Promise.all([
+      Booking.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(lim)
+        .select("hallId date slot status totalAmount menuTotal decorationTotal hallPrice reservedUntil guests eventName eventType createdAt updatedAt")
+        .populate({ path: "hallId", select: "name slug" })
+        .lean(),
+      Booking.countDocuments(filter),
+    ]);
+
+    return res.json({
+      items,
+      page: Number(page) || 1,
+      limit: lim,
+      total,
+      totalPages: Math.ceil(total / lim) || 1,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 // GET /:id -> simple fetch (for redirect targets)
 router.get("/:id", isAuthenticated, async (req, res, next) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid booking id" });
+    }
     const booking = await Booking.findOne({ _id: req.params.id, userId: req.currentUser._id });
     if (!booking) return res.status(404).json({ message: "Booking not found" });
     return res.json({ booking });
