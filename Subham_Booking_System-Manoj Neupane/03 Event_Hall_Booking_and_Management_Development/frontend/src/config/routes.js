@@ -9,6 +9,10 @@ export const ROUTES = {
     ROOT: '/admin',
     DASHBOARD: '/admin',
     BOOKINGS: '/admin/bookings',
+      MENUS: '/admin/menus',
+      MENU_DETAIL: (idOrSlug) => `/admin/menus/${idOrSlug}`,
+      DECORATIONS: '/admin/decorations',
+      DECORATION_DETAIL: (idOrSlug) => `/admin/decorations/${idOrSlug}`,
     HALLS: '/admin/halls',
     USERS: '/admin/users',
     REPORTS: '/admin/reports',
@@ -61,6 +65,16 @@ export const ROUTES = {
     },
     PAYMENTS: {
       INITIATE: '/api/v1/payments/initiate',
+    },
+    ADMIN: {
+      OVERVIEW: '/api/v1/admin/overview',
+      BOOKING_STATUS: (id) => `/api/v1/admin/bookings/${id}/status`,
+      BOOKING_PAYMENT: (id) => `/api/v1/admin/bookings/${id}/payment`,
+      BOOKING_DETAIL: (id) => `/api/v1/admin/bookings/${id}`,
+      BOOKING_UPDATE: (id) => `/api/v1/admin/bookings/${id}`,
+      BOOKING_DELETE: (id) => `/api/v1/admin/bookings/${id}`,
+      BOOKINGS: '/api/v1/admin/bookings',
+      USERS: '/api/v1/admin/users',
     },
   },
 };

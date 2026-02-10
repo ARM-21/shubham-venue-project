@@ -11,6 +11,7 @@ import hallRoutes from "./hall/hall.routes.js"
 import bookingRoutes from "./booking/booking.routes.js"
 import paymentRoutes from "./payment/payment.routes.js"
 import decorationRoutes from "./decoration/decoration.routes.js"
+import adminRoutes from "./admin/index.js"
 
 const router = express.Router();
 
@@ -25,5 +26,6 @@ router.use("/dishes", dishRoutes)
 router.use("/bookings", bookingRoutes)
 router.use("/payments", paymentRoutes)
 router.use("/decorations", decorationRoutes)
+router.use("/admin", adminRoutes)
 
 export default router;

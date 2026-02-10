@@ -1,25 +1,108 @@
-function buildChartPaths(points) {
-  const height = 180;
-  const width = Math.max(640, (points.length - 1) * 120);
-  const maxValue = Math.max(...points, 1);
+import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip,
+  Legend,
+} from "chart.js";
 
-  const coords = points.map((value, index) => {
-    const x = (width / (points.length - 1 || 1)) * index;
-    const y = height - (value / maxValue) * height;
-    return { x, y };
-  });
+const Line = dynamic(() => import("react-chartjs-2").then((m) => m.Line), { ssr: false });
 
-  const linePath = coords
-    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
-    .join(" ");
-
-  const areaPath = `${linePath} L ${width} ${height} L 0 ${height} Z`;
-
-  return { linePath, areaPath, width, height, coords };
+function hexToRgba(hex, alpha = 1) {
+  if (!hex) return `rgba(96,165,250,${alpha})`;
+  const h = hex.replace("#", "").trim();
+  if (h.length === 3) {
+    const r = parseInt(h[0] + h[0], 16);
+    const g = parseInt(h[1] + h[1], 16);
+    const b = parseInt(h[2] + h[2], 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 
-export default function RevenueOverview({ heading = "Revenue Overview", points, labels, rangeLabel = "Last 6 Months" }) {
-  const { linePath, areaPath, width, height, coords } = buildChartPaths(points);
+export default function RevenueOverview({ heading = "Revenue Overview", points = [], labels = [], rangeLabel = "Last 6 Months" }) {
+  const [colors, setColors] = useState({ primary: "#60a5fa", muted: "#9ca3af" });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
+    const root = document.documentElement;
+    const computed = getComputedStyle(root);
+    const primary = computed.getPropertyValue("--admin-primary")?.trim() || "#60a5fa";
+    const muted = computed.getPropertyValue("--admin-muted")?.trim() || "#9ca3af";
+    setColors({ primary, muted });
+  }, []);
+
+  const data = {
+    labels,
+    datasets: [
+      {
+        label: heading,
+        data: points,
+        fill: true,
+        backgroundColor: function (context) {
+          const chart = context.chart;
+          const { ctx, chartArea } = chart;
+          if (!chartArea) return hexToRgba(colors.primary, 0.25);
+          const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          gradient.addColorStop(0, hexToRgba(colors.primary, 0.45));
+          gradient.addColorStop(1, hexToRgba(colors.primary, 0));
+          return gradient;
+        },
+        borderColor: colors.primary,
+        borderWidth: 3,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        pointBackgroundColor: colors.primary,
+        pointBorderColor: "#ffffff",
+        pointHoverBackgroundColor: colors.primary,
+        tension: 0.35,
+      },
+    ],
+  };
+
+  const currencyFormatter = new Intl.NumberFormat("en-NP", { style: "currency", currency: "NPR", maximumFractionDigits: 0 });
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        enabled: true,
+        mode: "nearest",
+        intersect: false,
+        callbacks: {
+          label: function (context) {
+            const value = context.parsed.y ?? context.raw ?? 0;
+            return currencyFormatter.format(value);
+          },
+        },
+      },
+    },
+    interaction: { mode: "index", intersect: false },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: colors.muted, autoSkip: true, maxTicksLimit: 6 },
+      },
+      y: {
+        grid: { color: "rgba(255,255,255,0.04)" },
+        ticks: { color: colors.muted, callback: function(value){ return currencyFormatter.format(Number(value)); } },
+      },
+    },
+    elements: {
+      line: { borderJoinStyle: "round" },
+    },
+  };
 
   return (
     <div className="bg-[var(--admin-surface)] rounded-xl p-6 border border-white/5 lg:col-span-2">
@@ -31,57 +114,7 @@ export default function RevenueOverview({ heading = "Revenue Overview", points, 
       </div>
 
       <div className="h-64 w-full">
-        <svg
-          className="w-full h-full overflow-visible"
-          viewBox={`0 0 ${width} ${height}`}
-          preserveAspectRatio="none"
-        >
-          <defs>
-            <linearGradient id="adminChartGradient" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="var(--admin-primary)" stopOpacity="0.45" />
-              <stop offset="100%" stopColor="var(--admin-primary)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-
-          {[0.25, 0.5, 0.75].map((ratio) => (
-            <line
-              key={ratio}
-              x1="0"
-              y1={height * ratio}
-              x2={width}
-              y2={height * ratio}
-              stroke="white"
-              strokeOpacity="0.05"
-            />
-          ))}
-
-          <path d={areaPath} fill="url(#adminChartGradient)" />
-          <path
-            d={linePath}
-            fill="none"
-            stroke="var(--admin-primary)"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-
-          {coords.map((point, index) => (
-            <circle
-              key={index}
-              cx={point.x}
-              cy={point.y}
-              r={4}
-              fill="var(--admin-primary)"
-              stroke="white"
-              strokeWidth="2"
-            />
-          ))}
-        </svg>
-      </div>
-
-      <div className="flex justify-between mt-4 text-xs text-[var(--admin-muted)] font-medium px-1">
-        {labels.map((label) => (
-          <span key={label}>{label}</span>
-        ))}
+        <Line data={data} options={options} />
       </div>
     </div>
   );
