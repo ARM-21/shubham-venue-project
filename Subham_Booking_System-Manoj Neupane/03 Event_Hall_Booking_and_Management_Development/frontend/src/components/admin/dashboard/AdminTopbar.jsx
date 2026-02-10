@@ -2,7 +2,7 @@ import { Bell, Search, UserRound } from "lucide-react";
 
 export default function AdminTopbar({ heading }) {
   return (
-    <header className="sticky top-0 z-10 h-16 flex items-center justify-between px-6 lg:px-8 border-b border-[#3a1a1a] bg-[var(--admin-bg)]/90 backdrop-blur">
+    <header className="fixed left-64 right-0 top-0 z-30 h-16 flex items-center justify-between px-6 lg:px-8 border-b border-[#3a1a1a] bg-[var(--admin-bg)]/90 backdrop-blur">
       <div className="flex items-center gap-3">
         {heading ? (
           <h2 className="text-white text-lg font-semibold tracking-tight hidden md:block">

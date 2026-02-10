@@ -8,12 +8,12 @@ const paymentSchema = new mongoose.Schema(
     amount: { type: Number, required: true, min: 0 },
     currency: { type: String, default: "NPR" },
     
-    gateway: { type: String, enum: ["khalti", "esewa", "cash"], required: true },
+    gateway: { type: String, enum: ["KHALTI", "ESEWA", "CASH"], required: true },
     
     status: {
       type: String,
-      enum: ["initiated", "completed", "failed", "refunded"],
-      default: "initiated",
+      enum: ["INITIATED", "COMPLETED", "FAILED", "REFUNDED"],
+      default: "INITIATED",
       index: true,
     },
     

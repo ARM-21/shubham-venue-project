@@ -30,14 +30,14 @@ export default function OccupancyCard({ monthLabel, days = [], schedule = [] }) 
       <div className="bg-[var(--admin-surface-strong)] rounded-lg p-4 mb-4 border border-[#3a1a1a]">
         <div className="flex justify-between items-center mb-3 text-white">
           <span className="text-sm font-semibold">{monthLabel}</span>
-          <div className="flex gap-2 text-[var(--admin-muted)]">
+          {/* <div className="flex gap-2 text-[var(--admin-muted)]">
             <ChevronLeft className="size-4 cursor-pointer" />
             <ChevronRight className="size-4 cursor-pointer" />
-          </div>
+          </div> */}
         </div>
         <div className="grid grid-cols-7 gap-1 text-center text-xs mb-2 text-[var(--admin-muted)]/70">
-          {["S", "M", "T", "W", "T", "F", "S"].map((day) => (
-            <div key={day}>{day}</div>
+          {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
+            <div key={`${day}-${index}`}>{day}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1 text-center text-xs">
@@ -49,7 +49,7 @@ export default function OccupancyCard({ monthLabel, days = [], schedule = [] }) 
 
       <div className="space-y-3 mt-auto">
         <h4 className="text-xs font-semibold text-[var(--admin-muted)] uppercase tracking-wider">
-          Today's Schedule
+          Upcoming Schedule
         </h4>
         {schedule.map((item) => (
           <div

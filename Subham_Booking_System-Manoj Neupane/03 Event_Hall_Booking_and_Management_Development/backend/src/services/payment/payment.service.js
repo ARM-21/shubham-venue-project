@@ -110,8 +110,11 @@ export async function completePayment({ paymentId }) {
   await payment.save();
 
   await Booking.findByIdAndUpdate(payment.bookingId, {
-    status: "COMPLETED",
+    // keep status unchanged; admin will approve/reject manually even after payment
+    reservedUntil: null,
     paymentId: payment._id,
+    cancelledAt: null,
+    cancellationReason: null,
   });
 
   return payment;

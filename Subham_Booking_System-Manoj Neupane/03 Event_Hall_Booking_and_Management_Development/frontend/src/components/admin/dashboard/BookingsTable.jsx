@@ -1,4 +1,5 @@
 import { MoreVertical } from "lucide-react";
+import { ROUTES } from "@/config/routes";
 
 const statusStyles = {
   confirmed: "bg-green-500/10 text-green-400 border-green-500/20",
@@ -12,7 +13,7 @@ export default function BookingsTable({ bookings = [] }) {
     <div className="bg-[var(--admin-surface)] rounded-xl border border-white/5 overflow-hidden">
       <div className="p-6 border-b border-[#3a1a1a] flex justify-between items-center">
         <h3 className="text-white text-lg font-bold">Recent Booking Requests</h3>
-        <a className="text-[var(--admin-primary)] text-sm font-medium hover:text-[var(--admin-primary-dark)] transition-colors" href="#">
+        <a className="text-[var(--admin-primary)] text-sm font-medium hover:text-[var(--admin-primary-dark)] transition-colors" href={`${ROUTES.ADMIN.BOOKINGS}`}>
           View All
         </a>
       </div>
@@ -26,7 +27,7 @@ export default function BookingsTable({ bookings = [] }) {
               <th className="px-6 py-4">Date</th>
               <th className="px-6 py-4">Amount</th>
               <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-right">Action</th>
+              {/* <th className="px-6 py-4 text-right">Action</th> */}
             </tr>
           </thead>
           <tbody className="divide-y divide-[#3a1a1a]">
@@ -42,8 +43,8 @@ export default function BookingsTable({ bookings = [] }) {
                       <div
                         className="size-9 rounded-full bg-center bg-cover bg-no-repeat"
                         style={{
-                          backgroundImage: booking.avatar
-                            ? `url(${booking.avatar})`
+                          backgroundImage: booking.profilePicture
+                            ? `url(${booking.profilePicture})`
                             : "linear-gradient(135deg, #4a1d1d 0%, var(--admin-primary) 100%)",
                         }}
                       />
@@ -58,11 +59,11 @@ export default function BookingsTable({ bookings = [] }) {
                       {badgeText}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  {/* <td className="px-6 py-4 text-right">
                     <button className="text-[var(--admin-muted)] hover:text-white p-1">
                       <MoreVertical className="size-4" />
                     </button>
-                  </td>
+                  </td> */}
                 </tr>
               );
             })}

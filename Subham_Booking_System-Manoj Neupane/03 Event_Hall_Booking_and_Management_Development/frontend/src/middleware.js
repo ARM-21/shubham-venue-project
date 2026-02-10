@@ -36,7 +36,7 @@ export async function middleware(request) {
 
   if (isAdminRoute) {
     if (!hasSession) {
-      const loginUrl = new URL(ROUTES.AUTH.LOGIN, request.url);
+      const loginUrl = new URL(ROUTES.AUTH.ROOT, request.url);
       loginUrl.searchParams.set("redirect", `${pathname}${search}`);
       return NextResponse.redirect(loginUrl);
     }

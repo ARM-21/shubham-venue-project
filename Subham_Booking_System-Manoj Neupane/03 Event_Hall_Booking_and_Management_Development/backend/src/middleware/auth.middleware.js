@@ -21,7 +21,7 @@ export async function isAuthenticated(req, res, next) {
 export async function isAdmin(req, res, next) {
     try {
         if (!req.currentUser) return res.status(401).json({ message: "Not authenticated" });
-        if (req.currentUser.role != "Admin") return res.status(401).json({ message: "Access Forbidden" })
+        if ((req.currentUser.role || "").toLowerCase() !== "admin") return res.status(401).json({ message: "Access Forbidden" })
         next()
     } catch (err) {
         return res.status(500).json({ message: "Server error" });
