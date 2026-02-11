@@ -4,6 +4,8 @@ import Hall from "../../models/Hall.js";
 import mongoose from "mongoose";
 import { isAuthenticated } from "../../middleware/auth.middleware.js";
 import { checkHallAvailability } from "../../services/hall/hall.service.js";
+import { sendBookingConfirmationEmail, sendAdminBookingNotificationEmail } from "../../services/email/email.service.js";
+import User from "../../models/User.js";
 
 const router = express.Router();
 
@@ -13,6 +15,8 @@ function calculateHallPrice(hall, slot) {
   const multiplier = slot === "wholeday" ? 15 : 5;
   return (Number(hall?.pricePerHour) || 0) * multiplier;
 }
+
+const formatSlot = (slot) => (slot ? `${slot.charAt(0).toUpperCase()}${slot.slice(1)}` : "");
 
 // POST /reserve -> create a 5-minute hold
 router.post("/reserve", isAuthenticated, async (req, res, next) => {
@@ -214,6 +218,35 @@ router.post("/", isAuthenticated, async (req, res, next) => {
         cancelledAt: null,
         cancellationReason: null,
       });
+    }
+
+    // Fire-and-forget email notifications
+    const bookingDateStr = bookingDoc.date ? bookingDoc.date.toISOString().slice(0, 10) : date;
+    const userName = `${req.currentUser.first_name || ""} ${req.currentUser.last_name || ""}`.trim() || req.currentUser.email;
+    try {
+      if (bookingDoc.status === "CONFIRMED") {
+        await sendBookingConfirmationEmail(req.currentUser.email, userName, {
+          bookingId: bookingDoc._id,
+          date: bookingDateStr,
+          venue: hall.name,
+          amount: bookingDoc.totalAmount,
+        });
+      }
+
+      const adminUsers = await User.find({ role: "admin", isActive: true, notifyBookings: { $ne: false } }).select("email").lean();
+      const adminEmails = adminUsers.map((u) => u.email).filter(Boolean);
+      await sendAdminBookingNotificationEmail(adminEmails, {
+        bookingId: bookingDoc._id,
+        userName,
+        userEmail: req.currentUser.email,
+        date: bookingDateStr,
+        slot: formatSlot(bookingDoc.slot),
+        hallName: hall.name,
+        status: bookingDoc.status,
+        totalAmount: bookingDoc.totalAmount,
+      });
+    } catch (notifyErr) {
+      console.error("Email notification error (booking create):", notifyErr);
     }
 
     return res.status(201).json({ message: "Booking created", booking: bookingDoc });

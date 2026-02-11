@@ -1,4 +1,5 @@
 import express from "express";
+import SystemConfig from "../models/SystemConfig.js";
 
 /**ROutes related imports */
 import menuRoutes from "./menu/menu.routes.js"
@@ -14,6 +15,15 @@ import decorationRoutes from "./decoration/decoration.routes.js"
 import adminRoutes from "./admin/index.js"
 
 const router = express.Router();
+
+router.get("/config", async (req, res, next) => {
+	try {
+		const config = await SystemConfig.findOne({ key: "default" }).lean();
+		return res.json({ maintenanceMode: !!config?.maintenanceMode });
+	} catch (err) {
+		return next(err);
+	}
+});
 
 
 router.use("/auth", authRoutes)

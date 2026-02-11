@@ -83,6 +83,8 @@ export const ROUTES = {
       USER_RESET: (id) => `/api/v1/admin/users/${id}/reset-password`,
       USER_ROLE: (id) => `/api/v1/admin/users/${id}/role`,
       USER_ORGANIZER: (id) => `/api/v1/admin/users/${id}/organizer`,
+      SETTINGS_CONFIG: '/api/v1/admin/settings/config',
+      SETTINGS_NOTIFICATIONS: '/api/v1/admin/settings/notifications',
     },
   },
 };
