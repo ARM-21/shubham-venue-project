@@ -156,6 +156,11 @@ export const loginLocalUser = async (email, password) => {
     throw httpError(401, "Invalid email or password");
   }
 
+  // Block disabled accounts
+  if (user.isActive === false) {
+    throw httpError(403, "Account disabled. Contact support");
+  }
+
   // Check if user is verified
   if (!user.isVerified) {
     throw httpError(403, "Please verify your email before logging in");

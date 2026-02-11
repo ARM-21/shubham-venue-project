@@ -23,6 +23,9 @@ router.post("/login", async (req, res) => {
 
         const existingUser = await User.findOne({ email });
         if (existingUser) {
+            if (existingUser.isActive === false) {
+                return res.status(403).json({ message: "Account disabled" });
+            }
             if (req.session.userId != existingUser._id) {
                 console.log("user is not connected.. connecting to a session")
                 req.session.userId = existingUser._id;

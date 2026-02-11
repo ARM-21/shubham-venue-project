@@ -66,6 +66,22 @@ const userSchema = new mongoose.Schema(
         return this.provider === 'google' ? true : false;
       }
     },
+    isActive: {
+      type: Boolean,
+      default: true
+    },
+    organizerStatus: {
+      type: String,
+      enum: ['none', 'pending', 'approved', 'rejected'],
+      default: 'none'
+    },
+    organizerNote: {
+      type: String,
+      trim: true
+    },
+    organizerRequestedAt: {
+      type: Date
+    },
     isOrganizerEligible: {
       type: Boolean,
       default: false

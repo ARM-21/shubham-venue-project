@@ -7,9 +7,14 @@ export async function isAuthenticated(req, res, next) {
         // to check if session also exists in server
         if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
-        const doesUserExist = await User.findById(userId);
-        if (!doesUserExist) return res.status(401).json({ message: "User not found" });
         const user = await User.findById(userId).select("-password");
+        if (!user) return res.status(401).json({ message: "User not found" });
+        if (user.isActive === false) {
+            // Clear session for disabled accounts
+            req.session?.destroy?.(() => {});
+            res.clearCookie("sid");
+            return res.status(403).json({ message: "Account disabled" });
+        }
         req.currentUser = user;
         next()
     } catch (err) {
