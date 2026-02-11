@@ -1,5 +1,5 @@
 import React from "react";
-import { PaymentPill, StatusPill } from "./ui";
+import { PaymentPill, StatusPill } from "../ui";
 import { ROUTES } from "@/config/routes";
 
 export default function ViewBookingModal({ viewModal, setViewModal, currencyFormatter }) {
