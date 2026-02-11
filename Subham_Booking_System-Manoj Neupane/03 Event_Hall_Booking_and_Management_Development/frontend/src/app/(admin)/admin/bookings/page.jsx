@@ -5,11 +5,11 @@ import { ROUTES } from "@/config/routes";
 import AdminTopbar from "@/components/admin/dashboard/AdminTopbar";
 import axiosInstance from "@/lib/axios";
 import { CalendarClock, CalendarDays, Plus } from "lucide-react";
-import StatCards from "./components/StatCards";
-import FiltersBar from "./components/FiltersBar";
-import BookingTable from "./components/BookingTable";
-import EditBookingModal from "./components/EditBookingModal";
-import ViewBookingModal from "./components/ViewBookingModal";
+import StatCards from "@/components/admin/booking/StatCards";
+import FiltersBar from "@/components/admin/booking/FiltersBar";
+import BookingTable from "@/components/admin/booking/BookingTable";
+import EditBookingModal from "@/components/admin/booking/ui/EditBookingModal";
+import ViewBookingModal from "@/components/admin/booking/ui/ViewBookingModal";
 
 export default function AdminBookingsPage() {
   const [overview, setOverview] = useState(null);
