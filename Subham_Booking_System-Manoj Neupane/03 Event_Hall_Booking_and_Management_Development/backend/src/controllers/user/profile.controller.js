@@ -173,7 +173,7 @@ export async function changeUserPassword(req, res) {
  * POST /api/v1/profile/me/avatar/upload-url
  * Get presigned URL for avatar upload
  */
-export async function getAvatarUploadUrl(req, res) {
+export async function getAvatarUploadUrl(req, res) {                                                                                                                                                                                
   try {
     const userId = req.currentUser?._id;
 
@@ -229,7 +229,7 @@ export async function getAvatarUploadUrl(req, res) {
     });
   }
 }
-
+                        
 /**
  * POST /api/v1/profile/me/avatar/confirm
  * Confirm avatar upload after S3 upload

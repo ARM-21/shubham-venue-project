@@ -70,6 +70,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true
     },
+    notifyBookings: {
+      type: Boolean,
+      default: true
+    },
     organizerStatus: {
       type: String,
       enum: ['none', 'pending', 'approved', 'rejected'],

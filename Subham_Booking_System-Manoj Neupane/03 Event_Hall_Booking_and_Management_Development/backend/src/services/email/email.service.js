@@ -125,3 +125,52 @@ export const sendBookingConfirmationEmail = async (email, username, bookingDetai
     console.error('Error sending booking confirmation email:', err);
   }
 };
+
+// Notify admin(s) about a new booking
+export const sendAdminBookingNotificationEmail = async (adminEmails, payload) => {
+  const recipients = Array.isArray(adminEmails) ? adminEmails.filter(Boolean) : [adminEmails].filter(Boolean);
+  if (!recipients.length) return;
+  const {
+    bookingId,
+    userName,
+    userEmail,
+    date,
+    slot,
+    hallName,
+    status,
+    totalAmount,
+  } = payload || {};
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 640px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+      <h2 style="text-align: center; color: #b22222; margin-bottom: 16px;">New Booking Received</h2>
+      <p>Hello Admin,</p>
+      <p>A new booking has been submitted. Details are below:</p>
+      <div style="background: #f9f9f9; padding: 16px; border-radius: 6px; margin: 16px 0;">
+        <p><strong>Booking ID:</strong> ${bookingId}</p>
+        <p><strong>Status:</strong> ${status}</p>
+        <p><strong>Date:</strong> ${date}</p>
+        <p><strong>Slot:</strong> ${slot}</p>
+        <p><strong>Venue:</strong> ${hallName}</p>
+        <p><strong>Total Amount:</strong> Rs. ${totalAmount}</p>
+      </div>
+      <div style="padding: 12px 16px; background: #eef6ff; border-radius: 6px;">
+        <p style="margin: 0 0 6px 0;"><strong>Customer:</strong> ${userName || "Guest"}</p>
+        <p style="margin: 0;"><strong>Email:</strong> ${userEmail}</p>
+      </div>
+      <p style="margin-top: 16px;">Please review and take necessary action in the admin panel.</p>
+      <p>— Shubham Venue</p>
+    </div>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: "Shubham Venue <info@shubhampartypalacewaling.live>",
+      to: recipients,
+      subject: "New Booking Notification",
+      html,
+    });
+  } catch (err) {
+    console.error("Error sending admin booking notification email:", err);
+  }
+};

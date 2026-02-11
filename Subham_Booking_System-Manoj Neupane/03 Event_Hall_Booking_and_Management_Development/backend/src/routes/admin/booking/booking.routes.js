@@ -5,6 +5,8 @@ import Payment from "../../../models/Payment.js";
 import Menu from "../../../models/menu/Menu.js";
 import DecorationScheme from "../../../models/DecorationScheme.js";
 import User from "../../../models/User.js";
+import Hall from "../../../models/Hall.js";
+import { sendBookingConfirmationEmail, sendAdminBookingNotificationEmail } from "../../../services/email/email.service.js";
 
 const router = express.Router();
 
@@ -58,6 +60,39 @@ router.patch("/:id/status", async (req, res, next) => {
     }
 
     await booking.save();
+
+    if (nextStatus === "CONFIRMED") {
+      try {
+        const [user, hall, admins] = await Promise.all([
+          User.findById(booking.userId).select("first_name last_name email").lean(),
+          Hall.findById(booking.hallId).select("name").lean(),
+          User.find({ role: "admin", isActive: true, notifyBookings: { $ne: false } }).select("email").lean(),
+        ]);
+
+        const userName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.email;
+        const bookingDateStr = booking.date ? booking.date.toISOString().slice(0, 10) : "";
+        await sendBookingConfirmationEmail(user?.email, userName, {
+          bookingId: booking._id,
+          date: bookingDateStr,
+          venue: hall?.name || "Hall",
+          amount: booking.totalAmount,
+        });
+
+        const adminEmails = admins.map((a) => a.email).filter(Boolean);
+        await sendAdminBookingNotificationEmail(adminEmails, {
+          bookingId: booking._id,
+          userName,
+          userEmail: user?.email,
+          date: bookingDateStr,
+          slot: booking.slot,
+          hallName: hall?.name || "Hall",
+          status: booking.status,
+          totalAmount: booking.totalAmount,
+        });
+      } catch (notifyErr) {
+        console.error("Email notification error (admin confirm):", notifyErr);
+      }
+    }
 
     return res.json({ message: "Booking status updated", booking });
   } catch (err) {
