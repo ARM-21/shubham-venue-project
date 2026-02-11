@@ -78,6 +78,11 @@ export const ROUTES = {
       BOOKING_DELETE: (id) => `/api/v1/admin/bookings/${id}`,
       BOOKINGS: '/api/v1/admin/bookings',
       USERS: '/api/v1/admin/users',
+      USER: (id) => `/api/v1/admin/users/${id}`,
+      USER_STATUS: (id) => `/api/v1/admin/users/${id}/status`,
+      USER_RESET: (id) => `/api/v1/admin/users/${id}/reset-password`,
+      USER_ROLE: (id) => `/api/v1/admin/users/${id}/role`,
+      USER_ORGANIZER: (id) => `/api/v1/admin/users/${id}/organizer`,
     },
   },
 };
