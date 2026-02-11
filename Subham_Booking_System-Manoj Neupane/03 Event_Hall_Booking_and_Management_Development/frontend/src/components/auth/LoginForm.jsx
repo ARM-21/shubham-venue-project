@@ -22,7 +22,7 @@ export default function LoginForm({ onSwitch }) {
       const res = await toast.promise(promise, {
         loading: 'Logging in...',
         success: (r) => r?.data?.message || 'Logged in successfully!',
-        error: (err) => err?.response?.data?.message || 'Login failed',
+        error: (err) => err?.response?.data?.message || err?.message || 'Login failed',
       });
 
       const loggedInUser = res?.data?.user ?? res?.data ?? null;

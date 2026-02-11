@@ -30,7 +30,7 @@ export default function AuthPage() {
                 {
                     loading: "Logging in with Google...",
                     success: "Logged in successfully!",
-                    error: "Google login failed"
+                    error: (err) => err?.response?.data?.message || err?.message || "Google login failed",
                 }
             );
 
