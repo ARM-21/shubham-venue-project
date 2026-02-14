@@ -135,7 +135,12 @@ export default function AdminHallsPage() {
       const uploadData = presignRes.data?.data || {};
       if (!uploadData.uploadUrl || !uploadData.publicUrl) throw new Error("Upload URL not received");
 
-      await axios.put(uploadData.uploadUrl, file, { headers: { "Content-Type": file.type } });
+      // Use fetch to PUT directly to the presigned URL (avoids axios attaching extra headers)
+      await fetch(uploadData.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
 
       setEditModal((prev) => ({ ...prev, images: [...prev.images, uploadData.publicUrl] }));
     } catch (err) {

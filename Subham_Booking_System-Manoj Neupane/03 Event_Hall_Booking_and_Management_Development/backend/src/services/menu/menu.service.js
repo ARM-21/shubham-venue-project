@@ -10,14 +10,6 @@ export async function listMenus() {
   return menus;
 }
 
-export async function listMenusWithDishes() {
-  const menuswithDishes = await Menu.find().populate({ path: "sections.section" }).populate({ path: "sections.dishes", select: "-section" }).sort({ createdAt: -1 }).lean();
-  if (!menuswithDishes || menuswithDishes.length === 0) throw httpError(404, "No menus found");
-
-  return menuswithDishes;
-
-}
-
 export async function getMenuBySlug(slug) {
   const doc = await Menu.findOne({ slug }).populate({ path: "sections.section" }).populate({ path: "sections.dishes", select: "-section" }).lean();
   if (!doc) throw httpError(404, "Menu not found");

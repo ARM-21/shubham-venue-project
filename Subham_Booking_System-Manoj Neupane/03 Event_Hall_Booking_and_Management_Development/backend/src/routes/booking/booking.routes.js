@@ -234,6 +234,7 @@ router.post("/", isAuthenticated, async (req, res, next) => {
       }
 
       const adminUsers = await User.find({ role: "admin", isActive: true, notifyBookings: { $ne: false } }).select("email").lean();
+      console.log("Admin users to notify about booking:", adminUsers.map((u) => u.email));
       const adminEmails = adminUsers.map((u) => u.email).filter(Boolean);
       await sendAdminBookingNotificationEmail(adminEmails, {
         bookingId: bookingDoc._id,

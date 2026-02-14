@@ -6,8 +6,8 @@ import { ROUTES } from '@/config/routes';
 
 export default function Step4Payment({ data, reservationId, onPrev }) {
   const router = useRouter();
-  const [paymentMethod, setPaymentMethod] = useState("online"); 
-  const [gateway, setGateway] = useState("khalti");
+  const [paymentMethod, setPaymentMethod] = useState("ONLINE"); 
+  const [gateway, setGateway] = useState("KHALTI");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -25,7 +25,7 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
 
       const fallbackRedirect = data?.hallSlug ? ROUTES.SITE.VENUES(data.hallSlug) : ROUTES.HOME;
 
-      if (paymentMethod === "cash") {
+      if (paymentMethod === "CASH") {
         // Cash: just confirm and redirect
         toast.success("Booking submitted! Awaiting admin approval.");
         router.push(fallbackRedirect);
@@ -58,8 +58,8 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
           <label className="flex items-center">
             <input
               type="radio"
-              value="online"
-              checked={paymentMethod === "online"}
+              value="ONLINE"
+              checked={paymentMethod === "ONLINE"}
               onChange={(e) => setPaymentMethod(e.target.value)}
               className="mr-2"
             />
@@ -68,8 +68,8 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
           <label className="flex items-center">
             <input
               type="radio"
-              value="cash"
-              checked={paymentMethod === "cash"}
+              value="CASH"
+              checked={paymentMethod === "CASH"}
               onChange={(e) => setPaymentMethod(e.target.value)}
               className="mr-2"
             />
@@ -79,22 +79,22 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
       </div>
 
       {/* Gateway selection (only if online) */}
-      {paymentMethod === "online" && (
+      {paymentMethod === "ONLINE" && (
         <div className="mb-6">
           <label className="block text-sm font-medium mb-2">Select Gateway</label>
           <div className="flex gap-4">
             <button
-              onClick={() => setGateway("khalti")}
+              onClick={() => setGateway("KHALTI")}
               className={`px-4 py-2 border rounded transition-colors ${
-                gateway === "khalti" ? "bg-[#66213f] text-white border-[#66213f]" : "bg-white hover:border-[#66213f]"
+                gateway === "KHALTI" ? "bg-[#66213f] text-white border-[#66213f]" : "bg-white hover:border-[#66213f]"
               }`}
             >
               Khalti
             </button>
             <button
-              onClick={() => setGateway("esewa")}
+              onClick={() => setGateway("ESEWA")}
               className={`px-4 py-2 border rounded transition-colors ${
-                gateway === "esewa" ? "bg-[#66213f] text-white border-[#66213f]" : "bg-white hover:border-[#66213f]"
+                gateway === "ESEWA" ? "bg-[#66213f] text-white border-[#66213f]" : "bg-white hover:border-[#66213f]"
               }`}
             >
               eSewa
@@ -119,7 +119,7 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
         >
           {isSubmitting
             ? "Processing..."
-            : paymentMethod === "cash"
+            : paymentMethod === "CASH"
             ? "Submit Booking"
             : "Proceed to Payment"}
         </button>

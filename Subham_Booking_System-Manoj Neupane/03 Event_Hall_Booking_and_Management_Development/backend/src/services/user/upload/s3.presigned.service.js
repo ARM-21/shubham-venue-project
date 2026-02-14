@@ -1,61 +1,26 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import  ENV from '../../../config/env.config.js';
-import crypto from 'crypto';
-import path from 'path';
+import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import ENV from '../../../config/env.config.js';
+import generateImageUploadUrl from '../../upload/presigned.service.js';
 
+// Initialize S3 client with credentials and region from environment variables
 const s3Client = new S3Client({
-  region: ENV.AWS_REGION,
+  region: process.env.AWS_REGION,
   credentials: {
-    accessKeyId: ENV.AWS_ACCESS_KEY_ID,
-    secretAccessKey: ENV.AWS_SECRET_ACCESS_KEY,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
 });
 
-// Generate presigned URL for upload
+// Generate presigned URL for avatar upload using shared generator
 export async function generatePresignedUploadUrl(userId, fileExtension, contentType) {
   try {
-    // Validate content type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(contentType)) {
-      throw new Error('Invalid file type. Only JPG, PNG, GIF, and WEBP allowed');
-    }
-
-    // Generate unique filename
-    const randomString = crypto.randomBytes(16).toString('hex');
-    const fileName = `avatar_${userId}_${Date.now()}_${randomString}${fileExtension}`;
-    const key = `${ENV.AWS_S3_AVATAR_FOLDER}/${fileName}`;
-
-    // Create upload command with conditions
-
-    console.log(ENV.AWS_S3_BUCKET_NAME, ENV.AWS_REGION, ENV.AWS_S3_AVATAR_FOLDER, ENV.AWS_ACCESS_KEY_ID);
-    const command = new PutObjectCommand({
-      Bucket: ENV.AWS_S3_BUCKET_NAME,
-      Key: key,
-      ContentType: contentType,
-      // Metadata for tracking
-      Metadata: {
-        userId: userId.toString(),
-        uploadedAt: new Date().toISOString(),
-      },
-    });
-
-    // Generate presigned URL (valid for 5 minutes)
-    const presignedUrl = await getSignedUrl(s3Client, command, {
-      expiresIn: 300, // 5 minutes
-    });
-
-    const publicUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
-
-    return {
-      uploadUrl: presignedUrl,
-      publicUrl: publicUrl,
-      key: key,
-      expiresIn: 300,
-    };
-  } catch (error) {
-    console.error('Presigned URL generation error:', error);
-    throw new Error('Failed to generate upload URL');
+    const folder = process.env.AWS_S3_AVATAR_FOLDER || 'avatars';
+    const filePrefix = `avatar_${userId}`;
+    const data = await generateImageUploadUrl({ folder, filePrefix, fileExtension, contentType, metadataType: 'avatar' });
+    return data;
+  } catch (err) {
+    console.error('Presigned avatar upload error:', err);
+    throw err;
   }
 }
 
@@ -70,6 +35,7 @@ export async function deleteFromS3(fileKey) {
     };
 
     const command = new DeleteObjectCommand(deleteParams);
+  
     await s3Client.send(command);
     console.log(`Deleted from S3: ${fileKey}`);
   } catch (error) {

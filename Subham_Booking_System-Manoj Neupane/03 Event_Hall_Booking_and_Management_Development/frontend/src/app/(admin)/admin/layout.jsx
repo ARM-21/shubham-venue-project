@@ -10,6 +10,7 @@ function buildNavItems(pathname) {
   const base = [
     { key: "dashboard", label: "Dashboard", href: ROUTES.ADMIN.DASHBOARD },
     { key: "bookings", label: "Bookings", href: ROUTES.ADMIN.BOOKINGS },
+    { key: "menus", label: "Menus & Services", href: ROUTES.ADMIN.MENUS },
     { key: "halls", label: "Halls", href: ROUTES.ADMIN.HALLS },
     { key: "users", label: "Users", href: ROUTES.ADMIN.USERS },
     { key: "reports", label: "Reports", href: ROUTES.ADMIN.REPORTS },
