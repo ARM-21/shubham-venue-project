@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.post("/initiate", isAuthenticated, async (req, res, next) => {
   try {
-    const { bookingId, gateway = "khalti" } = req.body || {};
+    const { bookingId, gateway = "KHALTI" } = req.body || {};
     if (!bookingId) return res.status(400).json({ message: "bookingId is required" });
 
     const result = await initiatePayment({ bookingId, gateway, userId: req.currentUser._id });

@@ -13,7 +13,7 @@ export function calculateBookingTotal(booking) {
 }
 
 export async function initiatePayment({ bookingId, gateway, userId }) {
-  if (gateway !== "khalti") throw httpError(400, "Unsupported gateway");
+  if (gateway !== "KHALTI") throw httpError(400, "Unsupported gateway");
 
   const booking = await Booking.findById(bookingId);
   if (!booking) throw httpError(404, "Booking not found");
@@ -58,7 +58,7 @@ export async function initiatePayment({ bookingId, gateway, userId }) {
     userId,
     amount,
     gateway,
-    status: "initiated",
+    status: "INITIATED",
     gatewayResponse: { pidx },
   });
 
@@ -75,9 +75,9 @@ export async function completePayment({ paymentId }) {
   }
 
   if (!payment) throw httpError(404, "Payment not found");
-  if (payment.status === "completed") return payment;
+  if (payment.status === "COMPLETED") return payment;
 
-  if (payment.gateway !== "khalti") throw httpError(400, "Unsupported gateway for verification");
+  if (payment.gateway !== "KHALTI") throw httpError(400, "Unsupported gateway for verification");
 
   if (!ENV.KHALTI_SECRET_KEY) throw httpError(500, "KHALTI_SECRET_KEY not configured");
 
@@ -99,12 +99,12 @@ export async function completePayment({ paymentId }) {
   payment.gatewayResponse = lookupRes.data || {};
 
   if (status !== "Completed") {
-    payment.status = "failed";
+    payment.status = "FAILED";
     await payment.save();
     throw httpError(400, errorKey ? `${detail || "Payment not completed"} (${errorKey})` : detail || "Payment not completed");
   }
 
-  payment.status = "completed";
+  payment.status = "COMPLETED";
   payment.transactionId = transactionId || paymentId;
   payment.paidAt = new Date();
   await payment.save();

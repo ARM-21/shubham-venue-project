@@ -1,5 +1,5 @@
 import Dish from "../../models/menu/Dish.js";
-import { httpError } from "../../utils/httpError.js";
+import { httpError } from "../../utils/http.utils.js";
 
 export async function listDishes() {
   return Dish.find().sort({ createdAt: -1 });
@@ -12,7 +12,16 @@ export async function getDishById(id) {
 }
 
 export async function createDish(payload) {
-  return Dish.create(payload);
+  try {
+    const created = await Dish.create(payload);
+    return created;
+  } catch (err) {
+    const isDupKey = err && (err.code === 11000 || (err.name === 'MongoServerError' && err.code === 11000));
+    if (isDupKey) {
+      throw httpError(409, 'Dish with the same name or slug already exists');
+    }
+    throw err;
+  }
 }
 
 export async function updateDish(id, patch) {

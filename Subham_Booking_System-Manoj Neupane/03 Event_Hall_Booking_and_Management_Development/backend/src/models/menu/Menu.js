@@ -4,6 +4,7 @@ const menuSchema = new mongoose.Schema({
   name: { type: String, required: true },
 
   pricePerPerson: { type: Number, required: true },
+  heroImage: { type: String, default: "" },
   slug: {
     type: String, required: true, unique: true, index: true, default: function () {
       return this.name.toLowerCase().split(' ').join('-');

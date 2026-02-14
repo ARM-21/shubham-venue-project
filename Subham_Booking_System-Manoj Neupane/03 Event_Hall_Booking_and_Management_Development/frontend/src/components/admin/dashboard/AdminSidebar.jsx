@@ -6,11 +6,13 @@ import {
   Settings,
   Users,
   Building2,
+  UtensilsCrossed,
 } from "lucide-react";
 
 const iconMap = {
   dashboard: GaugeCircle,
   bookings: CalendarDays,
+  menus: UtensilsCrossed,
   halls: Building2,
   users: Users,
   reports: BarChart3,

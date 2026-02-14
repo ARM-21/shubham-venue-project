@@ -51,9 +51,9 @@ export default function OccupancyCard({ monthLabel, days = [], schedule = [] }) 
         <h4 className="text-xs font-semibold text-[var(--admin-muted)] uppercase tracking-wider">
           Upcoming Schedule
         </h4>
-        {schedule.map((item) => (
+        {schedule.map((item,indx) => (
           <div
-            key={item.title}
+            key={item.title + indx}
             className="flex items-center gap-3 p-3 rounded-lg bg-[var(--admin-surface-strong)] border border-[#3a1a1a]"
           >
             <div className={`w-1 h-10 rounded-full ${item.color}`} />
