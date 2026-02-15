@@ -68,6 +68,10 @@ export const ROUTES = {
     },
     ADMIN: {
       OVERVIEW: '/api/v1/admin/overview',
+      REPORTS: {
+        SUMMARY: '/api/v1/admin/reports/summary',
+        TRANSACTIONS: '/api/v1/admin/reports/transactions',
+      },
       HALLS: '/api/v1/admin/halls',
       HALL: (id) => `/api/v1/admin/halls/${id}`,
       HALL_UPLOAD_URL: '/api/v1/admin/halls/upload-url',
