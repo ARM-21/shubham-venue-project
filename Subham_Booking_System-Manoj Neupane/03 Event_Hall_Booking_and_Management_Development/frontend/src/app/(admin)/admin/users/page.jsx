@@ -200,12 +200,18 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleOrganizer = async (row) => {
+  const handleOrganizer = async (row, nextStatus) => {
     try {
       setActionLoadingId(row.id);
-      const targetStatus = row.organizerEnabled ? "none" : "approved";
+      const targetStatus = nextStatus || (row.organizerEnabled ? "none" : "approved");
       await axiosInstance.patch(ROUTES.API.ADMIN.USER_ORGANIZER(row.id), { status: targetStatus });
-      setActionMessage(targetStatus === "approved" ? "Organizer access enabled" : "Organizer access revoked");
+      const messageByStatus = {
+        approved: "Organizer access approved",
+        rejected: "Organizer request rejected",
+        none: "Organizer access revoked",
+        pending: "Organizer status updated",
+      };
+      setActionMessage(messageByStatus[targetStatus] || "Organizer status updated");
       setOpenMenuId(null);
       await fetchUsers();
     } catch (err) {
@@ -507,14 +513,35 @@ export default function AdminUsersPage() {
                                       <RotateCw className="size-4" /> Send reset link
                                     </button>
                                   ) : null}
-                                  <button
-                                    onClick={() => handleOrganizer(row)}
-                                    className="px-3 py-2 text-left text-sm text-white hover:bg-white/10 flex items-center gap-2"
-                                    disabled={actionLoadingId === row.id}
-                                  >
-                                    <ShieldCheck className="size-4" />
-                                    {row.organizerEnabled ? "Revoke organizer access" : "Approve organizer access"}
-                                  </button>
+                                  {row.organizerStatus === "PENDING" && !row.organizerEnabled ? (
+                                    <>
+                                      <button
+                                        onClick={() => handleOrganizer(row, "approved")}
+                                        className="px-3 py-2 text-left text-sm text-white hover:bg-white/10 flex items-center gap-2"
+                                        disabled={actionLoadingId === row.id}
+                                      >
+                                        <ShieldCheck className="size-4" />
+                                        Approve organizer request
+                                      </button>
+                                      <button
+                                        onClick={() => handleOrganizer(row, "rejected")}
+                                        className="px-3 py-2 text-left text-sm text-red-300 hover:bg-red-900/20 flex items-center gap-2"
+                                        disabled={actionLoadingId === row.id}
+                                      >
+                                        <XCircle className="size-4" />
+                                        Reject organizer request
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleOrganizer(row)}
+                                      className="px-3 py-2 text-left text-sm text-white hover:bg-white/10 flex items-center gap-2"
+                                      disabled={actionLoadingId === row.id}
+                                    >
+                                      <ShieldCheck className="size-4" />
+                                      {row.organizerEnabled ? "Revoke organizer access" : "Grant organizer access"}
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => handleDelete(row)}
                                     className="px-3 py-2 text-left text-sm text-red-300 hover:bg-red-900/20 flex items-center gap-2"
@@ -596,6 +623,16 @@ export default function AdminUsersPage() {
                 <div className="bg-white/5 rounded-lg p-3 border border-white/10">
                   <p className="text-[var(--admin-muted)] text-xs uppercase">Organizer Access</p>
                   <p className="text-white font-semibold">{viewUser.organizerEnabled || viewUser.isOrganizerEligible ? "Enabled" : "Disabled"}</p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                  <p className="text-[var(--admin-muted)] text-xs uppercase">Organizer Requested</p>
+                  <p className="text-white font-semibold">
+                    {viewUser.organizerRequestedAt ? new Date(viewUser.organizerRequestedAt).toLocaleString() : "—"}
+                  </p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                  <p className="text-[var(--admin-muted)] text-xs uppercase">Organizer Note</p>
+                  <p className="text-white font-semibold break-words">{viewUser.organizerNote || "—"}</p>
                 </div>
                 <div className="bg-white/5 rounded-lg p-3 border border-white/10">
                   <p className="text-[var(--admin-muted)] text-xs uppercase">Phone</p>

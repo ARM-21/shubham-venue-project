@@ -174,3 +174,41 @@ export const sendAdminBookingNotificationEmail = async (adminEmails, payload) =>
     console.error("Error sending admin booking notification email:", err);
   }
 };
+
+// Notify admin(s) about a new organizer request
+export const sendAdminOrganizerRequestEmail = async (adminEmails, payload) => {
+  const recipients = Array.isArray(adminEmails) ? adminEmails.filter(Boolean) : [adminEmails].filter(Boolean);
+  if (!recipients.length) return;
+
+  const { userName, userEmail, note, requestedAt } = payload || {};
+  const noteBlock = note
+    ? `<div style="background: #f9f9f9; padding: 12px; border-radius: 6px; margin: 12px 0;">${note}</div>`
+    : "";
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 640px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+      <h2 style="text-align: center; color: #b22222; margin-bottom: 16px;">Organizer Access Request</h2>
+      <p>Hello Admin,</p>
+      <p>A user has requested organizer access. Review the details below:</p>
+      <div style="background: #f9f9f9; padding: 16px; border-radius: 6px; margin: 16px 0;">
+        <p><strong>User:</strong> ${userName || "Guest"}</p>
+        <p><strong>Email:</strong> ${userEmail || ""}</p>
+        <p><strong>Requested At:</strong> ${requestedAt || ""}</p>
+      </div>
+      ${noteBlock}
+      <p style="margin-top: 16px;">Please review and approve or reject this request in the admin panel.</p>
+      <p>— Shubham Venue</p>
+    </div>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: "Shubham Venue <info@shubhampartypalacewaling.live>",
+      to: recipients,
+      subject: "Organizer Request Submitted",
+      html,
+    });
+  } catch (err) {
+    console.error("Error sending organizer request notification email:", err);
+  }
+};

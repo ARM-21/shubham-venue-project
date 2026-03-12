@@ -32,3 +32,17 @@ export async function isAdmin(req, res, next) {
         return res.status(500).json({ message: "Server error" });
     }
 }
+
+export async function isOrganizer(req, res, next) {
+    try {
+        if (!req.currentUser) return res.status(401).json({ message: "Not authenticated" });
+        const role = (req.currentUser.role || "").toLowerCase();
+        if (role === "admin") return next();
+        if (!req.currentUser.isOrganizerEligible) {
+            return res.status(403).json({ message: "Organizer access required" });
+        }
+        next();
+    } catch (err) {
+        return res.status(500).json({ message: "Server error" });
+    }
+}
