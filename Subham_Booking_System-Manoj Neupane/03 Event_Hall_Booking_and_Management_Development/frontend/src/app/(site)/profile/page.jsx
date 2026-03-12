@@ -325,6 +325,12 @@ export default function ProfilePage() {
                     My Bookings
                   </button>
                   <button
+                    onClick={() => router.push(ROUTES.SITE.ORGANIZER)}
+                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                  >
+                    Organizer Hub
+                  </button>
+                  <button
                     onClick={handleLogout}
                     className="w-full px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
                   >

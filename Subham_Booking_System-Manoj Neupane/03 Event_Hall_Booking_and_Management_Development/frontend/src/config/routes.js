@@ -15,6 +15,7 @@ export const ROUTES = {
     DECORATION_DETAIL: (idOrSlug) => `/admin/decorations/${idOrSlug}`,
     HALLS: '/admin/halls',
     USERS: '/admin/users',
+    NOTIFICATIONS: '/admin/notifications',
     REPORTS: '/admin/reports',
     SETTINGS: '/admin/settings',
   },
@@ -27,6 +28,10 @@ export const ROUTES = {
     SEARCH_AVAILABILITY: (slug) => (slug ? `/search-availability/${slug}` : '/search-availability'),
     PROFILE: '/profile',
     PAYMENT_VERIFY: '/payment/verify',
+    ORGANIZER: '/organizer',
+    ORGANIZER_EVENTS: '/organizer/events',
+    ORGANIZER_EVENT_NEW: '/organizer/events/new',
+    ORGANIZER_EVENT_DETAIL: (id) => `/organizer/events/${id}`,
   },
   API: {
     AUTH: {
@@ -66,6 +71,24 @@ export const ROUTES = {
     PAYMENTS: {
       INITIATE: '/api/v1/payments/initiate',
     },
+    EVENTS: {
+      PUBLIC: '/api/v1/events/public',
+      DETAIL: (id) => `/api/v1/events/${id}`,
+      TICKETS: (id) => `/api/v1/events/${id}/tickets`,
+    },
+    ORGANIZER_REQUESTS: {
+      ROOT: '/api/v1/organizer-requests',
+      ME: '/api/v1/organizer-requests/me',
+    },
+    ORGANIZER: {
+      BOOKINGS: '/api/v1/organizer/bookings',
+      EVENTS: '/api/v1/organizer/events',
+      EVENT: (id) => `/api/v1/organizer/events/${id}`,
+      EVENT_TICKET_TYPES: (id) => `/api/v1/organizer/events/${id}/ticket-types`,
+      TICKET_TYPE: (id) => `/api/v1/organizer/ticket-types/${id}`,
+      EVENT_ATTENDEES: (id) => `/api/v1/organizer/events/${id}/attendees`,
+      EVENT_CHECKIN: (id) => `/api/v1/organizer/events/${id}/checkin`,
+    },
     ADMIN: {
       OVERVIEW: '/api/v1/admin/overview',
       REPORTS: {
@@ -100,6 +123,9 @@ export const ROUTES = {
       DISH_DELETE: (id) => `/api/v1/admin/menus/dishes/${id}`,
       SETTINGS_CONFIG: '/api/v1/admin/settings/config',
       SETTINGS_NOTIFICATIONS: '/api/v1/admin/settings/notifications',
+      NOTIFICATIONS: '/api/v1/admin/notifications',
+      NOTIFICATION_READ: (id) => `/api/v1/admin/notifications/${id}/read`,
+      NOTIFICATIONS_READ_ALL: '/api/v1/admin/notifications/read-all',
     },
   },
 };
