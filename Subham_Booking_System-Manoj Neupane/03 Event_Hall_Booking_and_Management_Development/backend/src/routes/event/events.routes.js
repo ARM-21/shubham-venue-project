@@ -98,6 +98,10 @@ router.post("/:id/tickets", isAuthenticated, async (req, res, next) => {
       return res.status(400).json({ message: "Event is not available" });
     }
 
+    if (event.endDateTime && new Date(event.endDateTime).getTime() < Date.now()) {
+      return res.status(400).json({ message: "Event has ended" });
+    }
+
     if (!event.isPublic) {
       const accessCode = String(req.body?.accessCode || req.query.accessCode || "").trim();
       if (!accessCode || accessCode !== String(event.accessCode || "")) {
@@ -108,6 +112,20 @@ router.post("/:id/tickets", isAuthenticated, async (req, res, next) => {
     const ticketTypeId = String(req.body?.ticketTypeId || "").trim();
     if (!mongoose.Types.ObjectId.isValid(ticketTypeId)) {
       return res.status(400).json({ message: "Valid ticketTypeId is required" });
+    }
+
+    const ticketTypeSnapshot = await TicketType.findOne({
+      _id: ticketTypeId,
+      eventId: event._id,
+      isActive: true,
+    }).lean();
+
+    if (!ticketTypeSnapshot) {
+      return res.status(404).json({ message: "Ticket type not found" });
+    }
+
+    if (Number(ticketTypeSnapshot.price || 0) > 0) {
+      return res.status(400).json({ message: "Paid tickets require payment" });
     }
 
     const ticketType = await TicketType.findOneAndUpdate(

@@ -20,6 +20,11 @@ const ticketSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    paymentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "TicketPayment",
+      default: null,
+    },
     qrCodeValue: { type: String, required: true, unique: true, index: true },
     status: {
       type: String,

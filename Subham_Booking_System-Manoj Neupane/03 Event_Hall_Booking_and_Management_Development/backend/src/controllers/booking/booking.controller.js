@@ -12,6 +12,39 @@ function getConflictSlots(slot) {
   throw httpError(400, "slot must be morning|evening|wholeday");
 }
 
+function toLocalDateString(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function isSlotTimeBlocked(dateValue, slot) {
+  const today = new Date();
+  const todayStr = toLocalDateString(today);
+
+  if (dateValue < todayStr) {
+    return { blocked: true, reason: "PAST_DATE" };
+  }
+
+  if (dateValue !== todayStr) {
+    return { blocked: false };
+  }
+
+  const start = new Date(today);
+  if (slot === "evening") {
+    start.setHours(17, 0, 0, 0);
+  } else {
+    start.setHours(9, 0, 0, 0);
+  }
+
+  if (today >= start) {
+    return { blocked: true, reason: "TIME_BLOCKED" };
+  }
+
+  return { blocked: false };
+}
+
 
 // Convert "YYYY-MM-DD" into UTC day range [start, nextDayStart)
 function utcDayRange(yyyyMmDd) {
@@ -39,6 +72,11 @@ export async function checkHallAvailability(req, res) {
     const guestsNum = Number(guests);
     if (!Number.isFinite(guestsNum) || guestsNum < 1) {
       return res.status(400).json({ message: "guests must be a positive number" });
+    }
+
+    const timeBlock = isSlotTimeBlocked(date, slot);
+    if (timeBlock.blocked) {
+      return res.json({ available: false, reason: timeBlock.reason });
     }
 
     const range = utcDayRange(date);
@@ -98,6 +136,9 @@ export async function listHallsAvailability(query = {}) {
 
   const guestsNum = Number(guests);
   if (!Number.isFinite(guestsNum) || guestsNum < 1) throw httpError(400, "guests must be >= 1");
+
+  const timeBlock = isSlotTimeBlocked(date, slot);
+  if (timeBlock.blocked) return [];
 
   const range = utcDayRange(date);
   if (!range) throw httpError(400, "Invalid date format, use yyyy-mm-dd");

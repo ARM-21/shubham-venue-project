@@ -18,9 +18,9 @@ router.post("/initiate", isAuthenticated, async (req, res, next) => {
 
 router.post("/verify", isAuthenticated, async (req, res, next) => {
   try {
-    const { pidx, paymentId } = req.body || {};
-    const target = pidx || paymentId;
-    if (!target) return res.status(400).json({ message: "pidx is required" });
+    const { pidx, paymentId, transactionUuid, transaction_uuid: transactionUuidLegacy } = req.body || {};
+    const target = pidx || transactionUuid || transactionUuidLegacy || paymentId;
+    if (!target) return res.status(400).json({ message: "pidx or transactionUuid is required" });
 
     const payment = await completePayment({ paymentId: target });
     return res.json({ message: "Payment verified", payment });

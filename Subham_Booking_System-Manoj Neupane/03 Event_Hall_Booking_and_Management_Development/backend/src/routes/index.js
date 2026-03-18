@@ -12,6 +12,7 @@ import profileRoutes from "./user/profile.routes.js"
 import hallRoutes from "./hall/hall.routes.js"
 import bookingRoutes from "./booking/booking.routes.js"
 import paymentRoutes from "./payment/payment.routes.js"
+import ticketRoutes from "./ticket/tickets.routes.js"
 import decorationRoutes from "./decoration/decoration.routes.js"
 import adminRoutes from "./admin/index.js"
 import organizerRequestRoutes from "./organizer/organizer-requests.routes.js"
@@ -39,6 +40,7 @@ router.use("/menus", menuRoutes)
 router.use("/dishes", dishRoutes)
 router.use("/bookings", bookingRoutes)
 router.use("/payments", paymentRoutes)
+router.use("/tickets", ticketRoutes)
 router.use("/decorations", decorationRoutes)
 router.use("/organizer-requests", organizerRequestRoutes)
 router.use("/organizer", organizerRoutes)

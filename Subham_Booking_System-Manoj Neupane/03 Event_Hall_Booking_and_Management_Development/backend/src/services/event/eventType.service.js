@@ -1,8 +1,8 @@
 import EventType from "../../models/EventType.js";
 import { httpError } from "../../utils/http.utils.js";
 
-export async function listEventTypes() {
-  return EventType.find().sort({ createdAt: -1 });
+export async function listEventTypes(filter = {}) {
+  return EventType.find(filter).sort({ createdAt: -1 });
 }
 
 export async function getEventTypeById(id) {

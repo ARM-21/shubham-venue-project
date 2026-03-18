@@ -36,10 +36,48 @@ function getConflictSlots(slot) {
   throw httpError(400, "slot must be morning|evening|wholeday");
 }
 
+function toLocalDateString(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function isSlotTimeBlocked(dateValue, slot) {
+  const today = new Date();
+  const todayStr = toLocalDateString(today);
+
+  if (dateValue < todayStr) {
+    return { blocked: true, reason: "PAST_DATE" };
+  }
+
+  if (dateValue !== todayStr) {
+    return { blocked: false };
+  }
+
+  const start = new Date(today);
+  if (slot === "evening") {
+    start.setHours(17, 0, 0, 0);
+  } else {
+    start.setHours(9, 0, 0, 0);
+  }
+
+  if (today >= start) {
+    return { blocked: true, reason: "TIME_BLOCKED" };
+  }
+
+  return { blocked: false };
+}
+
 export async function checkHallAvailability({ hallId, date, slot, guests }) {
   if (!date || typeof date !== "string") throw httpError(400, "date is required (yyyy-mm-dd)");
   if (!slot) throw httpError(400, "slot is required");
   if (!Number.isFinite(Number(guests)) || Number(guests) < 1) throw httpError(400, "guests must be >= 1");
+
+  const timeBlock = isSlotTimeBlocked(date, slot);
+  if (timeBlock.blocked) {
+    return { available: false, reason: timeBlock.reason };
+  }
 
   const hall = await Hall.findById(hallId).select("capacity isActive isDeleted").lean();
   if (!hall || hall.isDeleted) throw httpError(404, "Hall not found");

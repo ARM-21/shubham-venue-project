@@ -23,6 +23,11 @@ const bookingSchema = new mongoose.Schema({
     required: true 
   },
   guests: { type: Number, required: true },
+  bookingPurpose: {
+    type: String,
+    enum: ['customer', 'organizer'],
+    default: 'customer'
+  },
   
   // Event details
   eventType: { type: String },

@@ -18,12 +18,23 @@ function calculateHallPrice(hall, slot) {
 
 const formatSlot = (slot) => (slot ? `${slot.charAt(0).toUpperCase()}${slot.slice(1)}` : "");
 
+const isOrganizerUser = (user) => {
+  if (!user) return false;
+  if ((user.role || "").toLowerCase() === "admin") return true;
+  return Boolean(user.isOrganizerEligible);
+};
+
 // POST /reserve -> create a 5-minute hold
 router.post("/reserve", isAuthenticated, async (req, res, next) => {
   try {
-    const { hallId, date, slot, guests } = req.body || {};
+    const { hallId, date, slot, guests, bookingPurpose } = req.body || {};
     if (!hallId || !date || !slot || !guests) {
       return res.status(400).json({ message: "hallId, date, slot, guests are required" });
+    }
+
+    const normalizedPurpose = bookingPurpose === "organizer" ? "organizer" : "customer";
+    if (normalizedPurpose === "organizer" && !isOrganizerUser(req.currentUser)) {
+      return res.status(403).json({ message: "Organizer access required for this booking" });
     }
 
     const availability = await checkHallAvailability({ hallId, date, slot, guests: Number(guests) });
@@ -39,6 +50,7 @@ router.post("/reserve", isAuthenticated, async (req, res, next) => {
       date: new Date(date),
       slot,
       guests: Number(guests),
+      bookingPurpose: normalizedPurpose,
       status: "PENDING",
       reservedUntil: expiresAt,
       totalAmount: 0,
@@ -87,6 +99,7 @@ router.post("/", isAuthenticated, async (req, res, next) => {
       eventType,
       eventName,
       specialRequirements,
+      bookingPurpose,
       menuMode = "package",
       selectedMenu = [],
       selectedPackage = null,
@@ -100,6 +113,11 @@ router.post("/", isAuthenticated, async (req, res, next) => {
     const menuModeValue = menuMode === "custom" ? "custom" : "package";
     let selectedMenuValue = Array.isArray(selectedMenu) ? selectedMenu : [];
 
+    const requestedPurpose = bookingPurpose === "organizer" ? "organizer" : "customer";
+    if (requestedPurpose === "organizer" && !isOrganizerUser(req.currentUser)) {
+      return res.status(403).json({ message: "Organizer access required for this booking" });
+    }
+
     if (!hallId || !date || !slot || !guests) {
       return res.status(400).json({ message: "hallId, date, slot, guests are required" });
     }
@@ -107,10 +125,6 @@ router.post("/", isAuthenticated, async (req, res, next) => {
     const hall = await Hall.findById(hallId);
     if (!hall || hall.isDeleted || !hall.isActive) {
       return res.status(404).json({ message: "Hall not found or inactive" });
-    }
-
-    if (menuModeValue === "custom" && (!selectedMenuValue || selectedMenuValue.length === 0)) {
-      return res.status(400).json({ message: "Please select at least one menu item" });
     }
 
     let bookingDoc;
@@ -144,9 +158,20 @@ router.post("/", isAuthenticated, async (req, res, next) => {
       }
     }
 
+    const finalPurpose = bookingDoc?.bookingPurpose || requestedPurpose;
+    const organizerBooking = finalPurpose === "organizer";
+
+    if (!organizerBooking && menuModeValue === "custom" && (!selectedMenuValue || selectedMenuValue.length === 0)) {
+      return res.status(400).json({ message: "Please select at least one menu item" });
+    }
+
+    if (organizerBooking) {
+      selectedMenuValue = [];
+    }
+
     const guestsNum = Number(guests);
 
-    if (menuModeValue === "package" && (!selectedMenuValue || selectedMenuValue.length === 0) && selectedPackage) {
+    if (!organizerBooking && menuModeValue === "package" && (!selectedMenuValue || selectedMenuValue.length === 0) && selectedPackage) {
       const pricePerPerson = Number(selectedPackage.pricePerPerson || 0);
       selectedMenuValue = [{
         itemId: selectedPackage._id || selectedPackage.packageId || "package",
@@ -157,21 +182,29 @@ router.post("/", isAuthenticated, async (req, res, next) => {
       }];
     }
 
-    const totalMenu = Number.isFinite(Number(menuTotal))
-      ? Number(menuTotal)
-      : selectedMenuValue.reduce((sum, item) => sum + Number(item?.total || 0), 0);
+    const totalMenu = organizerBooking
+      ? 0
+      : Number.isFinite(Number(menuTotal))
+        ? Number(menuTotal)
+        : selectedMenuValue.reduce((sum, item) => sum + Number(item?.total || 0), 0);
 
     const hallPrice = calculateHallPrice(hall, slot);
-    const totalDecoration = Number(decorationTotal || 0);
+    const totalDecoration = organizerBooking ? 0 : Number(decorationTotal || 0);
     const totalAmount = hallPrice + totalMenu + totalDecoration;
 
-    const decorationPayload = decorationScheme
+    const decorationPayload = organizerBooking
+      ? null
+      : decorationScheme
       ? {
           schemeId: decorationScheme._id || decorationScheme.schemeId || null,
           name: decorationScheme.name,
           price: decorationScheme.price,
         }
       : null;
+
+    const addonsValue = organizerBooking ? [] : (Array.isArray(addons) ? addons : []);
+
+    const finalMenuMode = organizerBooking ? "package" : menuModeValue;
 
     const nextStatus = paymentMethod === "cash" ? "CONFIRMED" : "PENDING";
     const confirmedAt = paymentMethod === "cash" ? new Date() : null;
@@ -180,14 +213,15 @@ router.post("/", isAuthenticated, async (req, res, next) => {
       bookingDoc.status = nextStatus;
       bookingDoc.reservedUntil = null;
       bookingDoc.guests = guestsNum;
+      bookingDoc.bookingPurpose = finalPurpose;
       bookingDoc.eventType = eventType;
       bookingDoc.eventName = eventName;
       bookingDoc.specialRequirements = specialRequirements;
-      bookingDoc.menuMode = menuModeValue;
+      bookingDoc.menuMode = finalMenuMode;
       bookingDoc.selectedMenu = selectedMenuValue;
       bookingDoc.menuTotal = totalMenu;
       bookingDoc.decorationScheme = decorationPayload;
-      bookingDoc.addons = addons;
+      bookingDoc.addons = addonsValue;
       bookingDoc.decorationTotal = totalDecoration;
       bookingDoc.hallPrice = hallPrice;
       bookingDoc.totalAmount = totalAmount;
@@ -202,14 +236,15 @@ router.post("/", isAuthenticated, async (req, res, next) => {
         date: new Date(date),
         slot,
         guests: guestsNum,
+        bookingPurpose: finalPurpose,
         eventType,
         eventName,
         specialRequirements,
-        menuMode: menuModeValue,
+        menuMode: finalMenuMode,
         selectedMenu: selectedMenuValue,
         menuTotal: totalMenu,
         decorationScheme: decorationPayload,
-        addons,
+        addons: addonsValue,
         decorationTotal: totalDecoration,
         hallPrice,
         totalAmount,

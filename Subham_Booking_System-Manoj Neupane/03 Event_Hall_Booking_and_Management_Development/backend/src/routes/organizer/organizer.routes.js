@@ -51,6 +51,7 @@ function startOfToday() {
 router.get("/bookings", isAuthenticated, isOrganizer, async (req, res, next) => {
   try {
     const { status, eligibleForEvent } = req.query || {};
+    console.log(status, eligibleForEvent)
     const filter = { userId: req.currentUser._id };
 
     if (status && ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED"].includes(status)) {
