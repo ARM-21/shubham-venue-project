@@ -83,6 +83,23 @@ export default function BookingsPage() {
     return hall.slug || hall._id || "";
   };
 
+  const handleDownloadInvoice = async (bookingId) => {
+    try {
+      const res = await axiosInstance.get(ROUTES.API.BOOKINGS.INVOICE(bookingId), { responseType: "blob" });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `invoice-${bookingId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to download invoice");
+    }
+  };
+
   const guestsLabel = (booking) => {
     if (booking?.guests === 0) return 0;
     return booking?.guests ?? booking?.guestCount ?? "-";
@@ -135,6 +152,14 @@ export default function BookingsPage() {
                   <StatusBadge status={b.status} />
                   <p className="text-sm text-gray-700">Total: NPR {Number(b.totalAmount || 0).toLocaleString()}</p>
                   <p className="text-xs text-gray-500">Created {formatDate(b.createdAt)}</p>
+                      {(["CONFIRMED", "COMPLETED"].includes(b.status) && b.paymentId) ? (
+                        <button
+                          onClick={() => handleDownloadInvoice(b._id)}
+                          className="text-sm text-[#66213f] hover:underline"
+                        >
+                          Download invoice
+                        </button>
+                      ) : null}
                   <button
                     onClick={() => {
                       const slug = hallSlug(b.hallId);
@@ -159,6 +184,29 @@ export default function BookingsPage() {
                 <div className="bg-gray-50 rounded p-3">
                   <p className="text-xs text-gray-500">Hall Price</p>
                   <p className="font-semibold">NPR {Number(b.hallPrice || 0).toLocaleString()}</p>
+                </div>
+                <div className="bg-gray-50 rounded p-3 sm:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Payment</p>
+                    <p className="font-semibold text-gray-800">{b.paymentId?.gateway || "-"}</p>
+                    <p className="text-xs text-gray-600">Status: {b.paymentId?.status || "N/A"}</p>
+                    <p className="text-xs text-gray-600">Paid at: {b.paymentId?.paidAt ? new Date(b.paymentId.paidAt).toLocaleString() : "-"}</p>
+                    {b.paymentId?.transactionId ? (
+                      <p className="text-xs text-gray-600">Txn: {b.paymentId.transactionId}</p>
+                    ) : null}
+                  </div>
+                  <div className="flex sm:justify-end items-start">
+                    {b.paymentId && (b.paymentId.status === "COMPLETED" || b.paymentId.gateway === "CASH") ? (
+                      <button
+                        onClick={() => handleDownloadInvoice(b._id)}
+                        className="px-3 py-2 text-sm border rounded-lg text-[#66213f] font-semibold hover:bg-gray-100"
+                      >
+                        Download invoice
+                      </button>
+                    ) : (
+                      <p className="text-xs text-gray-500">Invoice available after payment completion.</p>
+                    )}
+                  </div>
                 </div>
               </div>
 

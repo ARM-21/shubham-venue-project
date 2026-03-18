@@ -58,6 +58,7 @@ export const ROUTES = {
       RESERVE: '/api/v1/bookings/reserve',
       RESERVE_BY_ID: (id) => `/api/v1/bookings/reserve/${id}`,
       MINE: '/api/v1/bookings/my',
+      INVOICE: (id) => `/api/v1/bookings/${id}/invoice`,
     },
     MENUS: {
       ROOT: '/api/v1/menus',
@@ -131,6 +132,7 @@ export const ROUTES = {
       DISH_UPDATE: (id) => `/api/v1/admin/menus/dishes/${id}`,
       DISH_DELETE: (id) => `/api/v1/admin/menus/dishes/${id}`,
       SETTINGS_CONFIG: '/api/v1/admin/settings/config',
+      SETTINGS_LOGO_UPLOAD: '/api/v1/admin/settings/config/logo-upload',
       SETTINGS_NOTIFICATIONS: '/api/v1/admin/settings/notifications',
       NOTIFICATIONS: '/api/v1/admin/notifications',
       NOTIFICATION_READ: (id) => `/api/v1/admin/notifications/${id}/read`,

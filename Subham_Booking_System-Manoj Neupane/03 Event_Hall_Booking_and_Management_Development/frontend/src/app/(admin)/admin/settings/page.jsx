@@ -13,11 +13,32 @@ export default function AdminSettingsPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
   const [savingPassword, setSavingPassword] = useState(false);
-  const [config, setConfig] = useState(() => ({ maintenanceMode: false, emailNotifications: true }));
-  const [initialConfig, setInitialConfig] = useState(() => ({ maintenanceMode: false, emailNotifications: true }));
+  const [config, setConfig] = useState(() => ({
+    maintenanceMode: false,
+    emailNotifications: true,
+    brandingLogoUrl: "",
+    invoiceOrgName: "",
+    invoiceOrgAddress: "",
+    invoiceTaxId: "",
+    taxPercent: 13,
+    serviceChargePercent: 0,
+  }));
+  const [initialConfig, setInitialConfig] = useState(() => ({
+    maintenanceMode: false,
+    emailNotifications: true,
+    brandingLogoUrl: "",
+    invoiceOrgName: "",
+    invoiceOrgAddress: "",
+    invoiceTaxId: "",
+    taxPercent: 13,
+    serviceChargePercent: 0,
+  }));
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [brandingFile, setBrandingFile] = useState(null);
+  const [brandingPreview, setBrandingPreview] = useState(null);
+  const [brandingUploading, setBrandingUploading] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -59,6 +80,12 @@ export default function AdminSettingsPage() {
         const cfg = res?.data?.config || {};
         const normalized = {
           maintenanceMode: !!cfg.maintenanceMode,
+          brandingLogoUrl: cfg.brandingLogoUrl || "",
+          invoiceOrgName: cfg.invoiceOrgName || "",
+          invoiceOrgAddress: cfg.invoiceOrgAddress || "",
+          invoiceTaxId: cfg.invoiceTaxId || "",
+          taxPercent: Number.isFinite(Number(cfg.taxPercent)) ? Number(cfg.taxPercent) : 13,
+          serviceChargePercent: Number.isFinite(Number(cfg.serviceChargePercent)) ? Number(cfg.serviceChargePercent) : 0,
         };
         setConfig((prev) => ({ ...prev, ...normalized }));
         setInitialConfig((prev) => ({ ...prev, ...normalized }));
@@ -127,16 +154,20 @@ export default function AdminSettingsPage() {
   };
 
   const handleSaveConfig = async () => {
-    const maintenanceChanged = config.maintenanceMode !== initialConfig.maintenanceMode;
-    const notificationsChanged = config.emailNotifications !== initialConfig.emailNotifications;
-
     try {
       await toast.promise(
         (async () => {
-          if (maintenanceChanged) {
-            await axiosInstance.put(ROUTES.API.ADMIN.SETTINGS_CONFIG, { maintenanceMode: config.maintenanceMode });
-          }
-          if (notificationsChanged) {
+          await axiosInstance.put(ROUTES.API.ADMIN.SETTINGS_CONFIG, {
+            maintenanceMode: config.maintenanceMode,
+            brandingLogoUrl: config.brandingLogoUrl,
+            invoiceOrgName: config.invoiceOrgName,
+            invoiceOrgAddress: config.invoiceOrgAddress,
+            invoiceTaxId: config.invoiceTaxId,
+            taxPercent: Number(config.taxPercent) || 0,
+            serviceChargePercent: Number(config.serviceChargePercent) || 0,
+          });
+
+          if (config.emailNotifications !== initialConfig.emailNotifications) {
             await axiosInstance.patch(ROUTES.API.ADMIN.SETTINGS_NOTIFICATIONS, { emailNotifications: config.emailNotifications });
           }
         })(),
@@ -223,6 +254,53 @@ export default function AdminSettingsPage() {
       toast.error(err?.response?.data?.message || "Avatar upload failed");
     } finally {
       setAvatarUploading(false);
+    }
+  };
+
+  const handleBrandingFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/gif", "image/webp"].includes(file.type)) {
+      toast.error("Only JPG, PNG, GIF, or WEBP allowed");
+      return;
+    }
+    setBrandingFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setBrandingPreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const uploadBrandingLogo = async () => {
+    if (!brandingFile) return;
+    try {
+      setBrandingUploading(true);
+      const fileExtension = brandingFile.name.substring(brandingFile.name.lastIndexOf("."));
+      const urlResponse = await axiosInstance.post(ROUTES.API.ADMIN.SETTINGS_LOGO_UPLOAD, {
+        fileExtension,
+        contentType: brandingFile.type,
+      });
+
+      const { uploadUrl, publicUrl } = urlResponse.data || {};
+      if (!uploadUrl || !publicUrl) throw new Error("Upload URL missing");
+
+      await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": brandingFile.type },
+        body: brandingFile,
+      });
+
+      setConfig((prev) => ({ ...prev, brandingLogoUrl: publicUrl }));
+      toast.success("Branding logo updated. Don't forget to save settings.");
+      setBrandingFile(null);
+      setBrandingPreview(null);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || "Logo upload failed");
+    } finally {
+      setBrandingUploading(false);
     }
   };
 
@@ -467,17 +545,80 @@ export default function AdminSettingsPage() {
               </section>
 
               <section className="bg-[var(--admin-primary)]/10 border border-[var(--admin-primary)]/30 rounded-xl p-5 text-center">
-                <div className="mx-auto mb-3 size-12 rounded-lg bg-white flex items-center justify-center">
-                  <span className="text-[var(--admin-primary)] font-bold text-xl">GV</span>
+                <div className="mx-auto mb-3 size-16 rounded-lg bg-white flex items-center justify-center overflow-hidden">
+                  {brandingPreview || config.brandingLogoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={brandingPreview || config.brandingLogoUrl} alt="Logo preview" className="object-contain h-full w-full" />
+                  ) : (
+                    <span className="text-[var(--admin-primary)] font-bold text-xl">LOGO</span>
+                  )}
                 </div>
                 <h4 className="text-white font-semibold text-sm">System Branding</h4>
-                <p className="text-[var(--admin-muted)] text-xs mt-1">This logo appears on confirmations and invoices.</p>
-                <button
-                  className="mt-3 w-full px-4 py-2 rounded-lg bg-[var(--admin-surface)] border border-white/10 text-sm text-white hover:border-[var(--admin-primary)]/60"
-                  onClick={() => toast("Logo upload not implemented")}
-                >
-                  Update logo
-                </button>
+                <p className="text-[var(--admin-muted)] text-xs mt-1">Logo appears on confirmations and invoices.</p>
+                <div className="mt-3 flex flex-col gap-2 text-left">
+                  <label className="text-xs text-[var(--admin-muted)]">Upload logo</label>
+                  <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="text-[var(--admin-muted)] text-xs" onChange={handleBrandingFileChange} />
+                  {brandingFile && <p className="text-[11px] text-[var(--admin-muted)]">{brandingFile.name}</p>}
+                  <button
+                    className="w-full px-4 py-2 rounded-lg bg-[var(--admin-surface)] border border-white/10 text-sm text-white hover:border-[var(--admin-primary)]/60 disabled:opacity-60"
+                    onClick={uploadBrandingLogo}
+                    disabled={brandingUploading || !brandingFile}
+                    type="button"
+                  >
+                    {brandingUploading ? "Uploading..." : "Upload logo"}
+                  </button>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-3 text-left">
+                  <div>
+                    <label className="text-xs text-[var(--admin-muted)]">Organization name</label>
+                    <input
+                      className="w-full mt-1 bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
+                      value={config.invoiceOrgName}
+                      onChange={(e) => setConfig((c) => ({ ...c, invoiceOrgName: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[var(--admin-muted)]">Organization address</label>
+                    <input
+                      className="w-full mt-1 bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
+                      value={config.invoiceOrgAddress}
+                      onChange={(e) => setConfig((c) => ({ ...c, invoiceOrgAddress: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[var(--admin-muted)]">Tax ID / PAN</label>
+                    <input
+                      className="w-full mt-1 bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
+                      value={config.invoiceTaxId}
+                      onChange={(e) => setConfig((c) => ({ ...c, invoiceTaxId: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-[var(--admin-muted)]">VAT %</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="w-full mt-1 bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
+                        value={config.taxPercent}
+                        onChange={(e) => setConfig((c) => ({ ...c, taxPercent: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-[var(--admin-muted)]">Service charge %</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="w-full mt-1 bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
+                        value={config.serviceChargePercent}
+                        onChange={(e) => setConfig((c) => ({ ...c, serviceChargePercent: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                </div>
               </section>
             </div>
           </div>

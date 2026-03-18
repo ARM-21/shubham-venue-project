@@ -6,6 +6,7 @@ import { isAuthenticated } from "../../middleware/auth.middleware.js";
 import { checkHallAvailability } from "../../services/hall/hall.service.js";
 import { sendBookingConfirmationEmail, sendAdminBookingNotificationEmail } from "../../services/email/email.service.js";
 import User from "../../models/User.js";
+import { streamBookingInvoice } from "../../services/invoice/bookingInvoice.service.js";
 
 const router = express.Router();
 
@@ -303,16 +304,17 @@ router.get("/my", isAuthenticated, async (req, res, next) => {
       filter.status = status;
     }
 
-    const [items, total] = await Promise.all([
-      Booking.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(lim)
-        .select("hallId date slot status totalAmount menuTotal decorationTotal hallPrice reservedUntil guests eventName eventType createdAt updatedAt")
-        .populate({ path: "hallId", select: "name slug" })
-        .lean(),
-      Booking.countDocuments(filter),
-    ]);
+      const [items, total] = await Promise.all([
+        Booking.find(filter)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(lim)
+          .select("hallId date slot status totalAmount menuTotal decorationTotal hallPrice reservedUntil guests eventName eventType createdAt updatedAt paymentId")
+          .populate({ path: "hallId", select: "name slug" })
+          .populate({ path: "paymentId", select: "gateway status paidAt transactionId amount currency invoiceUrl" })
+          .lean(),
+        Booking.countDocuments(filter),
+      ]);
 
     return res.json({
       items,
@@ -335,6 +337,14 @@ router.get("/:id", isAuthenticated, async (req, res, next) => {
     const booking = await Booking.findOne({ _id: req.params.id, userId: req.currentUser._id });
     if (!booking) return res.status(404).json({ message: "Booking not found" });
     return res.json({ booking });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/:id/invoice", isAuthenticated, async (req, res, next) => {
+  try {
+    await streamBookingInvoice({ bookingId: req.params.id, currentUser: req.currentUser, res });
   } catch (err) {
     return next(err);
   }

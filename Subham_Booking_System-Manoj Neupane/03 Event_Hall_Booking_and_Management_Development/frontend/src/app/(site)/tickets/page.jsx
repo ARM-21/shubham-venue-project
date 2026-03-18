@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import axiosInstance from "@/lib/axios";
 import { ROUTES } from "@/config/routes";
+import { QRCodeCanvas } from "qrcode.react";
 
 const STATUS_COLORS = {
   ACTIVE: "bg-green-100 text-green-800",
@@ -76,6 +77,22 @@ export default function TicketsPage() {
     }
   };
 
+  const handleDownloadQr = (ticketId) => {
+    try {
+      const canvas = document.getElementById(`qr-${ticketId}`);
+      if (!canvas) throw new Error("QR not ready");
+      const url = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `ticket-qr-${ticketId}.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      toast.error(err?.message || "Download failed");
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
@@ -133,14 +150,33 @@ export default function TicketsPage() {
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
                   <div className="bg-gray-50 rounded p-3">
                     <p className="text-xs text-gray-500">QR Code</p>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-xs break-all">{ticket.qrCodeValue}</span>
-                      <button
-                        onClick={() => handleCopyCode(ticket.qrCodeValue)}
-                        className="text-xs text-[#66213f] font-semibold hover:underline"
-                      >
-                        Copy
-                      </button>
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="bg-white p-2 border rounded">
+                        <QRCodeCanvas
+                          id={`qr-${ticket._id}`}
+                          value={ticket.qrCodeValue || ""}
+                          size={110}
+                          includeMargin
+                          level="M"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="font-mono text-xs break-all">{ticket.qrCodeValue}</span>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => handleCopyCode(ticket.qrCodeValue)}
+                            className="text-xs text-[#66213f] font-semibold hover:underline"
+                          >
+                            Copy code
+                          </button>
+                          <button
+                            onClick={() => handleDownloadQr(ticket._id)}
+                            className="text-xs text-[#66213f] font-semibold hover:underline"
+                          >
+                            Download QR
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="bg-gray-50 rounded p-3">
