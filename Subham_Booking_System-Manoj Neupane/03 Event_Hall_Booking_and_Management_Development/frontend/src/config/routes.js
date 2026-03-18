@@ -28,6 +28,10 @@ export const ROUTES = {
     SEARCH_AVAILABILITY: (slug) => (slug ? `/search-availability/${slug}` : '/search-availability'),
     PROFILE: '/profile',
     PAYMENT_VERIFY: '/payment/verify',
+    EVENTS: '/events',
+    EVENT_DETAIL: (id) => `/events/${id}`,
+    TICKETS: '/tickets',
+    TICKET_VERIFY: '/tickets/verify',
     ORGANIZER: '/organizer',
     ORGANIZER_EVENTS: '/organizer/events',
     ORGANIZER_EVENT_NEW: '/organizer/events/new',
@@ -75,6 +79,11 @@ export const ROUTES = {
       PUBLIC: '/api/v1/events/public',
       DETAIL: (id) => `/api/v1/events/${id}`,
       TICKETS: (id) => `/api/v1/events/${id}/tickets`,
+    },
+    TICKETS: {
+      INITIATE: '/api/v1/tickets/initiate',
+      VERIFY: '/api/v1/tickets/verify',
+      MINE: '/api/v1/tickets/my',
     },
     ORGANIZER_REQUESTS: {
       ROOT: '/api/v1/organizer-requests',

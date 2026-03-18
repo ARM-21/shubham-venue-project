@@ -325,6 +325,12 @@ export default function ProfilePage() {
                     My Bookings
                   </button>
                   <button
+                    onClick={() => router.push(ROUTES.SITE.TICKETS)}
+                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                  >
+                    My Tickets
+                  </button>
+                  <button
                     onClick={() => router.push(ROUTES.SITE.ORGANIZER)}
                     className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition"
                   >

@@ -10,6 +10,23 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
   const [gateway, setGateway] = useState("KHALTI");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const redirectToEsewa = (paymentUrl, payload) => {
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = paymentUrl;
+
+    Object.entries(payload || {}).forEach(([key, value]) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = String(value);
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
@@ -39,6 +56,11 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
       });
 
       // Redirect to Khalti/Esewa payment page
+      if (gateway === "ESEWA") {
+        redirectToEsewa(paymentRes.data.paymentUrl, paymentRes.data.payload);
+        return;
+      }
+
       window.location.href = paymentRes.data.paymentUrl;
 
     } catch (error) {

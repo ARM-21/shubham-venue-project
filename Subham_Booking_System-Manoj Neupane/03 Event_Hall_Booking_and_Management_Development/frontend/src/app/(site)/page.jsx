@@ -1,6 +1,7 @@
 import Hero from '@/components/hero/Hero.jsx';
 import FeaturedVenues from '@/components/venues/FeaturedVenues.jsx';
 import Menus from '@/components/menu/landing-page/ExploreMenus.jsx';
+import UpcomingEvents from '@/components/events/UpcomingEvents.jsx';
 
 const images = [
   { image: '/images/slide1.jpg', title: 'Welcome', branding: 'Shubham Venue', mini: 'Make it special' },
@@ -13,6 +14,7 @@ export default function Home() {
     <main>
       <Hero images={images} interval={4000} />
       <FeaturedVenues />
+      <UpcomingEvents />
       <Menus/>
     </main>
   );

@@ -10,17 +10,21 @@ export default function PaymentVerifyPage() {
   const [status, setStatus] = useState("verifying");
 
   useEffect(() => {
-    const pidx = searchParams.get("pidx");
-    if (!pidx) {
+    const transactionUuid =
+      searchParams.get("transaction_uuid")
+
+    if ( !transactionUuid) {
       setStatus("error");
       return;
     }
 
     async function verify() {
       try {
-        await axiosInstance.post("/api/v1/payments/verify", { pidx });
+        if (transactionUuid) {
+          await axiosInstance.post("/api/v1/payments/verify", { transactionUuid });
+        } 
         setStatus("success");
-        setTimeout(() => router.push("/"), 2000);
+        setTimeout(() => router.push("/bookings"), 2000);
       } catch {
         setStatus("failed");
       }

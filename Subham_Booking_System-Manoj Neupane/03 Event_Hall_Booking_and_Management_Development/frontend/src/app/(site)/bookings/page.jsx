@@ -51,7 +51,7 @@ export default function BookingsPage() {
       const res = await axiosInstance.get(ROUTES.API.BOOKINGS.MINE, {
         params: {
           status: statusFilter || undefined,
-          limit: 50,
+          limit: 10,
           page: 1,
         },
       });
