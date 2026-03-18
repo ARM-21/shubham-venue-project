@@ -1,12 +1,10 @@
-'use client';
-
-import React from 'react';
-import CheckAvailability from '@/components/check-availability/CheckAvailability';
+import { Suspense } from "react";
+import SearchAvailabilityAllClient from "./SearchAvailabilityAllClient";
 
 export default function AllHallsPage() {
   return (
-    <div>
-      <CheckAvailability showAllHalls={true} />
-    </div>
+    <Suspense fallback={<p className="p-6">Loading availability...</p>}>
+      <SearchAvailabilityAllClient />
+    </Suspense>
   );
 }
