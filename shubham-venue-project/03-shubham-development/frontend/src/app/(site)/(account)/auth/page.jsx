@@ -6,6 +6,7 @@ export default function AuthPage({ searchParams }) {
   return (
     <Suspense fallback={<p className="p-8">Loading...</p>}>
       <AuthPageClient redirect={redirect} />
+      
     </Suspense>
   );
 }
