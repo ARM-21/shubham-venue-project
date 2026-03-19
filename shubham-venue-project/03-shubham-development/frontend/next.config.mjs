@@ -15,6 +15,19 @@ const nextConfig = {
                 hostname: 'images.unsplash.com'
             }
         ]
+    },
+    async headers() {
+        return [
+            {
+                source: '/auth/:path*',
+                headers: [
+                    {
+                        key: 'Cross-Origin-Opener-Policy',
+                        value: 'same-origin-allow-popups'
+                    }
+                ]
+            }
+        ];
     }
 };
 

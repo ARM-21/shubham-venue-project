@@ -98,11 +98,16 @@ export default function AuthPageClient({ redirect }) {
             <div className="flex justify-center w-full">
               <GoogleLogin
                 onSuccess={(credentialResponse) => {
+                  if (!credentialResponse?.credential) {
+                    toast.error("Google token not received. Please try again.");
+                    return;
+                  }
                   onGoogleLoginSuccess(credentialResponse);
                 }}
-                onError={(err) => {
-                  toast.error("Google Sign In failed", err);
+                onError={() => {
+                  toast.error("Google Sign In failed");
                 }}
+                ux_mode="popup"
                 shape="pill"
                 text="continue_with"
                 logo_alignment="center"
