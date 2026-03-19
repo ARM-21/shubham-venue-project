@@ -15,6 +15,10 @@ const app = express();
 assertEnv();
 await getDBConnection();
 
+if (ENV.NODE_ENV === "production") {
+  app.set("trust proxy", ENV.TRUST_PROXY_HOPS);
+}
+
 
 
 app.use(cors(corsOptions));

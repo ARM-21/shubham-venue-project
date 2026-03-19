@@ -8,6 +8,7 @@ export function sessionMiddleware() {
     secret: ENV.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    proxy: ENV.NODE_ENV === "production",
 
     store: MongoStore.create({
       mongoUrl: ENV.MONGODB_URI,

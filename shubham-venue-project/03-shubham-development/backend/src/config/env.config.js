@@ -12,7 +12,11 @@ const ENV = Object.freeze({
 
   SESSION_SECRET: process.env.SESSION_SECRET,
   SESSION_NAME: process.env.SESSION_NAME || "sid",
+  SESSION_TTL_SECONDS: Number(process.env.SESSION_TTL_SECONDS || 1209600),
+  SESSION_COOKIE_MAX_AGE_MS: Number(process.env.SESSION_COOKIE_MAX_AGE_MS || 1209600000),
+  TRUST_PROXY_HOPS: Number(process.env.TRUST_PROXY_HOPS || 1),
 
+  FRONTEND_ORIGINS: process.env.FRONTEND_ORIGINS || process.env.FRONTEND_ORIGIN || "http://localhost:3000",
   FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN || "http://localhost:3000",
 
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
