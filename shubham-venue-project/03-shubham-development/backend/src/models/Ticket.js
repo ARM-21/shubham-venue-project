@@ -32,6 +32,13 @@ const ticketSchema = new mongoose.Schema(
       default: "ACTIVE",
       index: true,
     },
+    checkedInBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+
     checkedInAt: { type: Date },
   },
   { timestamps: true }
