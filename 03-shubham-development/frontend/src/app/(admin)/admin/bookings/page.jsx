@@ -34,6 +34,7 @@ export default function AdminBookingsPage() {
     paymentId: null,
     originalStatus: "PENDING",
     originalPaymentStatus: "initiated",
+    cancelReason: "",
   };
   const [editModal, setEditModal] = useState(emptyEditModal);
 
@@ -171,6 +172,7 @@ export default function AdminBookingsPage() {
       paymentId: target?.payment?.id || null,
       originalStatus: (target?.status || "PENDING").toUpperCase(),
       originalPaymentStatus: (target?.payment?.status || "initiated").toLowerCase(),
+      cancelReason: target?.cancellationReason || "",
     });
     setOpenMenuId(null);
   };
@@ -186,7 +188,7 @@ export default function AdminBookingsPage() {
       });
       const statusChanged = editModal.status && editModal.status !== editModal.originalStatus;
       if (statusChanged) {
-        await axiosInstance.patch(ROUTES.API.ADMIN.BOOKING_STATUS(editModal.id), { status: editModal.status });
+        await axiosInstance.patch(ROUTES.API.ADMIN.BOOKING_STATUS(editModal.id), { status: editModal.status, reason: editModal.cancelReason || undefined });
       }
 
       const paymentChanged = editModal.paymentStatus && editModal.paymentStatus !== editModal.originalPaymentStatus;

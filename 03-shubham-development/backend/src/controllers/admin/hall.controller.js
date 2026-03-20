@@ -1,5 +1,5 @@
 import { success } from "../../utils/http.utils.js";
-import { adminListHalls, adminCreateHall, adminUpdateHall } from "../../services/hall/admin/hall.admin.service.js";
+import { adminListHalls, adminCreateHall, adminUpdateHall, adminDeleteHall } from "../../services/hall/admin/hall.admin.service.js";
 import { generateHallImageUploadUrl } from "../../services/hall/admin/hall.upload.service.js";
 
 export const adminListHallsHandler = async (req, res, next) => {
@@ -24,6 +24,15 @@ export const adminUpdateHallHandler = async (req, res, next) => {
   try {
     const hall = await adminUpdateHall(req.params.id, req.body);
     return success(res, { hall }, "Updated", 200);
+  } catch (err) {
+    return next(err);
+  }
+};
+
+export const adminDeleteHallHandler = async (req, res, next) => {
+  try {
+    const result = await adminDeleteHall(req.params.id);
+    return success(res, result, "Deleted", 200);
   } catch (err) {
     return next(err);
   }

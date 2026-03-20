@@ -209,6 +209,22 @@ export default function AdminHallsPage() {
     if (target) openEditModal(target);
   };
 
+  const handleDelete = async (hallId) => {
+    if (!hallId) return;
+    const ok = typeof window === "undefined" ? true : window.confirm("Delete this hall and related bookings? This cannot be undone.");
+    if (!ok) return;
+    try {
+      setActionLoading(true);
+      await axiosInstance.delete(ROUTES.API.ADMIN.HALL(hallId));
+      await fetchHalls();
+    } catch (err) {
+      console.error("Failed to delete hall", err);
+      setError(err?.response?.data?.message || "Failed to delete hall");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleViewClick = (hallId) => {
     const target = halls.find((h) => h._id === hallId || h.id === hallId || h.slug === hallId);
     if (target) setViewModal({ open: true, hall: target, activeIndex: 0 });
@@ -332,7 +348,7 @@ export default function AdminHallsPage() {
             clearFilters={clearFilters}
           />
 
-          <HallCards loading={loading} hallCards={hallCards} onEdit={handleEditClick} onView={handleViewClick} />
+          <HallCards loading={loading} hallCards={hallCards} onEdit={handleEditClick} onView={handleViewClick} onDelete={handleDelete} actionLoading={actionLoading} />
 
           <HallTable
             loading={loading}
@@ -340,6 +356,8 @@ export default function AdminHallsPage() {
             filteredCount={filteredHalls.length}
             onEdit={handleEditClick}
             onView={handleViewClick}
+            onDelete={handleDelete}
+            actionLoading={actionLoading}
           />
         </div>
       </div>

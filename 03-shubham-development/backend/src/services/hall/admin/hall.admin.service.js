@@ -1,7 +1,42 @@
 import Hall from "../../../models/Hall.js";
+import Booking from "../../../models/Booking.js";
+import Payment from "../../../models/Payment.js";
 import { httpError } from "../../../utils/http.utils.js";
+import ENV from "../../../config/env.config.js";
+import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 const slugifyName = (name = "") => name.trim().toLowerCase().replace(/\s+/g, "-");
+
+const s3Client = new S3Client({
+  region: ENV.AWS_REGION,
+  credentials: {
+    accessKeyId: ENV.AWS_ACCESS_KEY_ID,
+    secretAccessKey: ENV.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+function extractS3KeyFromUrl(url) {
+  try {
+    const obj = new URL(url);
+    return obj.pathname.replace(/^\/+/, "");
+  } catch {
+    return null;
+  }
+}
+
+async function deleteS3Objects(urls = []) {
+  const keys = urls
+    .map(extractS3KeyFromUrl)
+    .filter(Boolean);
+
+  for (const key of keys) {
+    try {
+      await s3Client.send(new DeleteObjectCommand({ Bucket: ENV.AWS_S3_BUCKET_NAME, Key: key }));
+    } catch (err) {
+      console.error("S3 delete failed", key, err?.message);
+    }
+  }
+}
 
 export async function adminListHalls(query = {}) {
   const filter = {};
@@ -84,4 +119,35 @@ export async function adminUpdateHall(hallId, payload = {}) {
 
   await hall.save();
   return hall;
+}
+
+export async function adminDeleteHall(hallId) {
+  const hall = await Hall.findById(hallId);
+  if (!hall || hall.isDeleted) throw httpError(404, "Hall not found");
+
+  // Capture assets before deletion
+  const images = Array.isArray(hall.images) ? hall.images : [];
+
+  // Delete related bookings and their payments
+  const bookingIds = await Booking.find({ hallId: hall._id }).select("_id paymentId").lean();
+  const ids = bookingIds.map((b) => b._id);
+  const paymentIds = bookingIds.map((b) => b.paymentId).filter(Boolean);
+
+  if (ids.length) {
+    await Booking.deleteMany({ _id: { $in: ids } });
+  }
+  if (paymentIds.length) {
+    await Payment.deleteMany({ _id: { $in: paymentIds } });
+  }
+
+  await deleteS3Objects(images);
+
+  await hall.deleteOne();
+
+  return {
+    hallId,
+    deletedBookings: ids.length,
+    deletedPayments: paymentIds.length,
+    deletedImages: images.length,
+  };
 }

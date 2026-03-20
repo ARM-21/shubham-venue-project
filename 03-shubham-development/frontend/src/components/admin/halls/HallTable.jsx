@@ -1,7 +1,7 @@
 import React from "react";
 import StatusBadge from "./StatusBadge";
 
-export default function HallTable({ loading, rows, filteredCount, onEdit, onView }) {
+export default function HallTable({ loading, rows, filteredCount, onEdit, onView, onDelete, actionLoading }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -51,18 +51,29 @@ export default function HallTable({ loading, rows, filteredCount, onEdit, onView
                     <td className="px-6 py-4">{row.price}</td>
                     <td className="px-6 py-4">{row.lastBooked}</td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => onView(row.id)}
-                        className="text-[var(--admin-primary)] hover:text-white transition-colors text-sm font-medium mr-4"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => onEdit(row.id)}
-                        className="text-[var(--admin-primary)] hover:text-white transition-colors text-sm font-medium"
-                      >
-                        Edit
-                      </button>
+                      <div className="flex justify-end gap-3">
+                        <button
+                          onClick={() => onView(row.id)}
+                          className="text-[var(--admin-primary)] hover:text-white transition-colors text-sm font-medium"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => onEdit(row.id)}
+                          className="text-[var(--admin-primary)] hover:text-white transition-colors text-sm font-medium"
+                        >
+                          Edit
+                        </button>
+                        {onDelete ? (
+                          <button
+                            onClick={() => onDelete(row.id)}
+                            disabled={actionLoading}
+                            className="text-red-300 hover:text-white transition-colors text-sm font-medium disabled:opacity-50"
+                          >
+                            Delete
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))
