@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LayoutGrid, CalendarCheck, PlusCircle } from "lucide-react";
-import { ROUTES } from "@/config/routes";
-import axiosInstance from "@/lib/axios";
+import { ROUTES } from "config/routes";
+import axiosInstance from "lib/axios";
 
 const navItems = [
   { label: "Organizer Hub", href: ROUTES.SITE.ORGANIZER, icon: LayoutGrid },

@@ -1,10 +1,10 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import axiosInstance from '@/lib/axios';
+import axiosInstance from 'lib/axios';
 import { useParams, useRouter } from 'next/navigation';
 import { Image as ImageIcon, MapPin, Share2, Heart, Users, Ruler, Coffee, Truck, Calendar as CalendarIcon, ChevronLeft, ChevronRight, ArrowRight, HelpCircle, Star, Check, Thermometer, Music, Zap } from 'lucide-react';
-import { ROUTES } from '@/config/routes';
+import { ROUTES } from 'config/routes';
 
 export default function Venue({ params }) {
   const { venueSlug } = useParams();

@@ -1,9 +1,9 @@
 "use client";
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import axiosInstance from '@/lib/axios';
+import axiosInstance from 'lib/axios';
 import Image from 'next/image';
-import { ROUTES } from '@/config/routes';
+import { ROUTES } from 'config/routes';
 import { Users, Ruler, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function VenuesPage() {

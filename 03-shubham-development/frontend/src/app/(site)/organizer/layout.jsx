@@ -2,9 +2,9 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthProvider";
-import { ROUTES } from "@/config/routes";
-import OrganizerNav from "@/components/organizer/OrganizerNav";
+import { useAuth } from "contexts/AuthProvider";
+import { ROUTES } from "config/routes";
+import OrganizerNav from "components/organizer/OrganizerNav";
 
 export default function OrganizerLayout({ children }) {
   const { user, loading } = useAuth();

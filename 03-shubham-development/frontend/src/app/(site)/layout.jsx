@@ -1,5 +1,5 @@
-import Navbar from "@/components/navbar/Navbar.jsx";
-import Footer from "@/components/footer/Footer.jsx";
+import Navbar from "components/navbar/Navbar.jsx";
+import Footer from "components/footer/Footer.jsx";
 
 export default function SiteLayout({ children }) {
   return (

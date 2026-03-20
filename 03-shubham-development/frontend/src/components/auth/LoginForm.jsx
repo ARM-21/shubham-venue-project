@@ -3,8 +3,8 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useRouter, useSearchParams } from 'next/navigation'; 
-import { useAuth } from '@/contexts/AuthProvider';
-import { ROUTES } from '@/config/routes';
+import { useAuth } from 'contexts/AuthProvider';
+import { ROUTES } from 'config/routes';
 
 export default function LoginForm({ onSwitch }) {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();

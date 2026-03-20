@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import axiosInstance from '@/lib/axios';
-import { ROUTES } from '@/config/routes';
+import axiosInstance from 'lib/axios';
+import { ROUTES } from 'config/routes';
 import toast from 'react-hot-toast';
 
 export default function MenuEditModal({ editingMenu, closeEditMenu, onSave }) {

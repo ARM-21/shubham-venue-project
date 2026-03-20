@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import axiosInstance from "@/lib/axios";
-import { ROUTES } from "@/config/routes";
-import { useAuth } from "@/contexts/AuthProvider";
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
+import { useAuth } from "contexts/AuthProvider";
 
 const PLACEHOLDER_IMAGE = "/assets/business-images/placeholder.jpg";
 

@@ -1,65 +1,61 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import axios from "axios";
-import AdminTopbar from "@/components/admin/dashboard/AdminTopbar";
-import axiosInstance from "@/lib/axios";
-import { ROUTES } from "@/config/routes";
+import { useEffect, useMemo, useState } from "react";
+import AdminTopbar from "components/admin/dashboard/AdminTopbar";
+import { useMutation } from "@tanstack/react-query";
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
 import { Building2, Download, Plus, Users, Wrench } from "lucide-react";
-import StatCards from "@/components/admin/halls/StatCards";
-import FiltersBar from "@/components/admin/halls/FiltersBar";
-import HallCards from "@/components/admin/halls/HallCards";
-import HallTable from "@/components/admin/halls/HallTable";
-import EditHallModal from "@/components/admin/halls/ui/EditHallModal";
-import ViewHallModal from "@/components/admin/halls/ui/ViewHallModal";
+import StatCards from "components/admin/halls/StatCards";
+import FiltersBar from "components/admin/halls/FiltersBar";
+import HallCards from "components/admin/halls/HallCards";
+import HallTable from "components/admin/halls/HallTable";
+import EditHallModal from "components/admin/halls/ui/EditHallModal";
+import ViewHallModal from "components/admin/halls/ui/ViewHallModal";
+import { useQueryHalls } from "@queries/halls";
+
+const EMPTY_EDIT = {
+  open: false,
+  isNew: false,
+  id: null,
+  name: "",
+  description: "",
+  capacity: "",
+  pricePerHour: "",
+  currency: "NPR",
+  isActive: true,
+  amenitiesInput: "",
+  address: "",
+  city: "",
+  state: "",
+  country: "",
+  images: [],
+  notes: "",
+  uploading: false,
+  uploadError: null,
+};
 
 export default function AdminHallsPage() {
-  const [halls, setHalls] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedHallId, setSelectedHallId] = useState(null);
   const [filterDraft, setFilterDraft] = useState({ minCapacity: "", maxPrice: "", amenity: "" });
   const [filters, setFilters] = useState({ minCapacity: "", maxPrice: "", amenity: "" });
-  const emptyEdit = {
-    open: false,
-    isNew: false,
-    id: null,
-    name: "",
-    description: "",
-    capacity: "",
-    pricePerHour: "",
-    currency: "NPR",
-    isActive: true,
-    amenitiesInput: "",
-    address: "",
-    city: "",
-    state: "",
-    country: "",
-    images: [],
-    notes: "",
-    uploading: false,
-    uploadError: null,
-  };
-  const [editModal, setEditModal] = useState(emptyEdit);
-  const [viewModal, setViewModal] = useState({ open: false, hall: null, activeIndex: 0 });
+  
+  
+  
+  const [editModal, setEditModal] = useState(EMPTY_EDIT);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchHalls = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await axiosInstance.get(ROUTES.API.ADMIN.HALLS);
-      setHalls(res.data?.data?.halls || res.data?.halls || []);
-      setError(null);
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || "Failed to load halls");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Use react-query hook for halls list
+  const { data: hallsData, isLoading: hallsLoading, error: hallsError, refetch: refetchHalls } = useQueryHalls();
 
   useEffect(() => {
-    fetchHalls();
-  }, [fetchHalls]);
+    if (hallsError) setError(hallsError?.message || "Failed to load halls");
+  }, [hallsError]);
+
+  const halls = hallsData?.data?.halls || hallsData?.halls || [];
+
+  // single-hall detail fetching is handled by the ViewHallModal (locality of behavior)
 
   const currencyFormatter = useMemo(
     () => new Intl.NumberFormat("en-NP", { style: "currency", currency: "NPR", maximumFractionDigits: 0 }),
@@ -91,7 +87,7 @@ export default function AdminHallsPage() {
   const openEditModal = (hall) => {
     if (!hall) return;
     setEditModal({
-      ...emptyEdit,
+      ...EMPTY_EDIT,
       open: true,
       isNew: false,
       id: hall._id || hall.id || hall.slug,
@@ -113,7 +109,7 @@ export default function AdminHallsPage() {
 
   const openCreateModal = () => {
     setEditModal({
-      ...emptyEdit,
+      ...EMPTY_EDIT,
       open: true,
       isNew: true,
       isActive: true,
@@ -121,7 +117,7 @@ export default function AdminHallsPage() {
     });
   };
 
-  const closeEditModal = () => setEditModal(emptyEdit);
+  const closeEditModal = () => setEditModal(EMPTY_EDIT);
 
   const handleImageUpload = async (file) => {
     if (!file) return;
@@ -158,44 +154,75 @@ export default function AdminHallsPage() {
     setEditModal((prev) => ({ ...prev, images: prev.images.filter((img) => img !== url) }));
   };
 
-  const saveHall = async () => {
+  const createHallMutation = useMutation({
+    mutationFn: async (payload) => {
+      const res = await axiosInstance.post(ROUTES.API.ADMIN.HALLS, payload);
+      return res.data;
+    },
+    onSuccess: async () => {
+      await refetchHalls();
+      closeEditModal();
+    },
+    onError: (err) => setError(err?.response?.data?.message || "Failed to update hall"),
+  });
+
+  const updateHallMutation = useMutation({
+    mutationFn: async ({ id, payload }) => {
+      const res = await axiosInstance.patch(ROUTES.API.ADMIN.HALL(id), payload);
+      return res.data;
+    },
+    onSuccess: async () => {
+      await refetchHalls();
+      closeEditModal();
+    },
+    onError: (err) => setError(err?.response?.data?.message || "Failed to update hall"),
+  });
+
+  const deleteHallMutation = useMutation({
+    mutationFn: async (id) => {
+      const res = await axiosInstance.delete(ROUTES.API.ADMIN.HALL(id));
+      return res.data;
+    },
+    onSuccess: async () => {
+      await refetchHalls();
+    },
+    onError: (err) => setError(err?.response?.data?.message || "Failed to delete hall"),
+  });
+
+  const saveHall = async (formData) => {
     try {
       setActionLoading(true);
-      const amenities = editModal.amenitiesInput
-        .split(",")
-        .map((a) => a.trim())
-        .filter(Boolean);
 
-      const payload = {
-        name: editModal.name,
-        description: editModal.description,
-        currency: editModal.currency,
-        isActive: editModal.isActive,
-        amenities,
-        images: editModal.images,
-        notes: editModal.notes,
-        location: {
-          address: editModal.address,
-          city: editModal.city,
-          state: editModal.state,
-          country: editModal.country,
-        },
+      const body = { ...formData };
+      body.images = editModal.images;
+
+      if (typeof body.amenitiesInput === "string") {
+        body.amenities = body.amenitiesInput
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+
+      const cap = Number(body.capacity ?? editModal.capacity);
+      if (Number.isFinite(cap) && cap > 0) body.capacity = cap;
+
+      const price = Number(body.pricePerHour ?? editModal.pricePerHour);
+      if (Number.isFinite(price) && price >= 0) body.pricePerHour = price;
+
+      // normalize location
+      body.location = body.location || {
+        address: editModal.address,
+        city: editModal.city,
+        state: editModal.state,
+        country: editModal.country,
       };
 
-      const cap = Number(editModal.capacity);
-      if (Number.isFinite(cap) && cap > 0) payload.capacity = cap;
-
-      const price = Number(editModal.pricePerHour);
-      if (Number.isFinite(price) && price >= 0) payload.pricePerHour = price;
-
       if (editModal.isNew) {
-        if (!payload.name || !payload.capacity) throw new Error("Name and capacity are required");
-        await axiosInstance.post(ROUTES.API.ADMIN.HALLS, payload);
+        if (!body.name || !body.capacity) throw new Error("Name and capacity are required");
+        await createHallMutation.mutateAsync(body);
       } else {
-        await axiosInstance.patch(ROUTES.API.ADMIN.HALL(editModal.id), payload);
+        await updateHallMutation.mutateAsync({ id: editModal.id, payload: body });
       }
-      await fetchHalls();
-      closeEditModal();
     } catch (err) {
       console.error("Failed to update hall", err);
       setError(err?.response?.data?.message || "Failed to update hall");
@@ -215,8 +242,7 @@ export default function AdminHallsPage() {
     if (!ok) return;
     try {
       setActionLoading(true);
-      await axiosInstance.delete(ROUTES.API.ADMIN.HALL(hallId));
-      await fetchHalls();
+      await deleteHallMutation.mutateAsync(hallId);
     } catch (err) {
       console.error("Failed to delete hall", err);
       setError(err?.response?.data?.message || "Failed to delete hall");
@@ -226,29 +252,13 @@ export default function AdminHallsPage() {
   };
 
   const handleViewClick = (hallId) => {
-    const target = halls.find((h) => h._id === hallId || h.id === hallId || h.slug === hallId);
-    if (target) setViewModal({ open: true, hall: target, activeIndex: 0 });
+    setSelectedHallId(hallId);
   };
 
-  const closeViewModal = () => setViewModal({ open: false, hall: null, activeIndex: 0 });
-
-  const nextImage = () => {
-    if (!viewModal.hall || !Array.isArray(viewModal.hall.images) || !viewModal.hall.images.length) return;
-    setViewModal((prev) => {
-      const total = prev.hall.images.length;
-      const next = (prev.activeIndex + 1) % total;
-      return { ...prev, activeIndex: next };
-    });
+  const closeViewModal = () => {
+    setSelectedHallId(null);
   };
 
-  const prevImage = () => {
-    if (!viewModal.hall || !Array.isArray(viewModal.hall.images) || !viewModal.hall.images.length) return;
-    setViewModal((prev) => {
-      const total = prev.hall.images.length;
-      const next = (prev.activeIndex - 1 + total) % total;
-      return { ...prev, activeIndex: next };
-    });
-  };
 
   const stats = useMemo(() => {
     const totalHalls = filteredHalls.length;
@@ -348,10 +358,10 @@ export default function AdminHallsPage() {
             clearFilters={clearFilters}
           />
 
-          <HallCards loading={loading} hallCards={hallCards} onEdit={handleEditClick} onView={handleViewClick} onDelete={handleDelete} actionLoading={actionLoading} />
+          <HallCards loading={hallsLoading} hallCards={hallCards} onEdit={handleEditClick} onView={handleViewClick} onDelete={handleDelete} actionLoading={actionLoading} />
 
-          <HallTable
-            loading={loading}
+                  <HallTable
+                    loading={hallsLoading}
             rows={tableRows}
             filteredCount={filteredHalls.length}
             onEdit={handleEditClick}
@@ -368,16 +378,12 @@ export default function AdminHallsPage() {
         onSave={saveHall}
         onImageUpload={handleImageUpload}
         onRemoveImage={removeImage}
-        setEditModal={setEditModal}
       />
 
       <ViewHallModal
-        viewModal={viewModal}
+        hallId={selectedHallId}
         currencyFormatter={currencyFormatter}
         closeViewModal={closeViewModal}
-        prevImage={prevImage}
-        nextImage={nextImage}
-        setViewModal={setViewModal}
         handleEditClick={handleEditClick}
       />
     </div>

@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarCheck, PlusCircle } from "lucide-react";
-import axiosInstance from "@/lib/axios";
-import { ROUTES } from "@/config/routes";
-import { useAuth } from "@/contexts/AuthProvider";
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
+import { useAuth } from "contexts/AuthProvider";
 import toast from "react-hot-toast";
 
 function formatDate(value) {

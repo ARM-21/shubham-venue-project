@@ -2,9 +2,9 @@
 
 import React, { useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { ROUTES } from "@/config/routes";
-import AdminSidebar from "@/components/admin/dashboard/AdminSidebar";
-import { useAuth } from "@/contexts/AuthProvider";
+import { ROUTES } from "config/routes";
+import AdminSidebar from "components/admin/dashboard/AdminSidebar";
+import { useAuth } from "contexts/AuthProvider";
 
 function buildNavItems(pathname) {
   const base = [

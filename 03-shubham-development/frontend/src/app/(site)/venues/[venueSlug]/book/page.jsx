@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import BookingFlow from '@/components/booking/BookingFlow';
-import axiosInstance from '@/lib/axios';
-import { ROUTES } from '@/config/routes';
+import BookingFlow from 'components/booking/BookingFlow';
+import axiosInstance from 'lib/axios';
+import { ROUTES } from 'config/routes';
 
 export default async function BookingPage({ params, searchParams }) {
   console.log(await params)

@@ -1,5 +1,5 @@
 import { MoreVertical } from "lucide-react";
-import { ROUTES } from "@/config/routes";
+import { ROUTES } from "config/routes";
 
 const statusStyles = {
   confirmed: "bg-green-500/10 text-green-400 border-green-500/20",

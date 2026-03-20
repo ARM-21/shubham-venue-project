@@ -3,8 +3,8 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import axiosInstance from "@/lib/axios";
-import { ROUTES } from "@/config/routes";
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
 
 const PLACEHOLDER_IMAGE = "/assets/business-images/placeholder.jpg";
 

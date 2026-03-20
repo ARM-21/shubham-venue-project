@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ROUTES } from "@/config/routes";
-import AdminTopbar from "@/components/admin/dashboard/AdminTopbar";
-import axiosInstance from "@/lib/axios";
+import { useQueryUsers } from "@queries/users";
+import { ROUTES } from "config/routes";
+import AdminTopbar from "components/admin/dashboard/AdminTopbar";
+import axiosInstance from "lib/axios";
 import {
   Ban,
   CheckCircle2,
@@ -20,8 +21,12 @@ import {
   Trash2,
   User as UserIcon,
   XCircle,
+  Search,
+  Loader2
 } from "lucide-react";
-import { Search } from "lucide-react";
+import ViewUserModal from "components/admin/users/ui/ViewUserModal";
+
+// --- Sub-Components ---
 
 function StatusBadge({ tone = "neutral", children }) {
   const palette = {
@@ -47,33 +52,34 @@ function Pill({ tone = "neutral", children }) {
 
 function Avatar({ name = "User", src }) {
   if (src) {
-    return <div className="size-10 rounded-full bg-cover bg-center border border-white/10" style={{ backgroundImage: `url(${src})` }} />;
+    return <div className="size-10 rounded-full bg-cover bg-center border border-white/10 shadow-inner" style={{ backgroundImage: `url(${src})` }} />;
   }
-  const initials = name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((n) => n[0]?.toUpperCase?.() || "")
-    .join("") || "U";
+  const initials = name.split(" ").filter(Boolean).slice(0, 2).map((n) => n[0]?.toUpperCase() || "").join("") || "U";
   return (
-    <div className="size-10 rounded-full bg-[var(--admin-bg)] border border-white/10 text-white flex items-center justify-center text-sm font-semibold">
+    <div className="size-10 rounded-full bg-[#250815] border border-white/10 text-white flex items-center justify-center text-sm font-bold">
       {initials}
     </div>
   );
 }
 
+// --- Main Component ---
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [meta, setMeta] = useState({ total: 0, verified: 0, admins: 0 });
-  const [search, setSearch] = useState("");
+  
+  // Search & Debounce
+  const [searchQuery, setSearchQuery] = useState(""); 
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
   const [openMenuId, setOpenMenuId] = useState(null);
-  const [viewUser, setViewUser] = useState(null);
+  const [selectedUserId, setSelectedUserId] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  
   const [filters, setFilters] = useState({
     role: "all",
     provider: "all",
@@ -83,200 +89,108 @@ export default function AdminUsersPage() {
     organizerAccess: "all",
   });
 
-  const fetchUsers = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = { page, q: search || undefined };
+  // Handle Debounce Logic
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-      if (filters.role !== "all") params.role = filters.role;
-      if (filters.provider !== "all") params.provider = filters.provider;
-      if (filters.verification !== "all") params.isVerified = filters.verification === "verified";
-      if (filters.active !== "all") params.isActive = filters.active === "active";
-      if (filters.organizerStatus !== "all") params.organizerStatus = filters.organizerStatus;
-      if (filters.organizerAccess !== "all") params.organizerEnabled = filters.organizerAccess === "enabled";
+  const params = useMemo(() => {
+    const p = { page, q: debouncedSearch || undefined };
+    if (filters.role !== "all") p.role = filters.role;
+    if (filters.provider !== "all") p.provider = filters.provider;
+    if (filters.verification !== "all") p.isVerified = filters.verification === "verified";
+    if (filters.active !== "all") p.isActive = filters.active === "active";
+    if (filters.organizerStatus !== "all") p.organizerStatus = filters.organizerStatus;
+    if (filters.organizerAccess !== "all") p.organizerEnabled = filters.organizerAccess === "enabled";
+    return p;
+  }, [page, debouncedSearch, filters]);
 
-      const res = await axiosInstance.get(ROUTES.API.ADMIN.USERS, { params });
-      const payload = res.data || {};
-      setUsers(payload.users || []);
-      setMeta({
-        total: payload.total || 0,
-        verified: payload.verified || 0,
-        admins: payload.admins || 0,
-      });
-      setPages(payload.pages || 1);
-      setError(null);
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || "Failed to load users");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search, filters]);
+  const { data: usersData, isLoading: listLoading, isError: listIsError, error: listError, refetch } = useQueryUsers({ params, keepPreviousData: true });
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    if (usersData) {
+      setUsers(usersData.users || []);
+      setMeta({
+        total: usersData.total || 0,
+        verified: usersData.verified || 0,
+        admins: usersData.admins || 0,
+      });
+      setPages(usersData.pages || 1);
+      setError(null);
+    }
+  }, [usersData]);
 
-  const stats = useMemo(
-    () => [
-      { label: "Total Users", value: meta.total, tone: "positive", icon: UserIcon },
-      { label: "Verified", value: meta.verified, tone: "info", icon: CheckCircle2 },
-      { label: "Admins", value: meta.admins, tone: "warning", icon: Shield },
-    ],
-    [meta.admins, meta.total, meta.verified],
-  );
+  useEffect(() => {
+    if (listIsError) setError(listError?.message || "Failed to load users");
+  }, [listIsError, listError]);
 
-  const rows = useMemo(
-    () =>
-      users.map((u) => {
-        const joined = u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-NP", { month: "short", day: "numeric", year: "numeric" }) : "—";
-        const statusTone = u.isVerified ? "positive" : "warning";
-        const statusLabel = u.isVerified ? "Verified" : "Unverified";
-        const organizerEnabled = Boolean(u.organizerEnabled ?? u.isOrganizerEligible);
-        const organizerStatus = (u.organizerStatus || "none").toUpperCase();
-        return {
-          id: u.id || u._id,
-          name: u.name || u.username || u.email,
-          email: u.email,
-          phone: u.phone,
-          role: (u.role || "customer").toUpperCase(),
-          provider: (u.provider || "local").toUpperCase(),
-          joined,
-          status: { tone: statusTone, label: statusLabel },
-          avatar: u.profilePicture,
-          isActive: u.isActive !== false,
-          organizerStatus,
-          organizerEnabled,
-          raw: u,
-        };
-      }),
-    [users],
-  );
+  const stats = useMemo(() => [
+    { label: "Total Users", value: meta.total, icon: UserIcon },
+    { label: "Verified", value: meta.verified, icon: CheckCircle2 },
+    { label: "Admins", value: meta.admins, icon: Shield },
+  ], [meta]);
 
-  const canPrev = page > 1;
-  const canNext = page < pages;
+  const rows = useMemo(() => users.map((u) => ({
+    id: u.id || u._id,
+    name: u.name || u.username || u.email,
+    email: u.email,
+    phone: u.phone,
+    role: (u.role || "customer").toUpperCase(),
+    provider: (u.provider || "local").toUpperCase(),
+    joined: u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-NP", { month: "short", day: "numeric", year: "numeric" }) : "—",
+    status: { tone: u.isVerified ? "positive" : "warning", label: u.isVerified ? "Verified" : "Unverified" },
+    avatar: u.profilePicture,
+    isActive: u.isActive !== false,
+    organizerStatus: (u.organizerStatus || "none").toUpperCase(),
+    organizerEnabled: !!u.organizerEnabled,
+    raw: u,
+  })), [users]);
 
-  const handleView = async (userId) => {
+  // --- Action Handlers ---
+
+  const executeAction = async (id, actionFn, successMsg) => {
+    setOpenMenuId(null);
+    setActionLoadingId(id);
     try {
-      const res = await axiosInstance.get(ROUTES.API.ADMIN.USER(userId));
-      setViewUser(res.data.user || null);
-      setOpenMenuId(null);
+      await actionFn();
+      setActionMessage(successMsg);
+      await refetch();
     } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || "Failed to load user");
+      setError(err?.response?.data?.message || "Action failed");
+    } finally {
+      setActionLoadingId(id);
     }
   };
 
-  const handleToggleActive = async (row) => {
-    try {
-      setActionLoadingId(row.id);
-      await axiosInstance.patch(ROUTES.API.ADMIN.USER_STATUS(row.id), { isActive: !row.isActive });
-      setActionMessage(row.isActive ? "User disabled" : "User enabled");
-      setOpenMenuId(null);
-      await fetchUsers();
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || "Failed to update user status");
-    } finally {
-      setActionLoadingId(null);
-    }
+  const handleToggleActive = (row) => 
+    executeAction(row.id, () => axiosInstance.patch(ROUTES.API.ADMIN.USER_STATUS(row.id), { isActive: !row.isActive }), 
+    row.isActive ? "User disabled" : "User enabled");
+
+  const handleRoleChange = (row) => {
+    const nextRole = row.role === "ADMIN" ? "customer" : "admin";
+    executeAction(row.id, () => axiosInstance.patch(ROUTES.API.ADMIN.USER_ROLE(row.id), { role: nextRole }), 
+    `Role updated to ${nextRole.toUpperCase()}`);
   };
 
-  const handleReset = async (row) => {
-    try {
-      if ((row.raw?.provider || "").toLowerCase() === "google") {
-        setError("Password is managed by Google for this account");
-        return;
-      }
-      setActionLoadingId(row.id);
-      await axiosInstance.post(ROUTES.API.ADMIN.USER_RESET(row.id));
-      setActionMessage("Password reset link sent");
-      setOpenMenuId(null);
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || "Failed to send reset link");
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
-
-  const handleOrganizer = async (row, nextStatus) => {
-    try {
-      setActionLoadingId(row.id);
-      const targetStatus = nextStatus || (row.organizerEnabled ? "none" : "approved");
-      await axiosInstance.patch(ROUTES.API.ADMIN.USER_ORGANIZER(row.id), { status: targetStatus });
-      const messageByStatus = {
-        approved: "Organizer access approved",
-        rejected: "Organizer request rejected",
-        none: "Organizer access revoked",
-        pending: "Organizer status updated",
-      };
-      setActionMessage(messageByStatus[targetStatus] || "Organizer status updated");
-      setOpenMenuId(null);
-      await fetchUsers();
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || "Failed to update organizer status");
-    } finally {
-      setActionLoadingId(null);
-    }
+  const handleOrganizer = (row, nextStatus) => {
+    const targetStatus = nextStatus || (row.organizerEnabled ? "none" : "approved");
+    executeAction(row.id, () => axiosInstance.patch(ROUTES.API.ADMIN.USER_ORGANIZER(row.id), { status: targetStatus }), 
+    "Organizer status updated");
   };
 
   const handleExport = () => {
-    const headers = ["Name", "Email", "Role", "Provider", "Verified", "Active", "Organizer", "Joined"];
-    const csvRows = [headers.join(",")];
-    rows.forEach((r) => {
-      csvRows.push([
-        `"${r.name}"`,
-        r.email,
-        r.role,
-        r.provider,
-        r.status.label,
-        r.isActive ? "Active" : "Disabled",
-        r.organizerEnabled ? "Enabled" : r.organizerStatus,
-        r.joined,
-      ].join(","));
-    });
-    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
+    const headers = ["Name", "Email", "Role", "Provider", "Status", "Organizer", "Joined"];
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(r => [`"${r.name}"`, r.email, r.role, r.provider, r.status.label, r.organizerEnabled ? "Enabled" : "Disabled", r.joined].join(","))
+    ].join("\n");
+    
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
-    link.href = url;
-    link.download = `users-page-${page}.csv`;
+    link.href = URL.createObjectURL(blob);
+    link.download = `shubham-users-p${page}.csv`;
     link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleDelete = async (row) => {
-    const confirmed = typeof window !== "undefined" ? window.confirm(`Delete ${row.name}? This cannot be undone.`) : false;
-    if (!confirmed) return;
-    try {
-      setActionLoadingId(row.id);
-      await axiosInstance.delete(ROUTES.API.ADMIN.USER(row.id));
-      setActionMessage("User deleted");
-      setOpenMenuId(null);
-      await fetchUsers();
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || "Failed to delete user");
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
-
-  const handleRoleChange = async (row) => {
-    const nextRole = row.role === "ADMIN" ? "customer" : "admin";
-    try {
-      setActionLoadingId(row.id);
-      await axiosInstance.patch(ROUTES.API.ADMIN.USER_ROLE(row.id), { role: nextRole });
-      setActionMessage(`Role updated to ${nextRole.toUpperCase()}`);
-      setOpenMenuId(null);
-      await fetchUsers();
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || "Failed to update role");
-    } finally {
-      setActionLoadingId(null);
-    }
   };
 
   return (
@@ -285,422 +199,183 @@ export default function AdminUsersPage() {
 
       <div className="flex-1 overflow-y-auto admin-scroll p-6 lg:p-8 mt-10">
         <div className="max-w-7xl mx-auto flex flex-col gap-8 pb-10">
-          {error ? (
-            <div className="bg-red-900/40 border border-red-800 text-red-100 px-4 py-3 rounded-lg text-sm">{error}</div>
-          ) : null}
+          
+          {/* Notifications */}
+          {error && <div className="bg-red-900/40 border border-red-800 text-red-100 px-4 py-3 rounded-lg text-sm flex justify-between">
+            {error} <button onClick={() => setError(null)}>×</button>
+          </div>}
+          
+          {actionMessage && <div className="bg-emerald-900/40 border border-emerald-800 text-emerald-100 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
+            <span>{actionMessage}</span>
+            <button className="text-emerald-200 text-xs" onClick={() => setActionMessage(null)}>Dismiss</button>
+          </div>}
 
-          {actionMessage ? (
-            <div className="bg-emerald-900/40 border border-emerald-800 text-emerald-100 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
-              <span>{actionMessage}</span>
-              <button className="text-emerald-200 text-xs" onClick={() => setActionMessage(null)}>
-                Dismiss
-              </button>
-            </div>
-          ) : null}
-
+          {/* Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div className="flex flex-col gap-1">
-       
+            <div>
               <h1 className="text-3xl font-bold text-white tracking-tight">Manage Users</h1>
-              <p className="text-[var(--admin-muted)] text-sm">Review access levels, verification status, and contact details.</p>
+              <p className="text-[var(--admin-muted)] text-sm">Control access, verify accounts, and manage organizer permissions.</p>
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={handleExport}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--admin-surface)] border border-white/10 text-white hover:bg-white/5 hover:border-[var(--admin-primary)]/50 transition-colors text-sm font-medium shadow-sm"
-              >
-                <Download className="size-4" />
-                Export CSV
+              <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--admin-surface)] border border-white/10 text-white hover:border-[var(--admin-primary)]/50 transition-all text-sm font-medium">
+                <Download className="size-4" /> Export CSV
               </button>
-              <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-dark)] border border-[var(--admin-primary)] transition-all shadow-lg shadow-[var(--admin-primary)]/30 text-sm font-bold">
-                <Plus className="size-4" />
-                Invite User
+              <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--admin-primary)] text-white hover:brightness-110 border border-[var(--admin-primary)] transition-all shadow-lg shadow-[var(--admin-primary)]/20 text-sm font-bold">
+                <Plus className="size-4" /> Invite User
               </button>
             </div>
           </div>
 
+          {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="relative overflow-hidden flex flex-col gap-1 rounded-xl p-6 bg-[var(--admin-surface)] border border-white/5 group hover:border-[var(--admin-primary)]/50 transition-colors shadow-lg"
-              >
-                <div className="absolute -right-4 -top-4 text-[var(--admin-primary)] opacity-20 group-hover:opacity-40 transition-opacity">
-                  <stat.icon className="size-16" />
-                </div>
-                <p className="text-[var(--admin-muted)] text-sm font-medium z-10">{stat.label}</p>
-                <p className="text-white text-3xl font-bold z-10">{stat.value}</p>
+              <div key={stat.label} className="relative overflow-hidden flex flex-col gap-1 rounded-xl p-6 bg-[var(--admin-surface)] border border-white/5 group hover:border-[var(--admin-primary)]/40 transition-colors shadow-lg">
+                <stat.icon className="absolute -right-2 -top-2 size-16 text-[var(--admin-primary)] opacity-10 group-hover:opacity-20 transition-opacity" />
+                <p className="text-[var(--admin-muted)] text-sm font-medium">{stat.label}</p>
+                <p className="text-white text-3xl font-bold">{stat.value}</p>
               </div>
             ))}
           </div>
 
-          <div className="bg-[var(--admin-surface)]/80 backdrop-blur rounded-xl border border-white/10 p-5 shadow-lg shadow-black/20">
-            <div className="flex flex-col gap-3">
-              <div className="relative flex-1 min-w-[240px]">
+          {/* Filters & Search */}
+          <div className="bg-[var(--admin-surface)]/80 backdrop-blur rounded-xl border border-white/10 p-5 shadow-xl">
+            <div className="flex flex-col gap-4">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--admin-muted)] size-4" />
                 <input
-                  className="w-full bg-white/5 border border-white/10 rounded-lg py-3 pl-11 pr-4 text-white text-sm placeholder:text-[var(--admin-muted)]/70 focus:ring-1 focus:ring-[var(--admin-primary)] focus:border-[var(--admin-primary)] transition-all"
-                  placeholder="Search name or email"
-                  value={search}
-                  onChange={(e) => {
-                    setPage(1);
-                    setSearch(e.target.value);
-                  }}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg py-3 pl-11 pr-4 text-white text-sm focus:ring-1 focus:ring-[var(--admin-primary)] transition-all"
+                  placeholder="Search name or email..."
+                  value={searchQuery}
+                  onChange={(e) => { setPage(1); setSearchQuery(e.target.value); }}
                 />
               </div>
+              
               <div className="flex flex-wrap items-center gap-2">
-                <select
-                  className="bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:ring-1 focus:ring-[var(--admin-primary)] focus:border-[var(--admin-primary)]"
-                  value={filters.role}
-                  onChange={(e) => {
-                    setPage(1);
-                    setFilters((f) => ({ ...f, role: e.target.value }));
-                  }}
+                {/* Simplified filter set */}
+                {['role', 'provider', 'verification', 'active'].map((key) => (
+                  <select
+                    key={key}
+                    className="bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:border-[var(--admin-primary)] outline-none capitalize"
+                    value={filters[key]}
+                    onChange={(e) => { setPage(1); setFilters(f => ({ ...f, [key]: e.target.value })); }}
+                  >
+                    <option value="all">All {key}s</option>
+                    {key === 'role' && <><option value="customer">Customers</option><option value="admin">Admins</option></>}
+                    {key === 'verification' && <><option value="verified">Verified</option><option value="unverified">Unverified</option></>}
+                    {key === 'active' && <><option value="active">Active Only</option><option value="inactive">Disabled</option></>}
+                  </select>
+                ))}
+                
+                <button 
+                  onClick={() => { setPage(1); setFilters({ role: "all", provider: "all", verification: "all", active: "all", organizerStatus: "all", organizerAccess: "all" }); }}
+                  className="px-4 py-2 text-xs text-[var(--admin-muted)] hover:text-white transition-colors"
                 >
-                  <option value="all">All roles</option>
-                  <option value="customer">Customers</option>
-                  <option value="admin">Admins</option>
-                </select>
-                <select
-                  className="bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:ring-1 focus:ring-[var(--admin-primary)] focus:border-[var(--admin-primary)]"
-                  value={filters.provider}
-                  onChange={(e) => {
-                    setPage(1);
-                    setFilters((f) => ({ ...f, provider: e.target.value }));
-                  }}
-                >
-                  <option value="all">All providers</option>
-                  <option value="local">Local</option>
-                  <option value="google">Google</option>
-                </select>
-                <select
-                  className="bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:ring-1 focus:ring-[var(--admin-primary)] focus:border-[var(--admin-primary)]"
-                  value={filters.verification}
-                  onChange={(e) => {
-                    setPage(1);
-                    setFilters((f) => ({ ...f, verification: e.target.value }));
-                  }}
-                >
-                  <option value="all">Verification</option>
-                  <option value="verified">Verified</option>
-                  <option value="unverified">Unverified</option>
-                </select>
-                <select
-                  className="bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:ring-1 focus:ring-[var(--admin-primary)] focus:border-[var(--admin-primary)]"
-                  value={filters.active}
-                  onChange={(e) => {
-                    setPage(1);
-                    setFilters((f) => ({ ...f, active: e.target.value }));
-                  }}
-                >
-                  <option value="all">Active</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Disabled</option>
-                </select>
-                <select
-                  className="bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:ring-1 focus:ring-[var(--admin-primary)] focus:border-[var(--admin-primary)]"
-                  value={filters.organizerStatus}
-                  onChange={(e) => {
-                    setPage(1);
-                    setFilters((f) => ({ ...f, organizerStatus: e.target.value }));
-                  }}
-                >
-                  <option value="all">Organizer status</option>
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="none">None</option>
-                </select>
-                <select
-                  className="bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:ring-1 focus:ring-[var(--admin-primary)] focus:border-[var(--admin-primary)]"
-                  value={filters.organizerAccess}
-                  onChange={(e) => {
-                    setPage(1);
-                    setFilters((f) => ({ ...f, organizerAccess: e.target.value }));
-                  }}
-                >
-                  <option value="all">Organizer access</option>
-                  <option value="enabled">Enabled</option>
-                  <option value="disabled">Disabled</option>
-                </select>
-                <button
-                  className="px-4 py-2.5 rounded-lg border border-white/10 text-sm text-[var(--admin-muted)] hover:text-white hover:border-[var(--admin-primary)]/60 transition-colors flex items-center gap-2"
-                  onClick={() => {
-                    setPage(1);
-                    setFilters({ role: "all", provider: "all", verification: "all", active: "all", organizerStatus: "all", organizerAccess: "all" });
-                  }}
-                >
-                  <Filter className="size-4" />
-                  Clear filters
-                </button>
-                <button
-                  className="px-4 py-2.5 rounded-lg border border-white/10 text-sm text-[var(--admin-muted)] hover:text-white hover:border-[var(--admin-primary)]/60 transition-colors"
-                  onClick={() => fetchUsers()}
-                >
-                  Refresh
+                  Clear Filters
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="bg-[var(--admin-surface)] border border-white/5 rounded-xl overflow-hidden shadow-lg">
+          {/* Table */}
+          <div className="bg-(--admin-surface) border border-white/5 rounded-xl overflow-hidden shadow-2xl">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-[var(--admin-muted)] table-fixed">
-                <thead className="bg-[var(--admin-primary)]/20 text-xs uppercase font-semibold text-white border-b border-white/5">
+              <table className="w-full text-left text-sm text-[var(--admin-muted)]">
+                <thead className="bg-white/5 text-[10px] uppercase tracking-wider font-bold text-white border-b border-white/5">
                   <tr>
-                    <th className="px-6 py-4">User</th>
-                    <th className="px-6 py-4">Email</th>
-                    <th className="px-6 py-4">Role</th>
-                    <th className="px-6 py-4">Provider</th>
-                    <th className="px-6 py-4">Verification</th>
-                    <th className="px-6 py-4">Active</th>
-                    <th className="px-6 py-4">Organizer Access</th>
-                    <th className="px-6 py-4">Joined</th>
+                    <th className="px-6 py-4">User Details</th>
+                    <th className="px-6 py-4">Role / Provider</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Organizer</th>
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {loading ? (
-                    <tr>
-                      <td className="px-6 py-6 text-[var(--admin-muted)] text-sm" colSpan={7}>
-                        Loading users...
+                  {listLoading ? (
+                    <tr><td colSpan={5} className="p-10 text-center"><Loader2 className="animate-spin inline mr-2" /> Fetching data...</td></tr>
+                  ) : rows.map((row) => (
+                    <tr key={row.id} className="hover:bg-white/[0.02] transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={row.name} src={row.avatar} />
+                          <div className="flex flex-col max-w-[180px]">
+                            <span className="truncate text-white font-medium">{row.name}</span>
+                            <span className="truncate text-[10px] opacity-60">{row.email}</span>
+                          </div>
+                        </div>
                       </td>
-                    </tr>
-                  ) : !rows.length ? (
-                    <tr>
-                      <td className="px-6 py-6 text-[var(--admin-muted)] text-sm" colSpan={7}>
-                        No users found.
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-white text-xs">{row.role}</span>
+                          <span className="text-[10px] opacity-50">{row.provider}</span>
+                        </div>
                       </td>
-                    </tr>
-                  ) : (
-                    rows.map((row) => (
-                      <tr key={row.id} className="hover:bg-white/5 transition-colors">
-                        <td className="px-6 py-4 font-medium text-white">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <Avatar name={row.name} src={row.avatar} />
-                            <div className="flex flex-col min-w-0">
-                              <span className="truncate max-w-[200px]" title={row.name}>{row.name}</span>
-                              <span className="text-xs text-[var(--admin-muted)] flex items-center gap-1 truncate max-w-[200px]" title={row.phone || "Not provided"}>
-                                <Phone className="size-3" />
-                                {row.phone || "Not provided"}
-                              </span>
+                      <td className="px-6 py-4">
+                        <StatusBadge tone={row.status.tone}>{row.status.label}</StatusBadge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Pill tone={row.organizerEnabled ? "info" : "neutral"}>
+                          {row.organizerEnabled ? "Active" : row.organizerStatus}
+                        </Pill>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="relative inline-flex items-center gap-2">
+                          <button onClick={() => setSelectedUserId(row.id)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                            <Eye className="size-4" />
+                          </button>
+                          <button 
+                            onClick={() => setOpenMenuId(openMenuId === row.id ? null : row.id)}
+                            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                          >
+                            <MoreHorizontal className="size-4" />
+                          </button>
+
+                          {openMenuId === row.id && (
+                            <div className="absolute right-0 top-full mt-2 w-48 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-2xl z-50 py-1 overflow-hidden">
+                              <button onClick={() => handleToggleActive(row)} className="w-full px-4 py-2 text-left text-xs hover:bg-white/5 flex items-center gap-2">
+                                <Ban className="size-3" /> {row.isActive ? "Disable User" : "Enable User"}
+                              </button>
+                              <button onClick={() => handleRoleChange(row)} className="w-full px-4 py-2 text-left text-xs hover:bg-white/5 flex items-center gap-2">
+                                <Shield className="size-3" /> {row.role === "ADMIN" ? "Demote" : "Make Admin"}
+                              </button>
+                              
+                              <div className="h-px bg-white/5 my-1" />
+
+                              {row.organizerStatus === "PENDING" ? (
+                                <>
+                                  <button onClick={() => handleOrganizer(row, "approved")} className="w-full px-4 py-2 text-left text-xs text-emerald-400 hover:bg-emerald-500/10 flex items-center gap-2">
+                                    <ShieldCheck className="size-3" /> Approve Organizer
+                                  </button>
+                                  <button onClick={() => handleOrganizer(row, "rejected")} className="w-full px-4 py-2 text-left text-xs text-red-400 hover:bg-red-500/10 flex items-center gap-2">
+                                    <XCircle className="size-3" /> Reject Request
+                                  </button>
+                                </>
+                              ) : (
+                                <button onClick={() => handleOrganizer(row)} className="w-full px-4 py-2 text-left text-xs hover:bg-white/5 flex items-center gap-2">
+                                  <ShieldCheck className="size-3" /> {row.organizerEnabled ? "Revoke Organizer" : "Grant Organizer"}
+                                </button>
+                              )}
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap flex items-center gap-2 min-w-0">
-                          <Mail className="size-4 text-[var(--admin-muted)]" />
-                          <span className="truncate max-w-[240px]" title={row.email}>{row.email}</span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">{row.role}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{row.provider}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <StatusBadge tone={row.status.tone}>
-                            {row.status.tone === "positive" ? <CheckCircle2 className="size-3" /> : <XCircle className="size-3" />}
-                            {row.status.label}
-                          </StatusBadge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Pill tone={row.isActive ? "positive" : "danger"}>{row.isActive ? "Active" : "Disabled"}</Pill>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {(() => {
-                            const tone = row.organizerEnabled
-                              ? "info"
-                              : row.organizerStatus === "PENDING"
-                                ? "warning"
-                                : row.organizerStatus === "REJECTED"
-                                  ? "danger"
-                                  : "neutral";
-                            const label = row.organizerEnabled
-                              ? "Enabled"
-                              : row.organizerStatus === "PENDING"
-                                ? "Pending"
-                                : row.organizerStatus === "REJECTED"
-                                  ? "Rejected"
-                                  : "None";
-                            return <Pill tone={tone}>{label}</Pill>;
-                          })()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">{row.joined}</td>
-                        <td className="px-6 py-4 text-right whitespace-nowrap">
-                          <div className="relative inline-flex items-center gap-2">
-                            <button
-                              onClick={() => handleView(row.id)}
-                              className="text-[var(--admin-muted)] hover:text-white transition-colors text-sm flex items-center gap-1"
-                            >
-                              <Eye className="size-4" />
-                              View
-                            </button>
-                            <button
-                              onClick={() => setOpenMenuId((prev) => (prev === row.id ? null : row.id))}
-                              className="p-2 rounded hover:bg-white/5 text-[var(--admin-muted)] hover:text-white"
-                            >
-                              <MoreHorizontal className="size-4" />
-                            </button>
-                            {openMenuId === row.id ? (
-                              <div className="absolute right-0 top-full mt-2 min-w-[180px] rounded-lg border border-white/10 bg-[var(--admin-bg)] shadow-lg z-10">
-                                <div className="flex flex-col divide-y divide-white/5">
-                                  <button
-                                    onClick={() => handleToggleActive(row)}
-                                    className="px-3 py-2 text-left text-sm text-white hover:bg-white/10 flex items-center gap-2"
-                                    disabled={actionLoadingId === row.id}
-                                  >
-                                    <Ban className="size-4" /> {row.isActive ? "Disable" : "Enable"}
-                                  </button>
-                                  <button
-                                    onClick={() => handleRoleChange(row)}
-                                    className="px-3 py-2 text-left text-sm text-white hover:bg-white/10 flex items-center gap-2"
-                                    disabled={actionLoadingId === row.id}
-                                  >
-                                    <Shield className="size-4" /> {row.role === "ADMIN" ? "Make customer" : "Make admin"}
-                                  </button>
-                                  {(row.raw?.provider || "").toLowerCase() !== "google" ? (
-                                    <button
-                                      onClick={() => handleReset(row)}
-                                      className="px-3 py-2 text-left text-sm text-white hover:bg-white/10 flex items-center gap-2"
-                                      disabled={actionLoadingId === row.id}
-                                    >
-                                      <RotateCw className="size-4" /> Send reset link
-                                    </button>
-                                  ) : null}
-                                  {row.organizerStatus === "PENDING" && !row.organizerEnabled ? (
-                                    <>
-                                      <button
-                                        onClick={() => handleOrganizer(row, "approved")}
-                                        className="px-3 py-2 text-left text-sm text-white hover:bg-white/10 flex items-center gap-2"
-                                        disabled={actionLoadingId === row.id}
-                                      >
-                                        <ShieldCheck className="size-4" />
-                                        Approve organizer request
-                                      </button>
-                                      <button
-                                        onClick={() => handleOrganizer(row, "rejected")}
-                                        className="px-3 py-2 text-left text-sm text-red-300 hover:bg-red-900/20 flex items-center gap-2"
-                                        disabled={actionLoadingId === row.id}
-                                      >
-                                        <XCircle className="size-4" />
-                                        Reject organizer request
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <button
-                                      onClick={() => handleOrganizer(row)}
-                                      className="px-3 py-2 text-left text-sm text-white hover:bg-white/10 flex items-center gap-2"
-                                      disabled={actionLoadingId === row.id}
-                                    >
-                                      <ShieldCheck className="size-4" />
-                                      {row.organizerEnabled ? "Revoke organizer access" : "Grant organizer access"}
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => handleDelete(row)}
-                                    className="px-3 py-2 text-left text-sm text-red-300 hover:bg-red-900/20 flex items-center gap-2"
-                                    disabled={actionLoadingId === row.id}
-                                  >
-                                    <Trash2 className="size-4" /> Delete
-                                  </button>
-                                </div>
-                              </div>
-                            ) : null}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-            <div className="bg-[var(--admin-primary)]/10 px-6 py-3 border-t border-white/5 flex items-center justify-between">
-              <span className="text-xs text-[var(--admin-muted)]">Page {page} of {pages} • {meta.total} users</span>
+            {/* Pagination */}
+            <div className="bg-white/[0.02] px-6 py-4 border-t border-white/5 flex items-center justify-between text-xs">
+              <span className="opacity-50">Showing {rows.length} of {meta.total} users</span>
               <div className="flex gap-2">
-                <button
-                  className="px-3 py-1 rounded bg-white/5 text-white text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/10"
-                  onClick={() => canPrev && setPage((p) => p - 1)}
-                  disabled={!canPrev}
-                >
-                  Prev
-                </button>
-                <button
-                  className="px-3 py-1 rounded bg-white/5 text-white text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/10"
-                  onClick={() => canNext && setPage((p) => p + 1)}
-                  disabled={!canNext}
-                >
-                  Next
-                </button>
+                <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="px-4 py-2 rounded bg-white/5 hover:bg-white/10 disabled:opacity-20 transition-all">Prev</button>
+                <button disabled={page === pages} onClick={() => setPage(p => p + 1)} className="px-4 py-2 rounded bg-white/5 hover:bg-white/10 disabled:opacity-20 transition-all">Next</button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-        {viewUser ? (
-          <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
-            <div className="bg-[var(--admin-surface)] border border-white/10 rounded-2xl w-full max-w-xl p-6 shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-white">User Details</h3>
-                <button className="text-[var(--admin-muted)] hover:text-white" onClick={() => setViewUser(null)}>
-                  ✕
-                </button>
-              </div>
-              <div className="flex items-center gap-3 mb-4">
-                <Avatar name={viewUser.name} src={viewUser.profilePicture} />
-                <div className="flex flex-col">
-                  <span className="text-white font-semibold">{viewUser.name}</span>
-                  <span className="text-[var(--admin-muted)] text-sm">{viewUser.email}</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                  <p className="text-[var(--admin-muted)] text-xs uppercase">Role</p>
-                  <p className="text-white font-semibold">{(viewUser.role || "customer").toUpperCase()}</p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                  <p className="text-[var(--admin-muted)] text-xs uppercase">Provider</p>
-                  <p className="text-white font-semibold">{(viewUser.provider || "local").toUpperCase()}</p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                  <p className="text-[var(--admin-muted)] text-xs uppercase">Status</p>
-                  <p className="text-white font-semibold">{viewUser.isActive ? "Active" : "Disabled"}</p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                  <p className="text-[var(--admin-muted)] text-xs uppercase">Verified</p>
-                  <p className="text-white font-semibold">{viewUser.isVerified ? "Yes" : "No"}</p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                  <p className="text-[var(--admin-muted)] text-xs uppercase">Organizer Status</p>
-                  <p className="text-white font-semibold">{(viewUser.organizerStatus || "none").toUpperCase()}</p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                  <p className="text-[var(--admin-muted)] text-xs uppercase">Organizer Access</p>
-                  <p className="text-white font-semibold">{viewUser.organizerEnabled || viewUser.isOrganizerEligible ? "Enabled" : "Disabled"}</p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                  <p className="text-[var(--admin-muted)] text-xs uppercase">Organizer Requested</p>
-                  <p className="text-white font-semibold">
-                    {viewUser.organizerRequestedAt ? new Date(viewUser.organizerRequestedAt).toLocaleString() : "—"}
-                  </p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                  <p className="text-[var(--admin-muted)] text-xs uppercase">Organizer Note</p>
-                  <p className="text-white font-semibold break-words">{viewUser.organizerNote || "—"}</p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                  <p className="text-[var(--admin-muted)] text-xs uppercase">Phone</p>
-                  <p className="text-white font-semibold">{viewUser.phone || "—"}</p>
-                </div>
-              </div>
-              <div className="mt-4 text-xs text-[var(--admin-muted)]">
-                <p>Created: {viewUser.createdAt ? new Date(viewUser.createdAt).toLocaleString() : "—"}</p>
-                <p>Updated: {viewUser.updatedAt ? new Date(viewUser.updatedAt).toLocaleString() : "—"}</p>
-              </div>
-              <div className="flex justify-end mt-4">
-                <button className="px-4 py-2 rounded-lg border border-white/10 text-sm text-[var(--admin-muted)] hover:bg-white/5" onClick={() => setViewUser(null)}>
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
+      {selectedUserId && <ViewUserModal userId={selectedUserId} onClose={() => setSelectedUserId(null)} />}
     </div>
   );
 }

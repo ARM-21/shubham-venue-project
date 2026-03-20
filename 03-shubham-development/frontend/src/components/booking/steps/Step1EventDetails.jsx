@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import axiosInstance from '@/lib/axios';
+import axiosInstance from 'lib/axios';
 
 export default function Step1EventDetails({ data, onUpdate, onNext, bookingPurpose }) {
   const [eventTypes, setEventTypes] = useState([]);

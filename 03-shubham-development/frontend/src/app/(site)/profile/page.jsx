@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import axiosInstance from '@/lib/axios';
+import axiosInstance from 'lib/axios';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthProvider';
-import { ROUTES } from '@/config/routes';
+import { useAuth } from 'contexts/AuthProvider';
+import { ROUTES } from 'config/routes';
 
 export default function ProfilePage() {
   const { user: authUser, loading, logout, setUser } = useAuth();

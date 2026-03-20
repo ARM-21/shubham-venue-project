@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import axiosInstance from "@/lib/axios";
-import { ROUTES } from "@/config/routes";
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
 import { QRCodeCanvas } from "qrcode.react";
 
 const STATUS_COLORS = {

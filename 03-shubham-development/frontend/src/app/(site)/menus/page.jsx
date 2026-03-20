@@ -2,12 +2,12 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import axiosInstance from "@/lib/axios";
-import MenuSkeleton from "@/components/menu/menus-page/MenuSkeleton";
-import FilterSkeleton from "@/components/menu/menus-page/FilterSkeleton";
-import SearchFilter from "@/components/menu/menus-page/SearchFilter";
-import MenuStats from "@/components/menu/menus-page/MenuStats";
-import { ROUTES } from "@/config/routes";
+import axiosInstance from "lib/axios";
+import MenuSkeleton from "components/menu/menus-page/MenuSkeleton";
+import FilterSkeleton from "components/menu/menus-page/FilterSkeleton";
+import SearchFilter from "components/menu/menus-page/SearchFilter";
+import MenuStats from "components/menu/menus-page/MenuStats";
+import { ROUTES } from "config/routes";
 
 
 const STATIC_MENU_IMAGES = {

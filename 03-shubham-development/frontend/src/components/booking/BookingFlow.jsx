@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import axiosInstance from '@/lib/axios';
-import { ROUTES } from '@/config/routes';
+import axiosInstance from 'lib/axios';
+import { ROUTES } from 'config/routes';
 import toast from 'react-hot-toast';
 import Step1EventDetails from './steps/Step1EventDetails';
 import StepIndicator from './indicator/StepIndicator';
@@ -11,7 +11,7 @@ import Step2MenuSelection from './steps/Step2MenuSelection';
 import Step3Decorations from './steps/Step3Decorations';
 import BookingSummary from './BookingSummary';
 import Step4Payment from './steps/Step4Payment';
-import { useAuth } from '@/contexts/AuthProvider';
+import { useAuth } from 'contexts/AuthProvider';
 
 export default function BookingFlow({ hall, initialDate, initialSlot, initialGuests }) {
   const router = useRouter();

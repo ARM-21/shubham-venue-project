@@ -1,7 +1,7 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import axiosInstance from "@/lib/axios";
-import { ROUTES } from "@/config/routes";
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
 
 const AuthContext = createContext(null);
 

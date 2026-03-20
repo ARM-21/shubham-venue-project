@@ -1,7 +1,7 @@
-import axiosInstance from '@/lib/axios';
+import axiosInstance from 'lib/axios';
 import toast from 'react-hot-toast';
 import React from 'react'
-import { ROUTES } from '@/config/routes';
+import { ROUTES } from 'config/routes';
 
 export async function loginAction(data) {
     console.log(data)

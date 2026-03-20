@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useParams, useRouter } from "next/navigation";
-import axiosInstance from "@/lib/axios";
-import { ROUTES } from "@/config/routes";
-import { useAuth } from "@/contexts/AuthProvider";
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
+import { useAuth } from "contexts/AuthProvider";
 import toast from "react-hot-toast";
 import { RefreshCcw } from "lucide-react";
 

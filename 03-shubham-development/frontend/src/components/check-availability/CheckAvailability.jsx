@@ -5,9 +5,9 @@ import { DateTime } from 'luxon';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
-import axiosInstance from '@/lib/axios';
-import { useAuth } from '@/contexts/AuthProvider';
-import { ROUTES } from '@/config/routes';
+import axiosInstance from 'lib/axios';
+import { useAuth } from 'contexts/AuthProvider';
+import { ROUTES } from 'config/routes';
 import { Castle, CalendarCheck, Clock, Users } from 'lucide-react';
 
 const SLOT_LABELS = {

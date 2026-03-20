@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import Action from '@/components/navbar/nav-action/Action.jsx';
+import Action from 'components/navbar/nav-action/Action.jsx';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthProvider';
+import { useAuth } from 'contexts/AuthProvider';
 import { House, Info, Menu, X, Images, Contact, LogIn, LogOut } from "lucide-react";
 import { Icon } from 'lucide-react';
-import { ROUTES } from '@/config/routes';
+import { ROUTES } from 'config/routes';
 
 
 const actions = [
