@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import axiosInstance from '@/lib/axios';
+import axiosInstance from 'lib/axios';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 

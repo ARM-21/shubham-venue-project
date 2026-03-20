@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import axiosInstance from "@/lib/axios";
-import { ROUTES } from "@/config/routes";
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
 
 const decodeBase64Json = (raw) => {
   if (!raw) return null;

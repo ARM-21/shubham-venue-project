@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import axiosInstance from '@/lib/axios';
+import axiosInstance from 'lib/axios';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
-import { ROUTES } from '@/config/routes';
+import { ROUTES } from 'config/routes';
 
 export default function Step4Payment({ data, reservationId, onPrev }) {
   const router = useRouter();

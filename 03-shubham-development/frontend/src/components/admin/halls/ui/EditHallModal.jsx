@@ -1,6 +1,15 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useForm } from "react-hook-form";
 
-export default function EditHallModal({ editModal, actionLoading, onClose, onSave, onImageUpload, onRemoveImage, setEditModal }) {
+export default function EditHallModal({ editModal, actionLoading, onClose, onSave, onImageUpload, onRemoveImage }) {
+  
+  const { register, handleSubmit, reset, watch } = useForm({ defaultValues: editModal });
+  
+  useEffect(() => {
+    reset(editModal);
+  }, [editModal, reset]);
+  
+  const values = watch();
   if (!editModal.open) return null;
 
   return (
@@ -14,114 +23,61 @@ export default function EditHallModal({ editModal, actionLoading, onClose, onSav
           <button onClick={onClose} className="text-[var(--admin-muted)] hover:text-white">✕</button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit((data) => onSave(data))} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-3">
             <label className="block text-sm text-[var(--admin-muted)]">Name</label>
-            <input
-              value={editModal.name}
-              onChange={(e) => setEditModal((prev) => ({ ...prev, name: e.target.value }))}
-              className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]"
-              placeholder="Hall name"
-            />
+            <input {...register("name")} className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]" placeholder="Hall name" />
           </div>
+
           <div className="space-y-3">
             <label className="block text-sm text-[var(--admin-muted)]">Capacity</label>
-            <input
-              type="number"
-              min={1}
-              value={editModal.capacity}
-              onChange={(e) => setEditModal((prev) => ({ ...prev, capacity: e.target.value }))}
-              className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]"
-              placeholder="Max guests"
-            />
+            <input {...register("capacity")} type="number" min={1} className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]" placeholder="Max guests" />
           </div>
 
           <div className="space-y-3 md:col-span-2">
             <label className="block text-sm text-[var(--admin-muted)]">Description</label>
-            <textarea
-              value={editModal.description}
-              onChange={(e) => setEditModal((prev) => ({ ...prev, description: e.target.value }))}
-              className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)] min-h-[80px]"
-              placeholder="Describe the hall"
-            />
+            <textarea {...register("description")} className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)] min-h-[80px]" placeholder="Describe the hall" />
           </div>
 
           <div className="space-y-3">
             <label className="block text-sm text-[var(--admin-muted)]">Price per hour</label>
-            <input
-              type="number"
-              min={0}
-              value={editModal.pricePerHour}
-              onChange={(e) => setEditModal((prev) => ({ ...prev, pricePerHour: e.target.value }))}
-              className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]"
-              placeholder="0"
-            />
+            <input {...register("pricePerHour")} type="number" min={0} className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]" placeholder="0" />
           </div>
+
           <div className="space-y-3">
             <label className="block text-sm text-[var(--admin-muted)]">Currency</label>
-            <input
-              value={editModal.currency}
-              onChange={(e) => setEditModal((prev) => ({ ...prev, currency: e.target.value }))}
-              className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]"
-              placeholder="NPR"
-            />
+            <input {...register("currency")} className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]" placeholder="NPR" />
           </div>
 
           <div className="space-y-3">
             <label className="block text-sm text-[var(--admin-muted)]">Address</label>
-            <input
-              value={editModal.address}
-              onChange={(e) => setEditModal((prev) => ({ ...prev, address: e.target.value }))}
-              className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]"
-              placeholder="Street address"
-            />
+            <input {...register("location.address")} className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]" placeholder="Street address" />
           </div>
+
           <div className="space-y-3">
             <label className="block text-sm text-[var(--admin-muted)]">City</label>
-            <input
-              value={editModal.city}
-              onChange={(e) => setEditModal((prev) => ({ ...prev, city: e.target.value }))}
-              className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]"
-              placeholder="City"
-            />
+            <input {...register("location.city")} className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]" placeholder="City" />
           </div>
+
           <div className="space-y-3">
             <label className="block text-sm text-[var(--admin-muted)]">State</label>
-            <input
-              value={editModal.state}
-              onChange={(e) => setEditModal((prev) => ({ ...prev, state: e.target.value }))}
-              className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]"
-              placeholder="State"
-            />
+            <input {...register("location.state")} className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]" placeholder="State" />
           </div>
+
           <div className="space-y-3">
             <label className="block text-sm text-[var(--admin-muted)]">Country</label>
-            <input
-              value={editModal.country}
-              onChange={(e) => setEditModal((prev) => ({ ...prev, country: e.target.value }))}
-              className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]"
-              placeholder="Country"
-            />
+            <input {...register("location.country")} className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]" placeholder="Country" />
           </div>
 
           <div className="space-y-3">
             <label className="block text-sm text-[var(--admin-muted)]">Amenities (comma separated)</label>
-            <input
-              value={editModal.amenitiesInput}
-              onChange={(e) => setEditModal((prev) => ({ ...prev, amenitiesInput: e.target.value }))}
-              className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]"
-              placeholder="WiFi, Parking, Projector"
-            />
+            <input {...register("amenitiesInput")} className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]" placeholder="WiFi, Parking, Projector" />
           </div>
+
           <div className="space-y-3">
             <label className="block text-sm text-[var(--admin-muted)]">Active</label>
             <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={editModal.isActive}
-                onChange={(e) => setEditModal((prev) => ({ ...prev, isActive: e.target.checked }))}
-                className="size-4"
-              />
+              <input {...register("isActive")} type="checkbox" className="size-4" defaultChecked={editModal.isActive} />
               <span className="text-sm text-white">Mark as active</span>
             </div>
           </div>
@@ -129,29 +85,14 @@ export default function EditHallModal({ editModal, actionLoading, onClose, onSav
           <div className="space-y-3 md:col-span-2">
             <label className="block text-sm text-[var(--admin-muted)]">Images</label>
             <div className="flex flex-wrap gap-3">
-              {editModal.images.map((img) => (
+              {(editModal.images || []).map((img) => (
                 <div key={img} className="relative">
-                  <div
-                    className="w-24 h-16 rounded-md bg-cover bg-center border border-white/10"
-                    style={{ backgroundImage: `url(${img})` }}
-                  />
-                  <button
-                    onClick={() => onRemoveImage(img)}
-                    className="absolute -top-2 -right-2 bg-black/70 text-white rounded-full size-6 flex items-center justify-center text-xs"
-                    title="Remove"
-                  >
-                    ✕
-                  </button>
+                  <div className="w-24 h-16 rounded-md bg-cover bg-center border border-white/10" style={{ backgroundImage: `url(${img})` }} />
+                  <button onClick={() => onRemoveImage(img)} className="absolute -top-2 -right-2 bg-black/70 text-white rounded-full size-6 flex items-center justify-center text-xs" title="Remove">✕</button>
                 </div>
               ))}
               <label className="w-24 h-16 border border-dashed border-white/20 rounded-md flex items-center justify-center text-xs text-[var(--admin-muted)] cursor-pointer hover:border-white/40">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => onImageUpload(e.target.files?.[0])}
-                  disabled={editModal.uploading}
-                />
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => onImageUpload(e.target.files?.[0])} disabled={editModal.uploading} />
                 {editModal.uploading ? "Uploading..." : "+ Add"}
               </label>
             </div>
@@ -160,31 +101,14 @@ export default function EditHallModal({ editModal, actionLoading, onClose, onSav
 
           <div className="space-y-3 md:col-span-2">
             <label className="block text-sm text-[var(--admin-muted)]">Internal Notes</label>
-            <textarea
-              value={editModal.notes}
-              onChange={(e) => setEditModal((prev) => ({ ...prev, notes: e.target.value }))}
-              className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)] min-h-[80px]"
-              placeholder="Notes visible to admins only"
-            />
+            <textarea {...register("notes")} className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)] min-h-[80px]" placeholder="Notes visible to admins only" />
           </div>
-        </div>
 
-        <div className="flex justify-end gap-3 mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-white/10 text-sm text-[var(--admin-muted)] hover:bg-white/5"
-            disabled={actionLoading}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onSave}
-            disabled={actionLoading}
-            className="px-4 py-2 rounded-lg bg-[var(--admin-primary)] text-white text-sm hover:bg-[var(--admin-primary-dark)] disabled:opacity-50"
-          >
-            {actionLoading ? "Saving..." : editModal.isNew ? "Create" : "Save Changes"}
-          </button>
-        </div>
+          <div className="flex justify-end gap-3 mt-6 md:col-span-2">
+            <button onClick={onClose} className="px-4 py-2 rounded-lg border border-white/10 text-sm text-[var(--admin-muted)] hover:bg-white/5" disabled={actionLoading}>Cancel</button>
+            <button type="submit" disabled={actionLoading} className="px-4 py-2 rounded-lg bg-[var(--admin-primary)] text-white text-sm hover:bg-[var(--admin-primary-dark)] disabled:opacity-50">{actionLoading ? "Saving..." : editModal.isNew ? "Create" : "Save Changes"}</button>
+          </div>
+        </form>
       </div>
     </div>
   );

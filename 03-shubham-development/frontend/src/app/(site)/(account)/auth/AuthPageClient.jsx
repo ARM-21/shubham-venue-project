@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthProvider";
+import { useAuth } from "contexts/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
-import BrandingSection from "@/components/branding/Branding.jsx";
-import LoginForm from "@/components/auth/LoginForm";
-import RegisterForm from "@/components/auth/RegisterForm";
+import BrandingSection from "components/branding/Branding.jsx";
+import LoginForm from "components/auth/LoginForm";
+import RegisterForm from "components/auth/RegisterForm";
 import { GoogleLogin } from "@react-oauth/google";
 import toast from "react-hot-toast";
 

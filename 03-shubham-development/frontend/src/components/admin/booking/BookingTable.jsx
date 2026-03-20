@@ -16,6 +16,7 @@ export default function BookingTable({
   onEdit,
   onDelete,
 }) {
+  console.log("Rendering BookingTable with rows:", rows);
   return (
     <div className="bg-[var(--admin-surface)] rounded-xl border border-white/5 shadow-xl overflow-hidden flex flex-col">
       <div className="overflow-x-auto">
@@ -52,7 +53,7 @@ export default function BookingTable({
                         />
                       ) : (
                         <div className="flex items-center justify-center size-8 rounded-full bg-[#482323] text-white text-xs font-bold">
-                          {row.customer.substring(0, 2).toUpperCase()}
+                          {row.avatar || row.customer.substring(0, 2).toUpperCase()}
                         </div>
                       )}
                       <div className="flex flex-col">

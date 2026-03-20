@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axiosInstance from "@/lib/axios";
+import axiosInstance from "lib/axios";
 import Image from "next/image";
 
 const STATIC_MENU_IMAGES = {

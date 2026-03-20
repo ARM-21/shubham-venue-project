@@ -1,5 +1,5 @@
 import React from 'react'
-import axios from '@/lib/axios';
+import axios from 'lib/axios';
 
 
 export async function generateMetadata({params}) {

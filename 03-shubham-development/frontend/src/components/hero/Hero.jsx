@@ -1,8 +1,8 @@
 "use client";
 
-import Carousel from '@/components/carousel/slider.jsx';
+import Carousel from 'components/carousel/slider.jsx';
 import { useRouter } from 'next/navigation';
-import { ROUTES } from '@/config/routes';
+import { ROUTES } from 'config/routes';
 
 export default function Hero({ images = [], interval = 4000 }) {
   const router = useRouter();

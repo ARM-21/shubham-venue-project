@@ -2,10 +2,10 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import axiosInstance from '@/lib/axios';
+import axiosInstance from 'lib/axios';
 import { useEffect, useState } from 'react';
 import Skeleton from './skeleton-loading/Skeleton';
-import { ROUTES } from '@/config/routes';
+import { ROUTES } from 'config/routes';
 
 export default function FeaturedVenues() {
   const router = useRouter();

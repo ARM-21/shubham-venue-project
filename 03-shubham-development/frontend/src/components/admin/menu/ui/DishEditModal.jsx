@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import axiosInstance from '@/lib/axios';
-import { ROUTES } from '@/config/routes';
+import axiosInstance from 'lib/axios';
+import { ROUTES } from 'config/routes';
 import toast from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import DishForm from './DishForm';

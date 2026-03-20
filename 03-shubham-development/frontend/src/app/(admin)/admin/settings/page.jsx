@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import AdminTopbar from "@/components/admin/dashboard/AdminTopbar";
-import axiosInstance from "@/lib/axios";
-import { ROUTES } from "@/config/routes";
+import AdminTopbar from "components/admin/dashboard/AdminTopbar";
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
+import { useQueryProfile } from "@queries/profile";
+import { useQuerySettingsConfig } from "@queries/settingConfig";
+import { useMutation } from "@tanstack/react-query";
 
 export default function AdminSettingsPage() {
   const [profile, setProfile] = useState({ first_name: "", last_name: "", email: "", phone: "", provider: "local", role: "", profilePicture: "", notifyBookings: true });
   const [initialProfile, setInitialProfile] = useState(null);
-  const [profileLoading, setProfileLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
   const [savingPassword, setSavingPassword] = useState(false);
@@ -40,12 +42,14 @@ export default function AdminSettingsPage() {
   const [brandingPreview, setBrandingPreview] = useState(null);
   const [brandingUploading, setBrandingUploading] = useState(false);
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        setProfileLoading(true);
-        const res = await axiosInstance.get(ROUTES.API.PROFILE.ME);
-        const user = res?.data?.user ?? res?.data ?? {};
+    const { data: profileData, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } =
+      useQueryProfile();
+
+    const { data: configData, isLoading: configLoading, isError: configError, refetch: refetchConfig } = useQuerySettingsConfig();
+
+    useEffect(() => {
+      if (profileData) {
+        const user = profileData?.user ?? profileData ?? {};
         setProfile({
           first_name: user.first_name || "",
           last_name: user.last_name || "",
@@ -68,16 +72,12 @@ export default function AdminSettingsPage() {
         });
         setConfig((prev) => ({ ...prev, emailNotifications: user.notifyBookings !== false }));
         setInitialConfig((prev) => ({ ...prev, emailNotifications: user.notifyBookings !== false }));
-      } catch (err) {
-        toast.error(err?.response?.data?.message || "Failed to load profile");
-      } finally {
-        setProfileLoading(false);
       }
-    };
-    const loadConfig = async () => {
-      try {
-        const res = await axiosInstance.get(ROUTES.API.ADMIN.SETTINGS_CONFIG);
-        const cfg = res?.data?.config || {};
+    }, [profileData]);
+
+    useEffect(() => {
+      if (configData) {
+        const cfg = configData || {};
         const normalized = {
           maintenanceMode: !!cfg.maintenanceMode,
           brandingLogoUrl: cfg.brandingLogoUrl || "",
@@ -89,14 +89,90 @@ export default function AdminSettingsPage() {
         };
         setConfig((prev) => ({ ...prev, ...normalized }));
         setInitialConfig((prev) => ({ ...prev, ...normalized }));
-      } catch (err) {
-        toast.error(err?.response?.data?.message || "Failed to load settings");
       }
-    };
+    }, [configData]);
 
-    loadProfile();
-    loadConfig();
-  }, []);
+  // Mutations
+  const profileUpdateMutation = useMutation({
+    mutationFn: async (payload) => {
+      const res = await axiosInstance.put(ROUTES.API.PROFILE.UPDATE, payload);
+      return res.data;
+    },
+    onSuccess: async () => {
+      if (refetchProfile) await refetchProfile();
+    },
+  });
+
+  const passwordMutation = useMutation({
+    mutationFn: async (payload) => {
+      const res = await axiosInstance.patch(ROUTES.API.PROFILE.PASSWORD, payload);
+      return res.data;
+    },
+    onSuccess: async () => {
+      if (refetchProfile) await refetchProfile();
+    },
+  });
+
+  const avatarUploadMutation = useMutation({
+    mutationFn: async (file) => {
+      const fileExtension = file.name.substring(file.name.lastIndexOf("."));
+      const urlResponse = await axiosInstance.post(ROUTES.API.PROFILE.AVATAR_UPLOAD_URL, {
+        fileExtension,
+        contentType: file.type,
+      });
+      const { uploadUrl, publicUrl, key } = urlResponse.data.data || {};
+      if (!uploadUrl || !publicUrl || !key) throw new Error("Upload URL missing");
+
+      await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      const confirmRes = await axiosInstance.post(ROUTES.API.PROFILE.AVATAR_CONFIRM, {
+        s3Key: key,
+        publicUrl,
+      });
+      return confirmRes.data;
+    },
+    onSuccess: async () => {
+      if (refetchProfile) await refetchProfile();
+    },
+  });
+
+  const brandingUploadMutation = useMutation({
+    mutationFn: async (file) => {
+      const fileExtension = file.name.substring(file.name.lastIndexOf("."));
+      const urlResponse = await axiosInstance.post(ROUTES.API.ADMIN.SETTINGS_LOGO_UPLOAD, {
+        fileExtension,
+        contentType: file.type,
+      });
+      const { uploadUrl, publicUrl } = urlResponse.data || {};
+      if (!uploadUrl || !publicUrl) throw new Error("Upload URL missing");
+
+      await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      return { publicUrl };
+    },
+    onSuccess: async () => {
+      if (refetchConfig) await refetchConfig();
+    },
+  });
+
+  const settingsConfigMutation = useMutation({
+    mutationFn: async (payload) => {
+      const res = await axiosInstance.put(ROUTES.API.ADMIN.SETTINGS_CONFIG, payload);
+      return res.data;
+    },
+    onSuccess: async () => {
+      if (refetchConfig) await refetchConfig();
+      if (refetchProfile) await refetchProfile();
+    },
+  });
 
   const handleProfileSave = async (e) => {
     e?.preventDefault?.();
@@ -107,7 +183,7 @@ export default function AdminSettingsPage() {
     try {
       setSavingProfile(true);
       await toast.promise(
-        axiosInstance.put(ROUTES.API.PROFILE.UPDATE, {
+        profileUpdateMutation.mutateAsync({
           first_name: profile.first_name,
           last_name: profile.last_name,
           phone: profile.phone,
@@ -119,6 +195,7 @@ export default function AdminSettingsPage() {
         },
       );
       setInitialProfile({ ...profile });
+      if (refetchProfile) await refetchProfile();
     } catch (err) {
       // toast.promise handles errors
     } finally {
@@ -135,7 +212,7 @@ export default function AdminSettingsPage() {
     try {
       setSavingPassword(true);
       await toast.promise(
-        axiosInstance.patch(ROUTES.API.PROFILE.PASSWORD, {
+        passwordMutation.mutateAsync({
           currentPassword: passwords.currentPassword,
           newPassword: passwords.newPassword,
         }),
@@ -146,6 +223,7 @@ export default function AdminSettingsPage() {
         },
       );
       setPasswords({ currentPassword: "", newPassword: "" });
+      if (refetchProfile) await refetchProfile();
     } catch (err) {
       // toast.promise handles errors
     } finally {
@@ -157,7 +235,7 @@ export default function AdminSettingsPage() {
     try {
       await toast.promise(
         (async () => {
-          await axiosInstance.put(ROUTES.API.ADMIN.SETTINGS_CONFIG, {
+          await settingsConfigMutation.mutateAsync({
             maintenanceMode: config.maintenanceMode,
             brandingLogoUrl: config.brandingLogoUrl,
             invoiceOrgName: config.invoiceOrgName,
@@ -181,6 +259,8 @@ export default function AdminSettingsPage() {
       setInitialConfig({ ...config });
       setProfile((prev) => ({ ...prev, notifyBookings: config.emailNotifications }));
       setInitialProfile((prev) => (prev ? { ...prev, notifyBookings: config.emailNotifications } : prev));
+      if (refetchConfig) await refetchConfig();
+      if (refetchProfile) await refetchProfile();
     } catch (err) {
       // handled in toast.promise
     }
@@ -207,49 +287,29 @@ export default function AdminSettingsPage() {
     if (!avatarFile) return;
     try {
       setAvatarUploading(true);
-      const fileExtension = avatarFile.name.substring(avatarFile.name.lastIndexOf("."));
-      const urlResponse = await axiosInstance.post(ROUTES.API.PROFILE.AVATAR_UPLOAD_URL, {
-        fileExtension,
-        contentType: avatarFile.type,
-      });
+      const res = await toast.promise(
+        avatarUploadMutation.mutateAsync(avatarFile),
+        {
+          loading: "Uploading avatar...",
+          success: "Profile photo updated",
+          error: (err) => err?.response?.data?.message || "Avatar upload failed",
+        },
+      );
 
-      const { uploadUrl, publicUrl, key } = urlResponse.data.data || {};
-      if (!uploadUrl || !publicUrl || !key) throw new Error("Upload URL missing");
-
-      await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": avatarFile.type },
-        body: avatarFile,
-      });
-
-      const confirmRes = await axiosInstance.post(ROUTES.API.PROFILE.AVATAR_CONFIRM, {
-        s3Key: key,
-        publicUrl,
-      });
-
-      const updatedUser = confirmRes?.data?.user;
+      const updatedUser = res?.data?.user || res?.user || res;
       if (updatedUser) {
         setProfile((prev) => ({
           ...prev,
-          profilePicture: updatedUser.profilePicture || publicUrl,
+          profilePicture: updatedUser.profilePicture || prev.profilePicture,
           first_name: updatedUser.first_name || prev.first_name,
           last_name: updatedUser.last_name || prev.last_name,
         }));
-        setInitialProfile((prev) => ({
-          ...(prev || {}),
-          profilePicture: updatedUser.profilePicture || publicUrl,
-          first_name: updatedUser.first_name || prev?.first_name || profile.first_name,
-          last_name: updatedUser.last_name || prev?.last_name || profile.last_name,
-          email: updatedUser.email || prev?.email || profile.email,
-          phone: updatedUser.phone || prev?.phone || profile.phone,
-          provider: updatedUser.provider || prev?.provider || profile.provider,
-          role: typeof updatedUser.role === "string" ? updatedUser.role : updatedUser.role?.name || prev?.role || profile.role,
-        }));
+        setInitialProfile((prev) => ({ ...(prev || {}), ...updatedUser }));
       }
 
+      if (refetchProfile) await refetchProfile();
       setAvatarFile(null);
       setAvatarPreview(null);
-      toast.success("Profile photo updated");
     } catch (err) {
       toast.error(err?.response?.data?.message || "Avatar upload failed");
     } finally {
@@ -278,23 +338,20 @@ export default function AdminSettingsPage() {
     if (!brandingFile) return;
     try {
       setBrandingUploading(true);
-      const fileExtension = brandingFile.name.substring(brandingFile.name.lastIndexOf("."));
-      const urlResponse = await axiosInstance.post(ROUTES.API.ADMIN.SETTINGS_LOGO_UPLOAD, {
-        fileExtension,
-        contentType: brandingFile.type,
-      });
+      const res = await toast.promise(
+        brandingUploadMutation.mutateAsync(brandingFile),
+        {
+          loading: "Uploading logo...",
+          success: "Branding logo staged",
+          error: (err) => err?.response?.data?.message || err?.message || "Logo upload failed",
+        },
+      );
 
-      const { uploadUrl, publicUrl } = urlResponse.data || {};
-      if (!uploadUrl || !publicUrl) throw new Error("Upload URL missing");
-
-      await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": brandingFile.type },
-        body: brandingFile,
-      });
-
-      setConfig((prev) => ({ ...prev, brandingLogoUrl: publicUrl }));
-      toast.success("Branding logo updated. Don't forget to save settings.");
+      const publicUrl = res?.publicUrl || res?.data?.publicUrl;
+      if (publicUrl) {
+        setConfig((prev) => ({ ...prev, brandingLogoUrl: publicUrl }));
+        toast.success("Branding logo updated. Don't forget to save settings.");
+      }
       setBrandingFile(null);
       setBrandingPreview(null);
     } catch (err) {

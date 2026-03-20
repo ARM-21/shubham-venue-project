@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from 'react';
-import axiosInstance from '@/lib/axios';
-import { ROUTES } from '@/config/routes';
+import axiosInstance from 'lib/axios';
+import { ROUTES } from 'config/routes';
 import toast from 'react-hot-toast';
 
 export default function SectionEditModal({ open = false, onClose = () => {}, menuSlug = null, section = null, onSaved = () => {} }) {

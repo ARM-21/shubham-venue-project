@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ROUTES } from "@/config/routes";
+import { ROUTES } from "config/routes";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || "";
 const SESSION_COOKIE_NAMES = ["shubham.sid", "sid"];

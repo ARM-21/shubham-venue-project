@@ -4,12 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Crown, Edit, Search, Sparkles, Star, Users, ChevronUp, ChevronDown, Trash2, Settings } from "lucide-react";
 import toast from "react-hot-toast";
-import SectionEditModal from "@/components/admin/menu/ui/SectionEditModal";
-import AddSectionToMenuModal from "@/components/admin/menu/ui/AddSectionToMenuModal";
-import DishCreateModal from "@/components/admin/menu/ui/DishCreateModal";
-import AdminTopbar from "@/components/admin/dashboard/AdminTopbar";
-import axiosInstance from "@/lib/axios";
-import { ROUTES } from "@/config/routes";
+import SectionEditModal from "components/admin/menu/ui/SectionEditModal";
+import AddSectionToMenuModal from "components/admin/menu/ui/AddSectionToMenuModal";
+import DishCreateModal from "components/admin/menu/ui/DishCreateModal";
+import AdminTopbar from "components/admin/dashboard/AdminTopbar";
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
 
 const normalizeCategory = (val) => String(val || "").trim().toLowerCase();
 

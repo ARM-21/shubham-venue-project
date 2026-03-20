@@ -3,10 +3,10 @@
 
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import axiosInstance from '@/lib/axios';
+import axiosInstance from 'lib/axios';
 import toast from 'react-hot-toast';
 import { CheckIcon, PlusIcon } from 'lucide-react';
-import { ROUTES } from '@/config/routes';
+import { ROUTES } from 'config/routes';
 
 export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
   const [menuPackages, setMenuPackages] = useState([]);

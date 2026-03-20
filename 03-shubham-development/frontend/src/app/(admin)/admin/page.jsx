@@ -1,40 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import AdminTopbar from "@/components/admin/dashboard/AdminTopbar";
-import StatCard from "@/components/admin/dashboard/StatCard";
-import RevenueOverview from "@/components/admin/dashboard/RevenueOverview";
-import OccupancyCard from "@/components/admin/dashboard/OccupancyCard";
-import BookingsTable from "@/components/admin/dashboard/BookingsTable";
-import { ROUTES } from "@/config/routes";
-import axiosInstance from "@/lib/axios";
+import { useMemo, useState } from "react";
+import AdminTopbar from "components/admin/dashboard/AdminTopbar";
+import StatCard from "components/admin/dashboard/StatCard";
+import RevenueOverview from "components/admin/dashboard/RevenueOverview";
+import OccupancyCard from "components/admin/dashboard/OccupancyCard";
+import BookingsTable from "components/admin/dashboard/BookingsTable";
+import { useQueryDashboardOverview } from "@queries/dashboard";
 import { CalendarCheck, CircleDollarSign, Clock3, Sparkles } from "lucide-react";
 import toast from "react-hot-toast";
-import { useAuth } from "@/contexts/AuthProvider";
+import { useAuth } from "contexts/AuthProvider";
 
 export default function AdminDashboardPage() {
-  const [loading, setLoading] = useState(true);
   const profile = useAuth().user || {};
-  const [error, setError] = useState(null);
-  const [dashboard, setDashboard] = useState(null);
 
-  useEffect(() => {
-    async function fetchOverview() {
-      try {
-        setLoading(true);
-        const res = await axiosInstance.get(ROUTES.API.ADMIN.OVERVIEW);
-        setDashboard(res.data || null);
-      } catch (err) {
-        console.error(err);
-        setError(err?.response?.data?.message || "Failed to load dashboard");
-        toast.error(err?.response?.data?.message || "Failed to load dashboard");
-      } finally {
-        setLoading(false);
-      }
+  const { data: dashboard, isLoading: loading, isError: isQueryError, error: queryError } = useQueryDashboardOverview({
+    onError: (err) => {
+      try { toast.error(err?.response?.data?.message || err?.message || 'Failed to load dashboard'); } catch (e) { /* ignore */ }
     }
-
-    fetchOverview();
-  }, []);
+  });
 
   const stats = useMemo(() => {
     const totals = dashboard?.totals || {};
@@ -125,8 +109,8 @@ export default function AdminDashboardPage() {
             </button>
           </div>
 
-          {error ? (
-            <div className="bg-red-900/40 border border-red-700 text-red-100 px-4 py-3 rounded-lg">{error}</div>
+          {isQueryError ? (
+            <div className="bg-red-900/40 border border-red-700 text-red-100 px-4 py-3 rounded-lg">{String(queryError?.response?.data?.message || queryError?.message || 'Failed to load dashboard')}</div>
           ) : null}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

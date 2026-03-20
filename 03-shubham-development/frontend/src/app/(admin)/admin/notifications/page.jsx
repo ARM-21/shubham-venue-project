@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, RotateCw } from "lucide-react";
-import AdminTopbar from "@/components/admin/dashboard/AdminTopbar";
-import axiosInstance from "@/lib/axios";
-import { ROUTES } from "@/config/routes";
+import AdminTopbar from "components/admin/dashboard/AdminTopbar";
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
 
 const PAGE_SIZE = 10;
 

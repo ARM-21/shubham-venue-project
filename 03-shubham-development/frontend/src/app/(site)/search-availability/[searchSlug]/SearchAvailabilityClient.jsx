@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import CheckAvailability from "@/components/check-availability/CheckAvailability.jsx";
-import axiosInstance from "@/lib/axios";
+import CheckAvailability from "components/check-availability/CheckAvailability.jsx";
+import axiosInstance from "lib/axios";
 
 export default function SearchAvailabilityClient({ hallSlug }) {
   const [hall, setHall] = useState(null);

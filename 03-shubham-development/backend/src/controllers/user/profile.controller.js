@@ -161,7 +161,6 @@ export async function changeUserPassword(req, res) {
       message: 'Password changed successfully'
     });
   } catch (err) {
-    console.error("changeUserPassword error:", err);
     return res.status(err.status || 500).json({
       success: false,
       message: err.message || 'Failed to change password'

@@ -49,7 +49,7 @@ export const ROUTES = {
     PROFILE: {
       ME: '/api/v1/profile/me',
       UPDATE: '/api/v1/profile/me',
-      PASSWORD: '/api/v1/profile/password',
+      PASSWORD: '/api/v1/profile/me/password',
       AVATAR_UPLOAD_URL: '/api/v1/profile/me/avatar/upload-url',
       AVATAR_CONFIRM: '/api/v1/profile/me/avatar/confirm',
     },

@@ -1,5 +1,6 @@
 import { success } from "../../utils/http.utils.js";
 import { adminListHalls, adminCreateHall, adminUpdateHall, adminDeleteHall } from "../../services/hall/admin/hall.admin.service.js";
+import Hall from "../../models/Hall.js";
 import { generateHallImageUploadUrl } from "../../services/hall/admin/hall.upload.service.js";
 
 export const adminListHallsHandler = async (req, res, next) => {
@@ -46,6 +47,16 @@ export const adminHallUploadUrlHandler = async (req, res, next) => {
     }
     const data = await generateHallImageUploadUrl(fileExtension, contentType);
     return res.status(200).json({ success: true, data });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+export const adminGetHallHandler = async (req, res, next) => {
+  try {
+    const hall = await Hall.findById(req.params.id).lean();
+    if (!hall) return res.status(404).json({ message: "Hall not found" });
+    return success(res, { hall }, "OK", 200);
   } catch (err) {
     return next(err);
   }

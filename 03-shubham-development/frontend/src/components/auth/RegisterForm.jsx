@@ -2,13 +2,13 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import axiosInstance from '@/lib/axios';
+import axiosInstance from 'lib/axios';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthProvider';
+import { useAuth } from 'contexts/AuthProvider';
 import { useEffect } from 'react';
 import EnterOTP from '../otp/EnterOTP';
 import Modal from '../ui/Modal';
-import { ROUTES } from '@/config/routes';
+import { ROUTES } from 'config/routes';
 
 export default function RegisterForm({ onSwitch }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, watch } = useForm();

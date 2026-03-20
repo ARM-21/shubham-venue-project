@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import axiosInstance from "@/lib/axios";
+import axiosInstance from "lib/axios";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { ROUTES } from "@/config/routes";
+import { ROUTES } from "config/routes";
 
 const STATUS_COLORS = {
   PENDING: "bg-yellow-100 text-yellow-800",
