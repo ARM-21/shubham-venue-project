@@ -222,6 +222,30 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleExport = () => {
+    const headers = ["Name", "Email", "Role", "Provider", "Verified", "Active", "Organizer", "Joined"];
+    const csvRows = [headers.join(",")];
+    rows.forEach((r) => {
+      csvRows.push([
+        `"${r.name}"`,
+        r.email,
+        r.role,
+        r.provider,
+        r.status.label,
+        r.isActive ? "Active" : "Disabled",
+        r.organizerEnabled ? "Enabled" : r.organizerStatus,
+        r.joined,
+      ].join(","));
+    });
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `users-page-${page}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleDelete = async (row) => {
     const confirmed = typeof window !== "undefined" ? window.confirm(`Delete ${row.name}? This cannot be undone.`) : false;
     if (!confirmed) return;
@@ -234,6 +258,22 @@ export default function AdminUsersPage() {
     } catch (err) {
       console.error(err);
       setError(err?.response?.data?.message || "Failed to delete user");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleRoleChange = async (row) => {
+    const nextRole = row.role === "ADMIN" ? "customer" : "admin";
+    try {
+      setActionLoadingId(row.id);
+      await axiosInstance.patch(ROUTES.API.ADMIN.USER_ROLE(row.id), { role: nextRole });
+      setActionMessage(`Role updated to ${nextRole.toUpperCase()}`);
+      setOpenMenuId(null);
+      await fetchUsers();
+    } catch (err) {
+      console.error(err);
+      setError(err?.response?.data?.message || "Failed to update role");
     } finally {
       setActionLoadingId(null);
     }
@@ -265,7 +305,10 @@ export default function AdminUsersPage() {
               <p className="text-[var(--admin-muted)] text-sm">Review access levels, verification status, and contact details.</p>
             </div>
             <div className="flex gap-3">
-              <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--admin-surface)] border border-white/10 text-white hover:bg-white/5 hover:border-[var(--admin-primary)]/50 transition-colors text-sm font-medium shadow-sm">
+              <button
+                onClick={handleExport}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--admin-surface)] border border-white/10 text-white hover:bg-white/5 hover:border-[var(--admin-primary)]/50 transition-colors text-sm font-medium shadow-sm"
+              >
                 <Download className="size-4" />
                 Export CSV
               </button>
@@ -503,6 +546,13 @@ export default function AdminUsersPage() {
                                     disabled={actionLoadingId === row.id}
                                   >
                                     <Ban className="size-4" /> {row.isActive ? "Disable" : "Enable"}
+                                  </button>
+                                  <button
+                                    onClick={() => handleRoleChange(row)}
+                                    className="px-3 py-2 text-left text-sm text-white hover:bg-white/10 flex items-center gap-2"
+                                    disabled={actionLoadingId === row.id}
+                                  >
+                                    <Shield className="size-4" /> {row.role === "ADMIN" ? "Make customer" : "Make admin"}
                                   </button>
                                   {(row.raw?.provider || "").toLowerCase() !== "google" ? (
                                     <button

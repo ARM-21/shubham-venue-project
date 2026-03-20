@@ -5,7 +5,7 @@ export const metadata = {
 
 export default function AdminGroupLayout({ children }) {
   return (
-    <div className="min-h-screen bg-[var(--admin-bg)] text-white">
+    <div className="min-h-screen bg-(--admin-bg) text-white">
       {children}
     </div>
   );

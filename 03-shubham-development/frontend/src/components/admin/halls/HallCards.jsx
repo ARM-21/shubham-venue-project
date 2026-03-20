@@ -1,8 +1,8 @@
 import React from "react";
-import { Building2, Eye, Users } from "lucide-react";
+import { Building2, Eye, Users, Trash2 } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 
-export default function HallCards({ loading, hallCards, onEdit, onView }) {
+export default function HallCards({ loading, hallCards, onEdit, onView, onDelete, actionLoading }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {loading ? (
@@ -70,6 +70,15 @@ export default function HallCards({ loading, hallCards, onEdit, onView }) {
                 >
                   <Eye className="size-4" />
                 </button>
+                {onDelete ? (
+                  <button
+                    onClick={() => onDelete(hall.id)}
+                    disabled={actionLoading}
+                    className="bg-red-500/20 hover:bg-red-500/30 text-red-100 px-3 rounded-lg flex items-center justify-center transition-colors border border-red-500/40 disabled:opacity-50"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>

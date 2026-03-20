@@ -2,8 +2,7 @@ import React, { useEffect, useMemo } from "react";
 
 export default function EditBookingModal({ editModal, setEditModal, saveEdit, actionLoading, onClose }) {
   const isOpen = !!editModal.open;
-
-  const paymentStatusKey = (editModal.paymentStatus || "initiated").toLowerCase();
+  const paymentStatusKey = (editModal.paymentStatus || "initiated").toLowerCase().trim();
 
   const paymentOptions = useMemo(() => {
     const key = (editModal.originalPaymentStatus || "initiated").toLowerCase();
@@ -24,16 +23,16 @@ export default function EditBookingModal({ editModal, setEditModal, saveEdit, ac
   }, [editModal.originalStatus]);
 
   const statusOptions = useMemo(() => {
-    if (paymentStatusKey === "FAILED") {
+    if (paymentStatusKey === "failed") {
       return baseStatusOptions.filter((s) => s === "PENDING" || s === "CANCELLED");
     }
-    if (paymentStatusKey === "INITIATED") {
+    if (paymentStatusKey === "initiated") {
       return baseStatusOptions.filter((s) => s !== "COMPLETED");
     }
-    if (paymentStatusKey === "REFUNDED") {
+    if (paymentStatusKey === "refunded") {
       return baseStatusOptions.filter((s) => s === "CANCELLED");
     }
-    if (paymentStatusKey === "COMPLETED                                                                                                                                                         ") {
+    if (paymentStatusKey === "completed") {
       return baseStatusOptions.filter((s) => s !== "PENDING");
     }
     return baseStatusOptions;
@@ -108,6 +107,18 @@ export default function EditBookingModal({ editModal, setEditModal, saveEdit, ac
               </option>
             ))}
           </select>
+          {editModal.status === "CANCELLED" ? (
+            <>
+              <label className="block text-sm text-[var(--admin-muted)]">Cancellation reason</label>
+              <textarea
+                value={editModal.cancelReason}
+                onChange={(e) => setEditModal((prev) => ({ ...prev, cancelReason: e.target.value }))}
+                className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]"
+                rows={3}
+                placeholder="Reason for cancellation"
+              />
+            </>
+          ) : null}
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button
