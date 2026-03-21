@@ -55,18 +55,27 @@ export async function middleware(request) {
   const isLoggedIn = Boolean(user);
 
   if (isAdminRoute) {
-    if (canEnforceSessionInMiddleware && !hasSession) {
+    // Require a session cookie for admin pages in all cases.
+    if (!hasSession) {
       const loginUrl = new URL(ROUTES.AUTH.ROOT, request.url);
       loginUrl.searchParams.set("redirect", `${pathname}${search}`);
       return NextResponse.redirect(loginUrl);
     }
 
-    if (canEnforceSessionInMiddleware && !isAdmin) {
-      const homeUrl = new URL(ROUTES.HOME, request.url);
-      return NextResponse.redirect(homeUrl);
+    // If we can fetch the current user from the API (same-origin), enforce role check here.
+    if (canEnforceSessionInMiddleware) {
+      if (!isAdmin) {
+        const homeUrl = new URL(ROUTES.HOME, request.url);
+        return NextResponse.redirect(homeUrl);
+      }
+      return NextResponse.next();
     }
 
-    return NextResponse.next();
+    // If API is cross-origin we cannot reliably verify the role from middleware.
+    // Don't allow blind access to admin pages — redirect to home so the client
+    // can re-validate or prompt the user to sign in again.
+    const homeUrl = new URL(ROUTES.HOME, request.url);
+    return NextResponse.redirect(homeUrl);
   }
 
   if (isAuthRoute && canEnforceSessionInMiddleware && isLoggedIn) {
