@@ -21,5 +21,6 @@ export function sessionMiddleware() {
       secure: ENV.NODE_ENV === "production",
       sameSite: ENV.NODE_ENV === "production" ? "none" : "lax",
     },
+     domain: ENV.NODE_ENV === "production" ? ".shubham-venue.me" : undefined,
   });
 }
