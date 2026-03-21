@@ -12,17 +12,6 @@ function getSessionCookie(request) {
   return null;
 }
 
-function isCrossOriginApi(request) {
-  if (!API_BASE) return false;
-
-  try {
-    const apiUrl = new URL(API_BASE);
-    return apiUrl.host !== request.nextUrl.host;
-  } catch {
-    return false;
-  }
-}
-
 async function fetchCurrentUser(request) {
   try {
     const profileUrl = new URL(ROUTES.API.PROFILE.ME, API_BASE || request.url);
@@ -45,11 +34,10 @@ export async function middleware(request) {
   const isAdminRoute = pathname.startsWith(ROUTES.ADMIN.ROOT);
   const isAuthRoute = pathname.startsWith(ROUTES.AUTH.ROOT);
 
-  const canEnforceSessionInMiddleware = !isCrossOriginApi(request);
   const sessionCookie = getSessionCookie(request);
   const hasSession = Boolean(sessionCookie?.value);
 
-  const user = canEnforceSessionInMiddleware && hasSession ? await fetchCurrentUser(request) : null;
+  const user = hasSession ? await fetchCurrentUser(request) : null;
   const role = user?.role?.toLowerCase?.();
   const isAdmin = role === "admin";
   const isLoggedIn = Boolean(user);
@@ -62,30 +50,22 @@ export async function middleware(request) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // If we can fetch the current user from the API (same-origin) and we have a user object,
-    // enforce role check here. If the user could not be fetched (e.g., API unreachable),
-    // fall through and let the page load so a valid admin session is not blocked.
-    if (canEnforceSessionInMiddleware && user) {
-      if (!isAdmin) {
-        const homeUrl = new URL(ROUTES.HOME, request.url);
-        return NextResponse.redirect(homeUrl);
-      }
-      return NextResponse.next();
+    // Fail closed: if we cannot verify the user, redirect to login.
+    if (!user) {
+      const loginUrl = new URL(ROUTES.AUTH.ROOT, request.url);
+      loginUrl.searchParams.set("redirect", `${pathname}${search}`);
+      return NextResponse.redirect(loginUrl);
     }
 
-    // If API is cross-origin we cannot reliably verify the role from middleware.
-    // Allow navigation when a session cookie exists so an admin with a valid
-    // session can access the dashboard; if there's no session, redirect to login.
-    if (hasSession) {
-      return NextResponse.next();
+    if (!isAdmin) {
+      const homeUrl = new URL(ROUTES.HOME, request.url);
+      return NextResponse.redirect(homeUrl);
     }
 
-    const loginUrl = new URL(ROUTES.AUTH.ROOT, request.url);
-    loginUrl.searchParams.set("redirect", `${pathname}${search}`);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.next();
   }
 
-  if (isAuthRoute && canEnforceSessionInMiddleware && isLoggedIn) {
+  if (isAuthRoute && isLoggedIn) {
     const target = isAdmin ? ROUTES.ADMIN.DASHBOARD : ROUTES.HOME;
     const redirectUrl = new URL(target, request.url);
     return NextResponse.redirect(redirectUrl);
