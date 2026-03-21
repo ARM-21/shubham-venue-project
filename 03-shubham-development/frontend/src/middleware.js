@@ -62,8 +62,10 @@ export async function middleware(request) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // If we can fetch the current user from the API (same-origin), enforce role check here.
-    if (canEnforceSessionInMiddleware) {
+    // If we can fetch the current user from the API (same-origin) and we have a user object,
+    // enforce role check here. If the user could not be fetched (e.g., API unreachable),
+    // fall through and let the page load so a valid admin session is not blocked.
+    if (canEnforceSessionInMiddleware && user) {
       if (!isAdmin) {
         const homeUrl = new URL(ROUTES.HOME, request.url);
         return NextResponse.redirect(homeUrl);
