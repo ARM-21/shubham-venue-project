@@ -72,10 +72,15 @@ export async function middleware(request) {
     }
 
     // If API is cross-origin we cannot reliably verify the role from middleware.
-    // Don't allow blind access to admin pages — redirect to home so the client
-    // can re-validate or prompt the user to sign in again.
-    const homeUrl = new URL(ROUTES.HOME, request.url);
-    return NextResponse.redirect(homeUrl);
+    // Allow navigation when a session cookie exists so an admin with a valid
+    // session can access the dashboard; if there's no session, redirect to login.
+    if (hasSession) {
+      return NextResponse.next();
+    }
+
+    const loginUrl = new URL(ROUTES.AUTH.ROOT, request.url);
+    loginUrl.searchParams.set("redirect", `${pathname}${search}`);
+    return NextResponse.redirect(loginUrl);
   }
 
   if (isAuthRoute && canEnforceSessionInMiddleware && isLoggedIn) {
