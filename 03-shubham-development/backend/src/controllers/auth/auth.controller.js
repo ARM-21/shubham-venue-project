@@ -103,7 +103,7 @@ export const logoutController = async (req, res, next) => {
   try {
     req.session.destroy((err) => {
       if (err) return next(httpError(500, "Could not log out user"));
-      res.clearCookie("sid");
+      res.clearCookie("shubham.sid");
       return success(res, {}, "User logged out", 200);
     });
   } catch (err) {

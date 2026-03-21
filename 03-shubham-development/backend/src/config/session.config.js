@@ -20,7 +20,7 @@ export function sessionMiddleware() {
       maxAge: ENV.SESSION_COOKIE_MAX_AGE_MS,
       secure: ENV.NODE_ENV === "production",
       sameSite: ENV.NODE_ENV === "production" ? "none" : "lax",
+      domain: ENV.NODE_ENV === "production" ? ".shubham-venue.me" : undefined,
     },
-     domain: ENV.NODE_ENV === "production" ? ".shubham-venue.me" : undefined,
   });
 }
