@@ -8,6 +8,7 @@ import {
 import { sendWelcomeEmail } from "../../services/email/email.service.js";
 import { httpError } from "../../utils/http.utils.js";
 import { success } from "../../utils/http.utils.js";
+import ENV from "../../config/env.config.js";
 
 // Register user and send OTP
 export const registerUserController = async (req, res, next) => {
@@ -103,7 +104,16 @@ export const logoutController = async (req, res, next) => {
   try {
     req.session.destroy((err) => {
       if (err) return next(httpError(500, "Could not log out user"));
-      res.clearCookie("shubham.sid");
+      const cookieName = ENV.SESSION_NAME || "shubham.sid";
+      const cookieOptions = {
+        path: "/",
+        domain: ENV.NODE_ENV === "production" ? ".shubham-venue.me" : undefined,
+        sameSite: ENV.NODE_ENV === "production" ? "none" : "lax",
+        secure: ENV.NODE_ENV === "production",
+      };
+
+      // Clear session cookie (single name used across the app)
+      res.clearCookie(cookieName, cookieOptions);
       return success(res, {}, "User logged out", 200);
     });
   } catch (err) {
