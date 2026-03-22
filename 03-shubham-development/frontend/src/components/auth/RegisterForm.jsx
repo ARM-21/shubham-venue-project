@@ -122,84 +122,91 @@ export default function RegisterForm({ onSwitch }) {
 
   return (
     <>
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
-        <input
-          type="email"
-          {...register('email', { 
-            required: 'Email is required', 
-            pattern: { 
-              value: /^\S+@\S+$/i, 
-              message: 'Please enter a valid email address' 
-            } 
-          })}
-          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-[#250815] focus:ring-2 focus:ring-[#250815]/20 transition-all duration-300 placeholder-gray-400"
-          placeholder="Enter your email"
-        />
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="group">
+        <label className="block text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Email Address</label>
+        <div className="relative">
+          <input
+            type="email"
+            {...register('email', { 
+              required: 'Email is required', 
+              pattern: { 
+                value: /^\S+@\S+$/i, 
+                message: 'Enter a valid email' 
+              } 
+            })}
+            className="w-full bg-white/[0.03] border border-white/10 text-white px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-white/[0.05] transition-all duration-300 placeholder-white/20 text-sm"
+            placeholder="e.g. alex@example.com"
+          />
+        </div>
         {errors.email && (
-          <p className="text-red-600 text-sm mt-2 font-medium">{errors.email.message}</p>
+          <p className="text-red-400 text-[10px] mt-2 ml-1 font-bold uppercase tracking-wider">{errors.email.message}</p>
         )}
       </div>
 
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-        <input
-          type="password"
-          {...register('password', { 
-            required: 'Password is required', 
-            minLength: { 
-              value: 6, 
-              message: 'Password must be at least 6 characters' 
-            } 
-          })}
-          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-[#250815] focus:ring-2 focus:ring-[#250815]/20 transition-all duration-300 placeholder-gray-400"
-          placeholder="Enter your password"
-        />
-        {errors.password && (
-          <p className="text-red-600 text-sm mt-2 font-medium">{errors.password.message}</p>
-        )}
-      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="group">
+          <label className="block text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Password</label>
+          <div className="relative">
+            <input
+              type="password"
+              {...register('password', { 
+                required: 'Required', 
+                minLength: { 
+                  value: 6, 
+                  message: 'Min 6' 
+                } 
+              })}
+              className="w-full bg-white/[0.03] border border-white/10 text-white px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-white/[0.05] transition-all duration-300 placeholder-white/20 text-sm"
+              placeholder="••••••••"
+            />
+          </div>
+          {errors.password && (
+            <p className="text-red-400 text-[10px] mt-2 ml-1 font-bold uppercase tracking-wider">{errors.password.message}</p>
+          )}
+        </div>
 
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label>
-        <input
-          type="password"
-          {...register('confirmPassword', { 
-            required: 'Please confirm your password', 
-            validate: (value) => value === password || 'Passwords do not match' 
-          })}
-          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-[#250815] focus:ring-2 focus:ring-[#250815]/20 transition-all duration-300 placeholder-gray-400"
-          placeholder="Confirm your password"
-        />
-        {errors.confirmPassword && (
-          <p className="text-red-600 text-sm mt-2 font-medium">{errors.confirmPassword.message}</p>
-        )}
+        <div className="group">
+          <label className="block text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Confirm</label>
+          <div className="relative">
+            <input
+              type="password"
+              {...register('confirmPassword', { 
+                required: 'Required', 
+                validate: (value) => value === password || 'No match' 
+              })}
+              className="w-full bg-white/[0.03] border border-white/10 text-white px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-white/[0.05] transition-all duration-300 placeholder-white/20 text-sm"
+              placeholder="••••••••"
+            />
+          </div>
+          {errors.confirmPassword && (
+            <p className="text-red-400 text-[10px] mt-2 ml-1 font-bold uppercase tracking-wider">{errors.confirmPassword.message}</p>
+          )}
+        </div>
       </div>
 
       <button 
         type="submit" 
         disabled={isSubmitting}
-        className="w-full bg-[#502538] text-white py-3 px-6 rounded-xl font-semibold shadow-md hover:bg-[#3a0c23] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+        className="relative w-full group overflow-hidden bg-[#C0A04C] hover:bg-[#D4BC7B] text-[#3a1224] py-4 px-6 rounded-xl font-bold text-xs uppercase tracking-[0.2em] shadow-[0_10px_20px_-10px_rgba(192,160,76,0.3)] transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
       >
-        {isSubmitting ? (
-          <>
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-            Creating Account...
-          </>
-        ) : (
-          'Create Account'
-        )}
+        <div className="absolute inset-0 w-full h-full bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700 skew-x-12"></div>
+        <span className="relative flex items-center justify-center gap-2">
+          {isSubmitting ? (
+            <div className="w-4 h-4 border-2 border-[#3a1224] border-t-transparent rounded-full animate-spin"></div>
+          ) : null}
+          Create Account
+        </span>
       </button>
 
-      <div className="text-center text-sm text-gray-600 pt-2">
-        Already have an account?{' '}
+      <div className="text-center pt-2">
+        <span className="text-white/30 text-[11px] font-medium">Already have an account?</span>{' '}
         <button 
           type="button" 
           onClick={() => onSwitch && onSwitch()} 
-          className="text-[#502538] font-semibold hover:text-[#3a0c23] hover:underline transition-colors cursor-pointer"
+          className="text-[#C0A04C] text-[11px] font-bold hover:text-white transition-colors cursor-pointer ml-1 uppercase tracking-wider"
         >
-          Sign in
+          Sign In
         </button>
       </div>
     </form>

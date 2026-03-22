@@ -14,12 +14,23 @@ export default function SlideButton({ direction, onClick, setCurrent, length, cu
     };
     return (
         <button
-            aria-label="Previous slide"
+            aria-label={direction === "right" ? "Next slide" : "Previous slide"}
             onClick={direction === "right" ? slideRight : slideLeft}
-            className={`absolute ${direction === "right" ? "right-2 " : "left-2"} ${showButtons ? " opacity-100" : "opacity-0"}  transition-opacity duration-300 ease-in top-1/2 -translate-y-1/2  z-30 w-10 h-10 rounded-full bg-black text-white flex items-center justify-center hover:bg-black/60 cursor-pointer text-4xl`}
+            className={`group/btn w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white flex items-center justify-center transition-all duration-300 hover:bg-white/20 hover:scale-110 active:scale-90 pointer-events-auto`}
         >
-        <span className={`m-auto flex justify-center items-center absolute -top-1 ${direction === "right" ? "right-3" : "left-3"}`}>{direction === "right" ? "›" : "‹"}</span>
-            
+            <svg 
+                className={`w-6 h-6 transition-transform duration-300 ${direction === "right" ? "group-hover/btn:translate-x-0.5" : "group-hover/btn:-translate-x-0.5"}`} 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+            >
+                <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d={direction === "right" ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"} 
+                />
+            </svg>
         </button>
     )
 }

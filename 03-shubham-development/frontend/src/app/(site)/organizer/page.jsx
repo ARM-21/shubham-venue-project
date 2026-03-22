@@ -2,11 +2,27 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarCheck, ClipboardList, Sparkles, ShieldCheck } from "lucide-react";
+import { 
+  CalendarCheck, 
+  ClipboardList, 
+  Sparkles, 
+  ShieldCheck, 
+  Plus, 
+  ArrowRight, 
+  Clock, 
+  LayoutDashboard,
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  Calendar,
+  Zap
+} from "lucide-react";
 import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
 import { useAuth } from "contexts/AuthProvider";
 import toast from "react-hot-toast";
+import { motion, AnimatePresence } from "framer-motion";
+import { Ticket } from "lucide-react";
 
 function formatDate(value) {
   try {
@@ -33,15 +49,22 @@ function formatDateTime(value) {
 function statusTone(status) {
   switch (status) {
     case "approved":
-      return "bg-green-50 text-green-700 border-green-200";
+      return "text-emerald-600 bg-emerald-50 border-emerald-100";
     case "pending":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "text-amber-600 bg-amber-50 border-amber-100";
     case "rejected":
-      return "bg-red-50 text-red-700 border-red-200";
+      return "text-rose-600 bg-rose-50 border-rose-100";
     default:
-      return "bg-gray-50 text-gray-700 border-gray-200";
+      return "text-[#3a1224]/40 bg-[#3a1224]/5 border-[#3a1224]/10";
   }
 }
+
+const statusConfig = {
+  approved: { icon: CheckCircle2, label: "Active Producer", dot: "bg-emerald-400" },
+  pending: { icon: Clock, label: "Verification Pending", dot: "bg-amber-400" },
+  rejected: { icon: XCircle, label: "Action Required", dot: "bg-rose-400" },
+  none: { icon: AlertCircle, label: "Awaiting Application", dot: "bg-gray-400" }
+};
 
 export default function OrganizerHubPage() {
   const { user } = useAuth();
@@ -121,181 +144,286 @@ export default function OrganizerHubPage() {
       const payload = { note: note.trim() };
       const res = await axiosInstance.post(ROUTES.API.ORGANIZER_REQUESTS.ROOT, payload);
       setStatus(res.data || null);
-      toast.success("Organizer request submitted");
+      toast.success("Application submitted successfully");
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to submit request");
+      toast.error(err?.response?.data?.message || "Application failed");
     } finally {
       setSubmitting(false);
     }
   }
 
   const recentEvents = events.slice(0, 3);
+  const currentStatusConfig = statusConfig[statusValue] || statusConfig.none;
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-gray-500">Organizer Hub</p>
-            <h1 className="text-2xl font-bold text-gray-900 mt-1">Manage events, tickets, and check-ins</h1>
-            <p className="text-sm text-gray-600 mt-2">Apply for organizer access or jump into your dashboard if approved.</p>
+    <div className="relative min-h-full">
+      {/* Remove the absolute background from here as the layout and sidebar now handle the environment */}
+      
+      <main className="max-w-7xl mx-auto">
+        <header className="mb-20">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-12 h-[1px] bg-[#C0A04C]/40" />
+            <span className="text-[11px] font-black text-[#C0A04C] uppercase tracking-[0.5em]">Command Portfolio</span>
           </div>
-          {isApproved && (
-            <button
-              onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_NEW)}
-              className="px-4 py-2.5 bg-[#8B0000] text-white rounded-lg text-sm font-semibold hover:bg-[#A52A2A] transition"
-            >
-              Create Event
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className={`border rounded-2xl p-6 ${statusTone(statusValue)}`}>
-        <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-gray-200">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold">Organizer Request Status</h2>
-            {statusLoading ? (
-              <p className="text-sm mt-2">Checking your status...</p>
-            ) : (
-              <p className="text-sm mt-2">
-                {statusValue === "approved"
-                  ? "You are approved as an organizer. You can create events and manage tickets."
-                  : statusValue === "pending"
-                  ? "Your organizer request is under review. You will be notified once approved."
-                  : statusValue === "rejected"
-                  ? "Your organizer request was rejected. You can update your note and resubmit."
-                  : "Submit a request to become an organizer."}
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-12">
+            <div>
+              <h1 className="text-6xl lg:text-7xl font-display font-bold text-[#3a1224] mb-6 leading-tight select-none">
+                Organizer <span className="text-[#C0A04C] italic font-serif opacity-90">Hub</span>
+              </h1>
+              <p className="text-[#3a1224]/50 text-xl font-medium leading-relaxed max-w-2xl border-l-2 border-[#C0A04C]/20 pl-6">
+                 Your central command for high-fidelity event orchestration. Monitor your distribution registry and manage live productions with absolute precision.
               </p>
-            )}
-
-            {status?.organizerNote && statusValue !== "approved" && (
-              <div className="mt-3 text-sm text-gray-700">
-                <span className="font-semibold">Note:</span> {status.organizerNote}
-              </div>
-            )}
-
-            {status?.organizerRequestedAt && statusValue !== "approved" ? (
-              <div className="mt-2 text-xs text-gray-600">
-                Requested on {formatDateTime(status.organizerRequestedAt)}
-              </div>
-            ) : null}
-
-            {!isApproved && (
-              <div className="mt-4">
-                <label className="text-sm font-medium">Tell us about your event experience</label>
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  rows={3}
-                  className="mt-2 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#8B0000]/20"
-                  placeholder="Describe the kind of events you want to organize..."
-                  disabled={statusValue === "pending"}
-                />
-                <button
-                  onClick={submitRequest}
-                  disabled={submitting || statusValue === "pending"}
-                  className="mt-3 px-4 py-2 bg-[#8B0000] text-white rounded-lg text-sm font-semibold hover:bg-[#A52A2A] transition disabled:opacity-60"
-                >
-                  {statusValue === "pending" ? "Request Pending" : submitting ? "Submitting..." : "Submit Request"}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {isApproved && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Eligible bookings</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">{dashboardLoading ? "..." : stats.eligibleBookings}</p>
             </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Total events</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">{dashboardLoading ? "..." : stats.total}</p>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Published</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">{dashboardLoading ? "..." : stats.published}</p>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Drafts</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">{dashboardLoading ? "..." : stats.draft}</p>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Recent Events</h3>
-                <p className="text-sm text-gray-600">Quick access to your latest events.</p>
-              </div>
+            
+            {isApproved && (
               <button
-                onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENTS)}
-                className="text-sm font-semibold text-[#8B0000] hover:underline"
+                onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_NEW)}
+                className="h-20 px-12 bg-[#3a1224] text-[#C0A04C] rounded-3xl font-black text-[12px] uppercase tracking-widest shadow-2xl hover:shadow-[#3a1224]/30 hover:-translate-y-1 transition-all flex items-center justify-center gap-4 active:scale-95 group"
               >
-                View all
+                <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" /> Initialize New Production
               </button>
-            </div>
+            )}
+          </div>
+        </header>
 
-            {dashboardLoading ? (
-              <div className="text-sm text-gray-600">Loading events...</div>
-            ) : recentEvents.length === 0 ? (
-              <div className="text-sm text-gray-600">No events yet. Create your first event.</div>
-            ) : (
-              <div className="space-y-3">
-                {recentEvents.map((event) => (
-                  <div key={event._id} className="border border-gray-100 rounded-lg p-4 flex flex-wrap gap-4 justify-between">
-                    <div>
-                      <p className="font-semibold text-gray-900">{event.name}</p>
-                      <p className="text-sm text-gray-600">{event.type || "Event"} · {event.isPublic ? "Public" : "Private"}</p>
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-16">
+          {/* Left Column: Status & Application */}
+          <div className="xl:col-span-4 space-y-8">
+            <section className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-b from-[#C0A04C]/10 to-transparent rounded-[2.5rem] blur-xl opacity-0 group-hover:opacity-100 transition duration-1000"></div>
+              <div className="relative bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(58,18,36,0.06)] border border-[#3a1224]/5 p-10 overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#C0A04C]/[0.03] rounded-bl-[100px] pointer-events-none" />
+                
+                <div className="flex items-center gap-3 mb-8">
+                   <ShieldCheck className="w-4 h-4 text-[#C0A04C]" />
+                   <span className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-[0.3em]">Credentials</span>
+                </div>
+
+                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border mb-6 ${statusTone(statusValue)}`}>
+                  <span className={`w-2 h-2 rounded-full ${currentStatusConfig.dot} animate-pulse`} />
+                  <span className="text-[10px] font-black uppercase tracking-widest leading-none pt-0.5">{currentStatusConfig.label}</span>
+                </div>
+
+                <h2 className="text-3xl font-display font-bold text-[#3a1224] mb-4">Identity Status</h2>
+                
+                <div className="space-y-4 mb-10">
+                  <p className="text-sm text-[#3a1224]/60 leading-relaxed">
+                    {statusValue === "approved"
+                      ? "Your producer credentials are active. You have full clearance to organize public and private events."
+                      : statusValue === "pending"
+                      ? "Our executive board is currently reviewing your application. Expect a response within 24-48 hours."
+                      : statusValue === "rejected"
+                      ? "Your recent application requires revisions. Please update your portfolio and resubmit for reconsideration."
+                      : "Submit your professional portfolio to unlock event organization capabilities."}
+                  </p>
+
+                  {status?.organizerNote && statusValue !== "approved" && (
+                    <div className="p-4 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-2xl">
+                      <p className="text-[9px] font-black text-[#3a1224]/30 uppercase tracking-widest mb-2">Reviewer Feedback</p>
+                      <p className="text-xs font-medium text-[#3a1224]/70 italic">"{status.organizerNote}"</p>
                     </div>
-                    <div className="text-sm text-gray-600">
-                      <p>Status: <span className="font-semibold">{event.status}</span></p>
-                      <p>{event.startDateTime ? formatDate(event.startDateTime) : "-"}</p>
+                  )}
+
+                  {status?.organizerRequestedAt && statusValue !== "approved" && (
+                    <div className="flex items-center gap-2 text-[10px] font-black text-[#3a1224]/30 uppercase tracking-widest pt-2">
+                      <Clock className="w-3 h-3" /> Filed {formatDate(status.organizerRequestedAt)}
                     </div>
+                  )}
+                </div>
+
+                {!isApproved && (
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest">Experience Portfolio</label>
+                       <textarea
+                         value={note}
+                         onChange={(e) => setNote(e.target.value)}
+                         rows={4}
+                         className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-[#C0A04C]/50 transition-all outline-none text-[#3a1224] placeholder:text-[#3a1224]/20"
+                         placeholder="Describe your event management experience..."
+                         disabled={statusValue === "pending"}
+                       />
+                    </div>
+                    
                     <button
-                      onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_DETAIL(event._id))}
-                      className="text-sm font-semibold text-[#8B0000] hover:underline"
+                      onClick={submitRequest}
+                      disabled={submitting || statusValue === "pending"}
+                      className="w-full h-14 bg-[#3a1224] text-[#C0A04C] rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:shadow-[#3a1224]/20 disabled:opacity-50 transition-all active:scale-95"
                     >
-                      Manage
+                      {statusValue === "pending" ? "Awaiting Response" : submitting ? "Verifying..." : "Apply for Clearance"}
                     </button>
                   </div>
-                ))}
+                )}
               </div>
+            </section>
+
+            {/* Quick Insights for Non-Approved */}
+            {!isApproved && (
+              <section className="p-10 bg-[#3a1224] rounded-[2.5rem] text-white relative overflow-hidden shadow-2xl">
+                 <div className="absolute top-[-20px] right-[-20px] w-48 h-48 bg-white/5 rounded-full blur-3xl" />
+                 <h4 className="text-2xl font-display font-bold mb-6">Producer Perks</h4>
+                 <ul className="space-y-4">
+                    {[
+                      { icon: Zap, text: "Convert bookings into events" },
+                      { icon: Ticket, text: "Custom ticket tiering" },
+                      { icon: Sparkles, text: "Native QR check-in tools" }
+                    ].map((item, i) => (
+                      <li key={i} className="flex items-center gap-4">
+                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center group-hover:bg-[#C0A04C] transition-colors">
+                            <item.icon className="w-5 h-5 text-[#C0A04C]" />
+                         </div>
+                         <span className="text-sm text-white/70 font-medium tracking-tight">{item.text}</span>
+                      </li>
+                    ))}
+                 </ul>
+              </section>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <div className="flex items-center gap-2 text-gray-700">
-                <CalendarCheck className="w-5 h-5" />
-                <h4 className="font-semibold">Create events</h4>
+          {/* Right Column: Dashboard Data */}
+          <div className="xl:col-span-8 flex flex-col gap-12">
+            {isApproved ? (
+              <>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {[
+                    { label: "Eligible Bookings", val: stats.eligibleBookings, icon: CalendarCheck },
+                    { label: "Total Productions", val: stats.total, icon: LayoutDashboard },
+                    { label: "Live Events", val: stats.published, icon: Zap },
+                    { label: "Stored Drafts", val: stats.draft, icon: Clock }
+                  ].map((stat, i) => (
+                    <div key={i} className="bg-white rounded-[2rem] p-8 border border-[#3a1224]/5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 group">
+                       <div className="w-12 h-12 bg-[#fdfaf6] rounded-2xl flex items-center justify-center mb-6 border border-[#3a1224]/5 group-hover:bg-[#3a1224] transition-colors">
+                          <stat.icon className="w-6 h-6 text-[#C0A04C]" />
+                       </div>
+                       <p className="text-[10px] font-black text-[#3a1224]/30 uppercase tracking-[0.2em] mb-1">{stat.label}</p>
+                       <p className="text-4xl font-display font-bold text-[#3a1224]">{dashboardLoading ? "–" : stat.val}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Recent Events Section */}
+                <section className="bg-white rounded-[3rem] shadow-[0_20px_50px_rgba(58,18,36,0.06)] border border-[#3a1224]/5 p-10 overflow-hidden relative">
+                   <div className="flex items-center justify-between mb-12">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-[2px] bg-[#C0A04C] rounded-full" />
+                          <span className="text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Chronology</span>
+                        </div>
+                        <h3 className="text-4xl font-display font-bold text-[#3a1224] tracking-tight">Recent Production</h3>
+                      </div>
+                      <button 
+                        onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENTS)}
+                        className="group flex items-center gap-3 text-[#3a1224] text-[10px] font-black uppercase tracking-widest hover:text-[#C0A04C] transition-colors pt-4"
+                      >
+                         Archival View <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />
+                      </button>
+                   </div>
+
+                   {dashboardLoading ? (
+                     <div className="space-y-4">
+                        {[1, 2].map(i => <div key={i} className="h-24 bg-[#fdfaf6] animate-pulse rounded-2xl" />)}
+                     </div>
+                   ) : recentEvents.length === 0 ? (
+                     <div className="py-20 flex flex-col items-center justify-center text-center bg-[#fdfaf6] rounded-[2rem] border border-dashed border-[#3a1224]/10">
+                        <p className="text-sm font-medium text-[#3a1224]/40 mb-6 italic">No active productions found in the registry.</p>
+                        <button 
+                          onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_NEW)}
+                          className="h-12 px-8 border-2 border-[#3a1224] text-[#3a1224] rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-[#3a1224] hover:text-white transition-all"
+                        >
+                           Initialize First Event
+                        </button>
+                     </div>
+                   ) : (
+                     <div className="space-y-4">
+                        {recentEvents.map((event, idx) => (
+                           <motion.div 
+                             key={event._id}
+                             initial={{ opacity: 0, x: -20 }}
+                             animate={{ opacity: 1, x: 0 }}
+                             transition={{ delay: idx * 0.1 }}
+                             className="group/item flex flex-wrap items-center justify-between gap-6 p-6 bg-[#fdfaf6] hover:bg-white rounded-[2rem] border border-transparent hover:border-[#3a1224]/5 hover:shadow-xl transition-all duration-500"
+                           >
+                              <div className="flex items-center gap-6">
+                                 <div className="w-16 h-16 bg-[#3a1224] rounded-2xl flex items-center justify-center shadow-lg group-hover/item:bg-[#C0A04C] transition-colors">
+                                    <Calendar className="w-8 h-8 text-white" />
+                                 </div>
+                                 <div>
+                                    <h4 className="text-xl font-display font-bold text-[#3a1224] mb-1">{event.name}</h4>
+                                    <div className="flex items-center gap-3 text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest">
+                                       <span>{event.type || "Event"}</span>
+                                       <span className="w-1 h-1 bg-[#C0A04C] rounded-full" />
+                                       <span>{event.isPublic ? "Public" : "Private"} Distribution</span>
+                                    </div>
+                                 </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-12">
+                                 <div className="hidden sm:block text-right">
+                                    <p className="text-[9px] font-black text-[#3a1224]/30 uppercase tracking-widest mb-1">Entry State</p>
+                                    <span className="text-[11px] font-bold text-[#3a1224]">{event.status}</span>
+                                 </div>
+                                 <div className="hidden sm:block text-right">
+                                    <p className="text-[9px] font-black text-[#3a1224]/30 uppercase tracking-widest mb-1">Scheduled Date</p>
+                                    <span className="text-[11px] font-bold text-[#3a1224]">{event.startDateTime ? formatDate(event.startDateTime) : "Not Set"}</span>
+                                 </div>
+                                 <button
+                                   onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_DETAIL(event._id))}
+                                   className="h-12 w-12 rounded-2xl bg-white border border-[#3a1224]/10 flex items-center justify-center text-[#3a1224] hover:bg-[#3a1224] hover:text-white transition-all shadow-sm active:scale-90"
+                                 >
+                                    <ArrowRight className="w-5 h-5" />
+                                 </button>
+                              </div>
+                           </motion.div>
+                        ))}
+                     </div>
+                   )}
+                </section>
+
+                {/* Tactical Features */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-10">
+                  {[
+                    { title: "Production Logic", desc: "Launch new experiences using verified venue bookings.", icon: CalendarCheck },
+                    { title: "Distribution Control", desc: "Configure ticket hierarchies and capacity limits.", icon: ClipboardList },
+                    { title: "Gateway Access", desc: "Native authentication for guests via QR technology.", icon: Sparkles }
+                  ].map((feat, i) => (
+                    <div key={i} className="bg-white rounded-[2.5rem] p-8 border border-[#3a1224]/5 shadow-sm group hover:bg-[#3a1224] transition-all duration-700">
+                       <div className="w-12 h-12 bg-[#fdfaf6] rounded-2xl flex items-center justify-center mb-6 group-hover:bg-white/10 transition-colors">
+                          <feat.icon className="w-6 h-6 text-[#C0A04C]" />
+                       </div>
+                       <h4 className="text-xl font-display font-bold text-[#3a1224] mb-3 group-hover:text-white transition-colors tracking-tight">{feat.title}</h4>
+                       <p className="text-sm text-[#3a1224]/50 group-hover:text-white/60 leading-relaxed transition-colors">{feat.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              /* Informational View for non-approved users */
+              <div className="h-full min-h-[500px] flex flex-col items-center justify-center bg-white rounded-[3rem] shadow-sm border border-[#3a1224]/5 p-12 text-center">
+                 <div className="w-32 h-32 bg-[#3a1224]/5 rounded-full flex items-center justify-center mb-10 relative">
+                    <LayoutDashboard className="w-12 h-12 text-[#3a1224]/20" />
+                    <div className="absolute top-0 right-0 w-10 h-10 bg-[#C0A04C] rounded-2xl flex items-center justify-center border-4 border-white shadow-lg rotate-12">
+                       <ShieldCheck className="w-5 h-5 text-[#3a1224]" />
+                    </div>
+                 </div>
+                 <h3 className="text-4xl font-display font-bold text-[#3a1224] mb-4">Command Post Locked</h3>
+                 <p className="text-lg text-[#3a1224]/50 max-w-lg mb-10 leading-relaxed">
+                    Access to the Producer Hub requires active clearance. Once approved, you'll be able to initialize events, monitor live analytics, and manage your distribution network.
+                 </p>
+                 <div className="flex flex-wrap justify-center gap-4">
+                    <div className="px-6 py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[#3a1224]/40 flex items-center gap-3">
+                       <Zap className="w-4 h-4 text-[#C0A04C]" /> Analytics Engine
+                    </div>
+                    <div className="px-6 py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[#3a1224]/40 flex items-center gap-3">
+                       <Ticket className="w-4 h-4 text-[#C0A04C]" /> Ticket Terminal
+                    </div>
+                 </div>
               </div>
-              <p className="text-sm text-gray-600 mt-2">Use a confirmed booking to launch a new event.</p>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <div className="flex items-center gap-2 text-gray-700">
-                <ClipboardList className="w-5 h-5" />
-                <h4 className="font-semibold">Manage tickets</h4>
-              </div>
-              <p className="text-sm text-gray-600 mt-2">Create ticket tiers, set pricing, and control capacity.</p>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <div className="flex items-center gap-2 text-gray-700">
-                <Sparkles className="w-5 h-5" />
-                <h4 className="font-semibold">Check-in guests</h4>
-              </div>
-              <p className="text-sm text-gray-600 mt-2">Validate tickets instantly during the event.</p>
-            </div>
+            )}
           </div>
         </div>
-      )}
+      </main>
     </div>
   );
 }
+

@@ -3,166 +3,309 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import Action from 'components/navbar/nav-action/Action.jsx';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from 'contexts/AuthProvider';
-import { House, Info, Menu, X, Images, Contact, LogIn, LogOut } from "lucide-react";
-import { Icon } from 'lucide-react';
+import { 
+  House, 
+  Info, 
+  Images, 
+  Contact, 
+  LogIn, 
+  LogOut, 
+  ChevronDown, 
+  User, 
+  Ticket, 
+  LayoutDashboard, 
+  ShieldCheck,
+  Menu as MenuIcon,
+  X,
+  Sparkles
+} from "lucide-react";
 import { ROUTES } from 'config/routes';
+import { motion, AnimatePresence } from 'framer-motion';
 
-
-const actions = [
-  { name: 'Home', id: 'home', icon: House },
-  { name: 'About', id: 'about', icon: Info },
-  { name: 'Gallery', id: 'gallery', icon: Images },
-  // { name: 'Services', id: 'services', Icon: '/assets/nav-action-icons/services.svg' },
-  { name: 'Contact', id: 'contact', icon: Contact },
+const navigation = [
+  { name: 'Home', href: ROUTES.HOME, icon: House },
+  { name: 'Venues', href: ROUTES.SITE.VENUES(), icon: Images },
+  { name: 'About', href: '/about', icon: Info },
+  { name: 'Contact', href: '/contact', icon: Contact },
 ];
 
 export default function Navbar() {
-  const [hamActive, setHamActive] = useState(false);
-  const menuRef = useRef(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const { user, logout } = useAuth();
   const router = useRouter();
-  const [profileOpen, setProfileOpen] = useState(false);
+  const pathname = usePathname();
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      e.stopPropagation()
-      if (menuRef.current && !menuRef.current.contains(e.target) && hamActive) {
-        console.log("ham is setting off")
-        setHamActive(false);
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setProfileOpen(false);
       }
     };
-    window.addEventListener('click', handleClickOutside);
-    return () => window.removeEventListener('click', handleClickOutside);
-  }, [hamActive]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setProfileOpen(false);
+      router.push(ROUTES.HOME);
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
-    <div className=" sticky top-0 w-full bg-[#3a1224] backdrop-blur-md shadow-lg z-50 border-b border-gray-200">
-      <nav className="flex justify-between items-center px-4 sm:px-8 py-4 max-w-7xl mx-auto" ref={menuRef}>
-        {/* Logo section */}
-        <div className="relative">
-          <Link href={ROUTES.HOME} className="flex items-center">
+    <header 
+      className={`fixed top-[41px] left-0 right-0 z-[100] transition-all duration-700 ${
+        isScrolled 
+          ? 'py-3 -translate-y-[41px] bg-[#3a1224]/95 backdrop-blur-2xl border-b border-[#C0A04C]/30 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.5)]' 
+          : 'py-6 bg-transparent'
+      }`}
+    >
+      <nav className="max-w-[1400px] mx-auto px-6 flex items-center justify-between">
+        {/* Logo */}
+        <Link href={ROUTES.HOME} className="group flex items-center gap-3 relative z-10">
+          <div className="relative w-12 h-12 flex items-center justify-center">
+            {/* Dynamic Ring on Scroll */}
+            <div className={`absolute inset-0 bg-[#C0A04C] rounded-xl transition-all duration-500 ${
+              isScrolled ? 'rotate-45 opacity-40 scale-90' : 'rotate-6 opacity-20'
+            }`} />
             <Image
               src="/assets/business-icons/video.gif"
-              alt="Shubham Party Palace Logo"
-              width={48}
-              height={48}
-              className=""
+              alt="Logo"
+              width={40}
+              height={40}
+              className={`relative z-10 transition-transform duration-500 ${isScrolled ? 'scale-90' : 'scale-100'}`}
+              unoptimized
             />
-            <Image
-              src="/assets/business-icons/shubham.png"
-              alt="Shubham Party Palace Logo"
-              width={48}
-              height={48}
-              className="rounded-full absolute opacity-5"
-            />
-          </Link>
+          </div>
+          <div className="flex flex-col">
+            <span className={`font-bold tracking-tighter text-white leading-none transition-all duration-500 ${isScrolled ? 'text-lg' : 'text-xl'}`}>
+              SHUBHAM
+            </span>
+            <span className={`tracking-[0.2em] text-[#C0A04C] font-semibold transition-all duration-500 ${isScrolled ? 'text-[8px]' : 'text-[10px]'}`}>
+              VENUE
+            </span>
+          </div>
+        </Link>
+
+        {/* Dynamic Center Message on Scroll */}
+        <div className={`absolute left-1/2 -translate-x-1/2 hidden xl:flex items-center gap-2 transition-all duration-700 ${
+          isScrolled ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+        }`}>
+          <div className="h-[1px] w-8 bg-gradient-to-r from-transparent to-[#C0A04C]/50" />
+          <span className="text-[10px] uppercase tracking-[0.4em] text-[#C0A04C] font-bold whitespace-nowrap">
+            Experience the Extraordinary
+          </span>
+          <div className="h-[1px] w-8 bg-gradient-to-l from-transparent to-[#C0A04C]/50" />
         </div>
 
-        {/*  Links */}
-        <ul
-          className={`
-    min-[850px]:flex min-[850px]:items-center min-[850px]:space-x-4 md:space-x-8
-
-    max-[850px]:flex max-[850px]:flex-col max-[850px]:absolute max-[850px]:top-[50%] max-[850px]:left-[50%] max-[850px]:transform max-[850px]:-translate-x-[50%] max-[850px]:translate-y-[25%] max-[850px]:w-[90%] max-[850px]:bg-white max-[850px]:shadow-md max-[850px]:p-4
-
-    transition-all duration-300 ease-in-out
-    ${hamActive ? "max-[850px]:opacity-100 max-[850px]:pointer-events-auto" : "max-[850px]:opacity-0 max-[850px]:pointer-events-none"}
-  `}>
-          {/* close menu */}
-          <X size={40} className="absolute min-[850px]:hidden  mb-4 p-2 rounded-lg transition-colors right-0 -top-5 cursor-pointer" onClick={() => setHamActive(false)} />
-          {/* <Action name="close" id="close" className="absolute min-[850px]:hidden  mb-4 p-2 rounded-lg transition-colors right-0 -top-5" icon={X} onClick={() => setHamActive(false)} /> */}
-          <span className=" w-full bg-black border-1 min-[850px]:hidden " />
-          {actions.map((action) => (
-            <Action key={action.id} {...action} onClick={() => setHamActive(false)} />
-          ))}
-
-          <span className="flex items-center relative">
-            {!user ? (
-              <>
-                <Action name="login" id="auth" icon={LogIn} onClick={() => {
-                  setHamActive(false);
-                  router.replace(ROUTES.AUTH.ROOT);
-                }} />
-              </>
-            ) : (
-              <div className="relative">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setProfileOpen((s) => !s); setHamActive(false); }}
-                  className="flex items-center space-x-2 bg-transparent focus:outline-none w-[80px] h-[50px]"
+        {/* Desktop Navigation */}
+        <div className="hidden lg:flex items-center gap-8">
+          <ul className="flex items-center gap-1 bg-white/5 backdrop-blur-md rounded-full px-2 py-1.5 border border-white/10">
+            {navigation.map((item) => (
+              <li key={item.name}>
+                <Link
+                  href={item.href}
+                  className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
+                    pathname === item.href 
+                      ? 'text-[#C0A04C]' 
+                      : 'text-white/70 hover:text-white hover:bg-white/5'
+                  }`}
                 >
-                  {user?.profilePicture ? (
-                    // show avatar image if provided
-                    <Image src={user.profilePicture} alt={user?.name || 'avatar'} width={36} height={36} className="rounded-full object-cover border-2 border-purple-400" />
+                  {pathname === item.href && (
+                    <motion.div
+                      layoutId="activeNav"
+                      className="absolute inset-0 bg-white/10 rounded-full border border-white/10"
+                      transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
+                    />
+                  )}
+                  <item.icon className="w-4 h-4" />
+                  {item.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-4">
+          <Link 
+            href={ROUTES.SITE.VENUES()}
+            className="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-[#C0A04C] hover:bg-[#D4B563] text-[#3a1224] rounded-full text-sm font-bold transition-all shadow-lg hover:shadow-[#C0A04C]/20 active:scale-95"
+          >
+            <Sparkles className="w-4 h-4" />
+            Book Now
+          </Link>
+
+          {!user ? (
+            <Link
+              href={ROUTES.AUTH.ROOT}
+              className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-semibold transition-all border border-white/10"
+            >
+              <LogIn className="w-4 h-4" />
+              Sign In
+            </Link>
+          ) : (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setProfileOpen(!profileOpen)}
+                className="group flex items-center gap-3 pl-3 pr-2 py-1.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all active:scale-95"
+              >
+                <div className="relative">
+                  {user.profilePicture ? (
+                    <Image 
+                      src={user.profilePicture} 
+                      alt="Profile" 
+                      width={32} 
+                      height={32} 
+                      className="rounded-full ring-2 ring-[#C0A04C]/50 object-cover" 
+                    />
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-gray-600 font-thin text-white flex items-center justify-center  cursor-pointer border-2 border-purple-400">
-                      {user?.username.charAt(0).toUpperCase() || user?.email.charAt(0).toUpperCase()}
+                    <div className="w-8 h-8 rounded-full bg-[#C0A04C] flex items-center justify-center text-[#3a1224] font-bold text-sm">
+                      {user.username?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
                     </div>
                   )}
-                </button>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-[#3a1224] rounded-full" />
+                </div>
+                <div className="hidden md:flex flex-col items-start leading-none gap-0.5">
+                  <span className="text-xs font-bold text-white group-hover:text-[#C0A04C] transition-colors">
+                    {user.username || 'My Account'}
+                  </span>
+                  <span className="text-[10px] text-white/50">{user.role || 'Guest'}</span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-white/50 transition-transform duration-300 ${profileOpen ? 'rotate-180' : ''}`} />
+              </button>
 
+              <AnimatePresence>
                 {profileOpen && (
-                  <div className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg ring-1 ring-amber-900 ring-opacity-5 py-1 z-50 cursor-pointer">
-                    <button
-                      className="w-full text-left px-4 py-2 text-[12px] text-gray-700 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => { setProfileOpen(false); router.replace(ROUTES.SITE.PROFILE); }}
-                    >
-                      {user.email}
-                    </button>
-                    <button
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => { setProfileOpen(false); router.replace(ROUTES.SITE.PROFILE); }}
-                    >
-                      Profile
-                    </button>
-                    <button
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => { setProfileOpen(false); router.replace(ROUTES.SITE.TICKETS); }}
-                    >
-                      My Tickets
-                    </button>
-                    <button
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => { setProfileOpen(false); router.replace(ROUTES.SITE.ORGANIZER); }}
-                    >
-                      Organizer Hub
-                    </button>
-                    {user?.role?.toLowerCase?.() === 'admin' && (
-                      <button
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => { setProfileOpen(false); router.replace(ROUTES.ADMIN.DASHBOARD); }}
-                      >
-                        Admin Dashboard
-                      </button>
-                    )}
-                    <button
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={async () => { setProfileOpen(false); try { await logout(); } catch (e) { console.error(e); } router.replace(ROUTES.HOME); }}
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </span>
-        </ul>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-3 w-64 bg-[#1a1a1a] border border-white/10 rounded-[1.5rem] shadow-2xl overflow-hidden backdrop-blur-xl z-[110]"
+                  >
+                    <div className="p-4 bg-white/5 border-b border-white/10">
+                      <p className="text-sm font-bold text-white truncate">{user.email}</p>
+                      <p className="text-[10px] text-[#C0A04C] font-semibold uppercase tracking-wider mt-0.5">
+                        {user.role || 'Verified Member'}
+                      </p>
+                    </div>
 
-        {/* Hamburger menu */}
-        <button
-          className="min-[850px]:hidden flex items-center justify-center p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-          onClick={(e) => {
-            e.stopPropagation();
-            setHamActive((prev) => !prev);
-          }}
-          aria-label="Toggle menu"
-        >
-          <Menu size={28} />
-          {/* <Image src="/assets/nav-action-icons/menu.svg" alt="menu" width={28} height={28} /> */}
-        </button>
+                    <div className="p-2">
+                      <ProfileLink 
+                        icon={User} 
+                        label="My Profile" 
+                        href={ROUTES.SITE.PROFILE} 
+                        onClick={() => setProfileOpen(false)} 
+                      />
+                      <ProfileLink 
+                        icon={Ticket} 
+                        label="My Bookings" 
+                        href={ROUTES.SITE.TICKETS} 
+                        onClick={() => setProfileOpen(false)} 
+                      />
+                      <ProfileLink 
+                        icon={LayoutDashboard} 
+                        label="Organizer Dashboard" 
+                        href={ROUTES.SITE.ORGANIZER} 
+                        onClick={() => setProfileOpen(false)} 
+                      />
+                      
+                      {user?.role?.toLowerCase() === 'admin' && (
+                        <div className="mt-2 pt-2 border-t border-white/10">
+                          <ProfileLink 
+                            icon={ShieldCheck} 
+                            label="Admin Control" 
+                            href={ROUTES.ADMIN.DASHBOARD} 
+                            onClick={() => setProfileOpen(false)} 
+                            className="text-[#C0A04C] hover:bg-[#C0A04C]/10"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors border-t border-white/10"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Mobile Menu Toggle */}
+          <button 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="lg:hidden p-2.5 bg-white/5 rounded-xl border border-white/10 text-white active:scale-95 transition-all"
+          >
+            {mobileMenuOpen ? <X size={24} /> : <MenuIcon size={24} />}
+          </button>
+        </div>
       </nav>
-    </div>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="lg:hidden bg-[#3a1224] border-t border-white/10 overflow-hidden"
+          >
+            <div className="p-6 space-y-4">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 text-white/70 hover:text-[#C0A04C] hover:bg-white/10 transition-all border border-white/5"
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="text-lg font-semibold">{item.name}</span>
+                </Link>
+              ))}
+              <Link
+                href={ROUTES.SITE.VENUES()}
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-[#C0A04C] text-[#3a1224] font-bold shadow-xl"
+              >
+                <Sparkles size={20} />
+                Plan Your Event
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </header>
+  );
+}
+
+function ProfileLink({ icon: Icon, label, href, onClick, className = "" }) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all ${className}`}
+    >
+      <Icon className="w-4 h-4" />
+      {label}
+    </Link>
   );
 }
