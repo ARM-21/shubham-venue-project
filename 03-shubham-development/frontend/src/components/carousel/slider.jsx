@@ -36,83 +36,83 @@ export default function Carousel({ images = [], interval = 5000 }) {
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full h-full relative group min-h-[500px] md:min-h-[650px]">
       <div
-        className="relative w-full overflow-hidden"
+        className="relative w-full h-full min-h-[500px] md:min-h-[650px] overflow-hidden bg-black"
         onMouseEnter={() => {
           setAutoPlay(false);
           setShowButtons(true);
-          if (timeoutRef.current) clearTimeout(timeoutRef.current);
         }}
-    
         onMouseLeave={() => {
           setAutoPlay(true);
           setShowButtons(false);
         }}
       >
-        <div className="relative h-96 lg:h-[500px] w-full">
-          {images.map((image, index) => (
-            <div
-              key={index}
-              className={`absolute inset-0 transition-transform duration-700 ease-in-out
-                ${index === current ? "translate-x-0 z-20 opacity-100" : "translate-x-full z-10 opacity-0"}
-              `}
-              aria-hidden={index !== current}
-            >
-              {/* Image */}
+        {images.map((image, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out
+              ${index === current ? "z-20 opacity-100" : "z-10 opacity-0"}
+            `}
+            aria-hidden={index !== current}
+          >
+            {/* Image with Ken Burns effect when active */}
+            <div className={`w-full h-full overflow-hidden ${index === current ? 'animate-ken-burns' : ''}`}>
               <img
                 src={image.image}
                 alt={image.branding || image.title || `slide-${index}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transform scale-100"
                 draggable="false"
+                onError={(e) => {
+                  e.target.src = '/assets/business-images/placeholder1.jpg';
+                }}
               />
-
-              {/* Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent flex items-end md:items-center">
-                <div className="p-6 md:p-12 text-white max-w-2xl">
-                  <h2 className="text-xl md:text-3xl font-semibold">{image.title}</h2>
-                  {image.branding && <h3 className="text-sm md:text-lg opacity-90">{image.branding}</h3>}
-                  {image.mini && <p className="mt-2 italic font-semibold">{image.mini}</p>}
-                </div>
-              </div>
             </div>
-          ))}
 
-          {/* Left arrow */}
+            {/* Overlay - subtle vignette to help text in Hero component */}
+            <div className="absolute inset-0 bg-black/30 z-20" />
+          </div>
+        ))}
 
-          <SlideButton
-            direction="left"
-            setCurrent={setCurrent}
-            length={length}
-            current={current}
-            showButtons={showButtons}
-          />
-
-          {/* Right arrow */}
-          <SlideButton
-            direction="right"
-            setCurrent={setCurrent}
-            length={length}
-            current={current}
-            showButtons={showButtons}
-          />
-
-          {/* Pagination dots */}
-          <div className="absolute bottom-2 md:bottom-15 lg:bottom-12 left-1/2 -translate-x-1/2 z-30 flex gap-2">
-            {images.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrent(idx)}
-                className={`w-3 h-3 rounded-full transition-all cursor-pointer ${
-                  idx === current ? "bg-white scale-125" : "bg-white/50"
-                }`}
-                aria-label={`Go to slide ${idx + 1}`}
-              />
-            ))}
+        {/* Navigation Buttons */}
+        <div className={`absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 z-30 pointer-events-none transition-opacity duration-500 ${showButtons ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="pointer-events-auto">
+            <SlideButton
+              direction="left"
+              setCurrent={setCurrent}
+              length={length}
+              current={current}
+              showButtons={showButtons}
+            />
+          </div>
+          <div className="pointer-events-auto">
+            <SlideButton
+              direction="right"
+              setCurrent={setCurrent}
+              length={length}
+              current={current}
+              showButtons={showButtons}
+            />
           </div>
         </div>
+
+        {/* Pagination Dots - Centered Pill Style */}
+        <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-40 flex gap-2">
+          {images.map((image, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrent(index)}
+              className={`h-1.5 transition-all duration-500 rounded-full cursor-pointer pointer-events-auto ${
+                index === current 
+                ? "w-8 bg-[var(--gold-accent)]" 
+                : "w-2 bg-white/40 hover:bg-white/60"
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
       </div>
-            {/* <BookNow /> */}
     </div>
   );
 }
+  

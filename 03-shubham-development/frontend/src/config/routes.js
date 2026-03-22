@@ -32,10 +32,10 @@ export const ROUTES = {
     EVENT_DETAIL: (id) => `/events/${id}`,
     TICKETS: '/tickets',
     TICKET_VERIFY: '/tickets/verify',
-    ORGANIZER: '/organizer',
-    ORGANIZER_EVENTS: '/organizer/events',
-    ORGANIZER_EVENT_NEW: '/organizer/events/new',
-    ORGANIZER_EVENT_DETAIL: (id) => `/organizer/events/${id}`,
+    ORGANIZER: '/organizer-hub',
+    ORGANIZER_EVENTS: '/organizer-hub/events',
+    ORGANIZER_EVENT_NEW: '/organizer-hub/events/new',
+    ORGANIZER_EVENT_DETAIL: (id) => `/organizer-hub/events/${id}`,
   },
   API: {
     AUTH: {

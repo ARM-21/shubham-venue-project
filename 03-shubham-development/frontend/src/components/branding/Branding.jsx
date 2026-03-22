@@ -2,53 +2,42 @@ import React from 'react'
 
 export default function Branding({className}) {
     return (
-        <div className={`w-full hidden min-[1015px]:block lg:w-1/2 max-w-2xl mb-8 lg:mb-0 lg:pr-12 text-center lg:text-left`}>
-            <div className="bg-white rounded-2xl p-8 md:p-12 shadow-lg border border-gray-100">
-                <div className="mb-8">
-                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#42162a] mb-4 leading-tight">
-                        Shubham Venue
-                    </h1>
-                    <p className="text-xl text-gray-600 font-light mb-6">
-                        Where Celebrations Come to Life
-                    </p>
-                </div>
+        <div className={`w-full hidden min-[1015px]:block lg:w-1/2 pr-12`}>
+            <div className="relative">
+                <span className="text-[12px] font-black text-[#C0A04C] uppercase tracking-[0.5em] mb-4 block">Luxury Experience</span>
+                <h1 className="text-5xl md:text-7xl font-display font-bold text-white mb-6 leading-[1.1]">
+                    Create <br />
+                    Celebrate <br />
+                    <span className="text-[#3a1224] bg-[#C0A04C] px-2 rounded-sm italic">Unite</span>
+                </h1>
+                
+                <p className="text-xl text-white/50 font-light mb-12 max-w-md leading-relaxed">
+                    Simple events, extraordinary memories. <br />
+                    Book your favorite venue in seconds.
+                </p>
 
-                <div className="space-y-6">
-                    <div className="flex items-center">
-                        <div className="w-12 h-12 bg-[#502538] rounded-full flex items-center justify-center mr-4 shadow-md">
-                            <span className="text-white text-lg font-bold">✓</span>
-                        </div>
-                        <div>
-                            <h3 className="text-black font-semibold text-lg">Premium Venue</h3>
-                            <p className="text-gray-600">Luxurious event spaces for all occasions</p>
-                        </div>
+                <div className="grid grid-cols-2 gap-8 pr-12">
+                    <div className="group">
+                        <div className="text-3xl font-display font-bold text-white mb-1">50+</div>
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-[#C0A04C] font-bold">Premium Venues</div>
                     </div>
-
-                    <div className="flex items-center">
-                        <div className="w-12 h-12 bg-[#502538] rounded-full flex items-center justify-center mr-4 shadow-md">
-                            <span className="text-white text-lg font-bold">✓</span>
-                        </div>
-                        <div>
-                            <h3 className="text-black font-semibold text-lg">Expert Planning</h3>
-                            <p className="text-gray-600">Professional event coordination</p>
-                        </div>
+                    <div className="group">
+                        <div className="text-3xl font-display font-bold text-white mb-1">10k+</div>
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-[#C0A04C] font-bold">Happy Guests</div>
                     </div>
-
-                    <div className="flex items-center">
-                        <div className="w-12 h-12 bg-[#502538]   rounded-full flex items-center justify-center mr-4 shadow-md">
-                            <span className="text-white text-lg font-bold">✓</span>
-                        </div>
-                        <div>
-                            <h3 className="text-black font-semibold text-lg">Memorable Events</h3>
-                            <p className="text-gray-600">Create unforgettable moments</p>
-                        </div>
+                    <div className="group">
+                        <div className="text-3xl font-display font-bold text-white mb-1">100%</div>
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-[#C0A04C] font-bold">Safe Booking</div>
+                    </div>
+                    <div className="group">
+                        <div className="text-3xl font-display font-bold text-white mb-1">24/7</div>
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-[#C0A04C] font-bold">Guest Support</div>
                     </div>
                 </div>
 
-                {/* Testimonial */}
-                <div className="mt-8 p-6 bg-gray-50 rounded-xl border-l-4 border-[#502538]">
-                    <p className="text-gray-700 italic">"The perfect venue for our wedding celebration. Exceptional service and beautiful ambiance!"</p>
-                    <p className="text-[#502538]font-semibold mt-2">- Happy Customer</p>
+                <div className="mt-16 flex items-center gap-4 text-white/30 italic font-display text-sm">
+                    <span className="h-[1px] w-8 bg-white/20"></span>
+                    "Simply the best platform for events"
                 </div>
             </div>
         </div>
