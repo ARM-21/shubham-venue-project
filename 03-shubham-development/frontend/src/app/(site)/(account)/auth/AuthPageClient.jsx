@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "contexts/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ROUTES } from "config/routes";
 import BrandingSection from "components/branding/Branding.jsx";
 import LoginForm from "components/auth/LoginForm";
 import RegisterForm from "components/auth/RegisterForm";
@@ -19,19 +20,30 @@ export default function AuthPageClient({ redirect }) {
 
   useEffect(() => {
     if (!loading && user?.isVerified) {
-      router.replace(redirectUrl ?? "/");
+      // Check if user needs to complete onboarding
+      if (!user?.hasCompletedOnboarding) {
+        router.replace(ROUTES.AUTH.ONBOARDING);
+      } else {
+        router.replace(redirectUrl ?? "/");
+      }
     }
-  }, [loading, user?.isVerified, redirectUrl, router]);
+  }, [loading, user?.isVerified, user?.hasCompletedOnboarding, redirectUrl, router]);
 
   async function onGoogleLoginSuccess(credentialResponse) {
     try {
-      await toast.promise(googleLogin(credentialResponse), {
+      const result = await googleLogin(credentialResponse);
+      const userData = result?.data?.user || result?.data;
+      
+      await toast.promise(Promise.resolve(result), {
         loading: "Logging in with Google...",
         success: "Logged in successfully!",
         error: (err) => err?.response?.data?.message || err?.message || "Google login failed",
       });
 
-      if (redirectUrl) {
+      // Check if user needs to complete onboarding
+      if (!userData?.hasCompletedOnboarding) {
+        router.push(ROUTES.AUTH.ONBOARDING);
+      } else if (redirectUrl) {
         router.push(redirectUrl);
       } else {
         router.push("/");

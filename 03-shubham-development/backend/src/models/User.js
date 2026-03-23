@@ -13,14 +13,6 @@ const userSchema = new mongoose.Schema(
       default: function() {
         return this.email.split('@')[0];
       }
-    },
-    first_name: {
-      type: String,
-      trim: true
-    },
-    last_name: {
-      type: String,
-      trim: true
     }
     ,
     email: {
@@ -89,6 +81,26 @@ const userSchema = new mongoose.Schema(
     isOrganizerEligible: {
       type: Boolean,
       default: false
+    },
+    hasCompletedOnboarding: {
+      type: Boolean,
+      default: false
+    },
+    city: {
+      type: String,
+      trim: true
+    },
+    preferredEventTypes: [{
+      type: String,
+      trim: true
+    }],
+    firstName: {
+      type: String,
+      trim: true
+    },
+    lastName: {
+      type: String,
+      trim: true
     }
   },
   {

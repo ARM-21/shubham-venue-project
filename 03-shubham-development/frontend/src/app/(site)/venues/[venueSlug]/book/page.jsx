@@ -34,13 +34,22 @@ export default async function BookingPage({ params, searchParams }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <BookingFlow 
-        hall={hall}
-        initialDate={date}
-        initialSlot={slot}
-        initialGuests={parseInt(guests)}
-      />
-    </div>
+    <main className="min-h-screen bg-[#faf9f6]/50 relative selection:bg-[#C0A04C]/30 overflow-x-hidden">
+      {/* Decorative gradient backgrounds */}
+      <div className="fixed inset-0 pointer-events-none opacity-30">
+        <div className="absolute top-0 right-[-10%] w-[40%] h-[40%] bg-[#C0A04C]/5 blur-[120px] rounded-full" />
+        <div className="absolute bottom-0 left-[-10%] w-[40%] h-[40%] bg-[#3a1224]/5 blur-[120px] rounded-full" />
+      </div>
+
+      {/* Content wrapper with padding */}
+      <div className="relative z-10 py-12 lg:py-16">
+        <BookingFlow 
+          hall={hall}
+          initialDate={date}
+          initialSlot={slot}
+          initialGuests={parseInt(guests)}
+        />
+      </div>
+    </main>
   );
 }

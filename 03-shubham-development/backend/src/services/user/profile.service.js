@@ -12,15 +12,34 @@ export async function getUserProfileService(userId) {
   return user;
 }
 
-// Update profile fields (name, phone, other safe fields)
+// Update profile fields (name, phone, city, event types, onboarding status)
 export async function updateUserProfileService(userId, data) {
   try {
-    const { name, phone } = data;
     const allowed = {};
-    if (name) allowed.name = name;
-    if (phone) allowed.phone = phone;
-    const user = await User.findByIdAndUpdate(userId, { $set: allowed }, { new: true }).select('-password').lean();
-    return user ;
+    
+    // Name fields (both camelCase and snake_case)
+    if (data.first_name) allowed.first_name = data.first_name;
+    if (data.firstName) allowed.firstName = data.firstName;
+    if (data.last_name) allowed.last_name = data.last_name;
+    if (data.lastName) allowed.lastName = data.lastName;
+    
+    // Contact & Profile fields
+    if (data.phone) allowed.phone = data.phone;
+    if (data.city) allowed.city = data.city;
+    
+    // Onboarding fields
+    if (data.preferredEventTypes) allowed.preferredEventTypes = data.preferredEventTypes;
+    if (typeof data.hasCompletedOnboarding === 'boolean') {
+      allowed.hasCompletedOnboarding = data.hasCompletedOnboarding;
+    }
+    
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: allowed },
+      { new: true }
+    ).select('-password').lean();
+    
+    return user;
   } catch (err) {
     console.error(err);
     throw err;

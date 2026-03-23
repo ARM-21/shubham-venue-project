@@ -27,8 +27,10 @@ export default function LoginForm({ onSwitch }) {
 
       const loggedInUser = res?.data?.user ?? res?.data ?? null;
 
-      // Redirect to saved URL first, otherwise admins go to dashboard, others go home
-      if (redirectUrl) {
+      // Check if user needs to complete onboarding
+      if (!loggedInUser?.hasCompletedOnboarding) {
+        router.push(ROUTES.AUTH.ONBOARDING);
+      } else if (redirectUrl) {
         router.push(redirectUrl);
       } else if (loggedInUser?.role?.toLowerCase?.() === 'admin') {
         router.push(ROUTES.ADMIN.DASHBOARD);

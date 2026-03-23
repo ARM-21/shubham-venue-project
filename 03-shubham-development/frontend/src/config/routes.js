@@ -4,6 +4,7 @@ export const ROUTES = {
     ROOT: '/auth',
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',
+    ONBOARDING: '/auth/onboarding',
   },
   ADMIN: {
     ROOT: '/admin',

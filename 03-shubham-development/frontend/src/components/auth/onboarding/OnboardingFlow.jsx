@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axiosInstance from 'lib/axios';
+import { useAuth } from 'contexts/AuthProvider';
 import WelcomeTour from './WelcomeTour';
 import ProfileCompletion from './ProfileCompletion';
 import { ROUTES } from 'config/routes';
@@ -10,6 +11,7 @@ import toast from 'react-hot-toast';
 
 export default function OnboardingFlow({ userEmail, userId }) {
   const router = useRouter();
+  const { setUser } = useAuth();
   const [stage, setStage] = useState('welcome'); // welcome, profile, done
 
   const handleWelcomeComplete = () => {
@@ -19,7 +21,7 @@ export default function OnboardingFlow({ userEmail, userId }) {
   const handleProfileComplete = async (profileData) => {
     try {
       // Save profile to backend
-      await axiosInstance.put(ROUTES.API.USERS.PROFILE, {
+      const response = await axiosInstance.put(ROUTES.API.PROFILE.UPDATE, {
         firstName: profileData.firstName,
         lastName: profileData.lastName,
         phone: profileData.phone,
@@ -28,11 +30,17 @@ export default function OnboardingFlow({ userEmail, userId }) {
         hasCompletedOnboarding: true,
       });
 
+      // Update auth context with new user data
+      const updatedUser = response?.data?.user;
+      if (updatedUser) {
+        setUser(updatedUser);
+      }
+
       toast.success('Profile saved! Welcome to the app 🎉');
       
-      // Redirect to dashboard
+      // Redirect to home page after slight delay
       setTimeout(() => {
-        router.push(ROUTES.SITE.DASHBOARD);
+        router.push(ROUTES.HOME);
       }, 1000);
     } catch (error) {
       toast.error('Failed to save profile');
