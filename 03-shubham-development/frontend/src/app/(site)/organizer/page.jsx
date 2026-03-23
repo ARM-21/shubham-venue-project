@@ -156,37 +156,36 @@ export default function OrganizerHubPage() {
   const currentStatusConfig = statusConfig[statusValue] || statusConfig.none;
 
   return (
-    <div className="relative min-h-full">
-      {/* Remove the absolute background from here as the layout and sidebar now handle the environment */}
-      
-      <main className="max-w-7xl mx-auto">
-        <header className="mb-20">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="w-12 h-[1px] bg-[#C0A04C]/40" />
-            <span className="text-[11px] font-black text-[#C0A04C] uppercase tracking-[0.5em]">Command Portfolio</span>
+    <div className="relative">
+      {/* Header */}
+      <header className="mb-20">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-8 h-[1px] bg-[#C0A04C]" />
+          <span className="text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Command Center</span>
+        </div>
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+          <div>
+            <h1 className="text-6xl lg:text-8xl font-display font-bold text-[#3a1224] mb-6 leading-[0.9]">
+              Organizer <span className="text-[#C0A04C] italic font-serif">Hub</span>
+            </h1>
+            <p className="text-[#3a1224]/60 text-lg font-light leading-relaxed max-w-2xl">
+              Orchestrate your events, manage bookings, and track your production portfolio from one command center.
+            </p>
           </div>
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-12">
-            <div>
-              <h1 className="text-6xl lg:text-7xl font-display font-bold text-[#3a1224] mb-6 leading-tight select-none">
-                Organizer <span className="text-[#C0A04C] italic font-serif opacity-90">Hub</span>
-              </h1>
-              <p className="text-[#3a1224]/50 text-xl font-medium leading-relaxed max-w-2xl border-l-2 border-[#C0A04C]/20 pl-6">
-                 Your central command for high-fidelity event orchestration. Monitor your distribution registry and manage live productions with absolute precision.
-              </p>
-            </div>
-            
-            {isApproved && (
-              <button
-                onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_NEW)}
-                className="h-20 px-12 bg-[#3a1224] text-[#C0A04C] rounded-3xl font-black text-[12px] uppercase tracking-widest shadow-2xl hover:shadow-[#3a1224]/30 hover:-translate-y-1 transition-all flex items-center justify-center gap-4 active:scale-95 group"
-              >
-                <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" /> Initialize New Production
-              </button>
-            )}
-          </div>
-        </header>
+          
+          {isApproved && (
+            <button
+              onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_NEW)}
+              className="h-12 px-8 bg-[#3a1224] text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg hover:shadow-xl transition-all flex items-center gap-3 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> New Event
+            </button>
+          )}
+        </div>
+      </header>
 
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-16">
+      {/* Main Content */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-12">
           {/* Left Column: Status & Application */}
           <div className="xl:col-span-4 space-y-8">
             <section className="relative group">
@@ -398,7 +397,7 @@ export default function OrganizerHubPage() {
                 </div>
               </>
             ) : (
-              /* Informational View for non-approved users */
+              {/* Informational View for non-approved users */}
               <div className="h-full min-h-[500px] flex flex-col items-center justify-center bg-white rounded-[3rem] shadow-sm border border-[#3a1224]/5 p-12 text-center">
                  <div className="w-32 h-32 bg-[#3a1224]/5 rounded-full flex items-center justify-center mb-10 relative">
                     <LayoutDashboard className="w-12 h-12 text-[#3a1224]/20" />
@@ -406,23 +405,22 @@ export default function OrganizerHubPage() {
                        <ShieldCheck className="w-5 h-5 text-[#3a1224]" />
                     </div>
                  </div>
-                 <h3 className="text-4xl font-display font-bold text-[#3a1224] mb-4">Command Post Locked</h3>
+                 <h3 className="text-4xl font-display font-bold text-[#3a1224] mb-4">Access Restricted</h3>
                  <p className="text-lg text-[#3a1224]/50 max-w-lg mb-10 leading-relaxed">
-                    Access to the Producer Hub requires active clearance. Once approved, you'll be able to initialize events, monitor live analytics, and manage your distribution network.
+                    Your organizer account is pending approval. Once verified, you'll unlock the full event management dashboard.
                  </p>
                  <div className="flex flex-wrap justify-center gap-4">
-                    <div className="px-6 py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[#3a1224]/40 flex items-center gap-3">
-                       <Zap className="w-4 h-4 text-[#C0A04C]" /> Analytics Engine
+                    <div className="px-6 py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl text-[9px] font-black uppercase tracking-widest text-[#3a1224]/40 flex items-center gap-3">
+                       <Zap className="w-4 h-4 text-[#C0A04C]" /> Event Creation
                     </div>
-                    <div className="px-6 py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[#3a1224]/40 flex items-center gap-3">
-                       <Ticket className="w-4 h-4 text-[#C0A04C]" /> Ticket Terminal
+                    <div className="px-6 py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl text-[9px] font-black uppercase tracking-widest text-[#3a1224]/40 flex items-center gap-3">
+                       <Ticket className="w-4 h-4 text-[#C0A04C]" /> Ticket Management
                     </div>
                  </div>
               </div>
             )}
           </div>
         </div>
-      </main>
     </div>
   );
 }

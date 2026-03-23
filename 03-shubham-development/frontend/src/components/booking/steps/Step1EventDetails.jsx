@@ -46,17 +46,25 @@ export default function Step1EventDetails({ data, onUpdate, onNext, bookingPurpo
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Event Details</h2>
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-1 h-6 bg-[#C0A04C]" />
+          <span className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Step 1</span>
+        </div>
+        <h2 className="text-3xl font-display font-bold text-[#3a1224]">Event Details</h2>
+        <p className="text-sm text-[#3a1224]/60 mt-2">Tell us about your event</p>
+      </div>
 
+      {/* Event Type */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
-          {isOrganizerFlow ? 'Organizer Event Type (Optional)' : 'Event Type *'}
+        <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3 block">
+          {isOrganizerFlow ? 'Event Type (Optional)' : 'Event Type *'}
         </label>
         <select
           {...register('eventType', isOrganizerFlow ? {} : { required: 'Please select event type' })}
-          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-500"
+          className="w-full px-5 py-3 bg-gray-50 border border-[#3a1224]/10 rounded-xl text-[#3a1224] text-sm focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20 transition-all outline-none"
         >
-          <option value="">Select event type</option>
+          <option value="">Select event type...</option>
           {eventTypes && eventTypes.map((type) => (
             <option key={type._id} value={type.name}>
               {type.name}
@@ -64,43 +72,48 @@ export default function Step1EventDetails({ data, onUpdate, onNext, bookingPurpo
           ))}
         </select>
         {errors.eventType && (
-          <p className="text-red-600 text-sm mt-1">{errors.eventType.message}</p>
+          <p className="text-red-600 text-[10px] font-black ms-error mt-2">{errors.eventType.message}</p>
         )}
       </div>
 
+      {/* Event Name */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3 block">
           Event Name *
         </label>
         <input
           type="text"
           {...register('eventName', isOrganizerFlow ? {} : { required: 'Event name is required' })}
-          placeholder="e.g., John & Jane's Wedding"
-          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-500"
+          placeholder="e.g., Wedding Celebration 2025"
+          className="w-full px-5 py-3 bg-gray-50 border border-[#3a1224]/10 rounded-xl text-[#3a1224] text-sm focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20 transition-all placeholder:text-[#3a1224]/30"
         />
         {errors.eventName && (
-          <p className="text-red-600 text-sm mt-1">{errors.eventName.message}</p>
+          <p className="text-red-600 text-[10px] font-black mt-2">{errors.eventName.message}</p>
         )}
       </div>
 
+      {/* Special Requirements */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3 block">
           Special Requirements (Optional)
         </label>
         <textarea
           {...register('specialRequirements')}
           rows={4}
-          placeholder="Any special arrangements, dietary restrictions, accessibility needs, etc."
-          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-500"
+          placeholder="Any special arrangements, dietary needs, accessibility requirements..."
+          className="w-full px-5 py-3 bg-gray-50 border border-[#3a1224]/10 rounded-xl text-[#3a1224] text-sm focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20 transition-all resize-none placeholder:text-[#3a1224]/30"
         />
       </div>
 
-      <button
-        type="submit"
-        className="w-full bg-[#41202b] hover:bg-[#fffbfd] border hover:border-[#41202b] hover:text-black cursor-pointer text-white font-semibold py-3 rounded-lg transition-colors"
-      >
-        {isOrganizerFlow ? 'Continue to Payment' : 'Continue to Menu Selection'}
-      </button>
+      {/* Action Buttons */}
+      <div className="flex gap-4 pt-6">
+        <button
+          type="submit"
+          className="flex-1 h-12 bg-[#3a1224] text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg hover:shadow-xl transition-all cursor-pointer"
+        >
+          {isOrganizerFlow ? 'Continue to Payment' : 'Continue to Menu Selection'}
+        </button>
+      </div>
     </form>
   );
 }

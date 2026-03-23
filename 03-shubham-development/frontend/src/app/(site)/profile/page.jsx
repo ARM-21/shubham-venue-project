@@ -237,24 +237,21 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#fdfaf6] relative selection:bg-[#C0A04C]/30 overflow-hidden">
-      {/* Background Decorative Elements */}
-      <div className="fixed inset-0 pointer-events-none opacity-30">
-        <div className="absolute top-0 right-[-10%] w-[40%] h-[40%] bg-[#C0A04C]/5 blur-[120px] rounded-full" />
-        <div className="absolute bottom-0 left-[-10%] w-[40%] h-[40%] bg-[#3a1224]/5 blur-[120px] rounded-full" />
-      </div>
+      {/* Dark Gradient Header Background */}
+      <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/80 to-transparent pointer-events-none z-0" />
 
-      {/* Dark Gradient Header background */}
-      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/95 to-[#fdfaf6] pointer-events-none z-0" />
-
-      <main className="max-w-[1400px] mx-auto px-6 sm:px-8 pt-40 pb-32 relative z-10">
-        <header className="mb-16">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-[1px] bg-[#C0A04C]" />
-            <span className="text-[11px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Account Settings</span>
+      <main className="max-w-7xl mx-auto px-6 sm:px-8 pt-40 pb-32 relative z-10">
+        {/* Header */}
+        <header className="mb-20">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-[1px] bg-[#C0A04C]" />
+            <span className="text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Account Settings</span>
           </div>
-          <h1 className="text-5xl lg:text-7xl font-display font-bold text-white mb-6">Your <span className="text-[#C0A04C] italic font-serif">Profile</span></h1>
-          <p className="text-white/60 text-lg font-light leading-relaxed max-w-xl">
-             Manage your personal details, secure your account, and track your upcoming events.
+          <h1 className="text-6xl lg:text-8xl font-display font-bold text-white mb-6 leading-[0.9]">
+            Your <span className="text-[#C0A04C] italic font-serif">Profile</span>
+          </h1>
+          <p className="text-white/70 text-lg font-light leading-relaxed max-w-2xl">
+            Manage your personal information, secure your account, and update your preferences.
           </p>
         </header>
 
@@ -265,14 +262,14 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="mb-8 p-5 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-4 shadow-sm"
+              className="mb-8 p-5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-4 shadow-sm"
             >
-              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span className="text-emerald-900 font-bold uppercase tracking-widest text-[10px]">{status.message}</span>
+              <span className="text-emerald-900 font-bold text-sm">{status.message}</span>
             </motion.div>
           )}
 
@@ -281,182 +278,159 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="mb-8 p-5 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-4 shadow-sm"
+              className="mb-8 p-5 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-4 shadow-sm"
             >
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <span className="text-red-900 font-bold uppercase tracking-widest text-[10px]">{status.error}</span>
+              <span className="text-red-900 font-bold text-sm">{status.error}</span>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
-          {/* Sidebar - User Info Card */}
-          <div className="lg:col-span-4 h-fit lg:sticky lg:top-32">
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-b from-[#C0A04C]/10 to-transparent rounded-[2.5rem] blur-xl opacity-0 group-hover:opacity-100 transition duration-1000"></div>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          {/* Sidebar */}
+          <aside className="lg:col-span-3 h-fit lg:sticky lg:top-32">
+            <div className="group relative">
+              <div className="absolute -inset-1 bg-gradient-to-b from-[#C0A04C]/20 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition duration-700"></div>
               
-              <div className="relative bg-white rounded-[2.5rem] shadow-[0_30px_70px_rgba(58,18,36,0.12)] border border-[#3a1224]/5 p-10 overflow-hidden">
-                {/* Background Pattern */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#C0A04C]/5 rounded-bl-[100px] pointer-events-none" />
-
-                <div className="flex flex-col items-center relative z-10">
-                  {/* Avatar */}
+              <div className="relative bg-white/95 rounded-3xl shadow-lg backdrop-blur-sm border border-[#3a1224]/5 p-8 overflow-hidden">
+                {/* Avatar */}
+                <div className="flex flex-col items-center mb-8">
                   <div className="relative mb-6">
-                    <div className="p-1 rounded-full border-2 border-[#C0A04C]/20 shadow-xl group-hover:border-[#C0A04C]/40 transition-colors duration-500">
-                      {displayUser?.profilePicture ? (
+                    <div className="p-1 rounded-full border-2 border-[#C0A04C]/20 shadow-lg group-hover:border-[#C0A04C]/40 transition-colors">
+                      {displayUser?.profilePicture || avatarPreview ? (
                         <img
-                          src={displayUser.profilePicture || avatarPreview}
+                          src={displayUser?.profilePicture || avatarPreview}
                           alt={fullName}
-                          className="w-32 h-32 rounded-full object-cover"
+                          className="w-28 h-28 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#3a1224] to-[#4a172d] text-white flex items-center justify-center text-3xl font-display font-bold">
+                        <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#3a1224] to-[#4a172d] text-white flex items-center justify-center text-2xl font-display font-bold">
                           {initials}
                         </div>
                       )}
                     </div>
-
-                    {isOAuthUser && (
-                      <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-2 shadow-lg border border-[#3a1224]/5">
-                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="G" className="w-5 h-5" />
-                      </div>
-                    )}
                   </div>
 
-                  <h2 className="text-3xl font-display font-bold text-[#3a1224] text-center mb-1 tracking-tight">{fullName}</h2>
-                  <p className="text-[#3a1224]/50 text-sm font-medium mb-4">{displayUser?.email}</p>
+                  <h2 className="text-2xl font-display font-bold text-[#3a1224] text-center mb-1">{fullName}</h2>
+                  <p className="text-[#3a1224]/50 text-xs font-medium mb-4">{displayUser?.email}</p>
 
-                  <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-8 ${
-                    displayUser?.role === 'admin' ? 'bg-[#3a1224] text-white shadow-lg' : 'bg-[#C0A04C]/10 text-[#C0A04C]'
+                  <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                    displayUser?.role === 'admin' ? 'bg-[#3a1224] text-white' : displayUser?.isOrganizerEligible ? 'bg-[#C0A04C]/15 text-[#C0A04C]' : 'bg-gray-100 text-gray-600'
                   }`}>
-                    {displayUser?.role === 'admin' ? 'Strategic Admin' : displayUser?.isOrganizerEligible ? 'Elite Organizer' : 'Valued Guest'}
+                    {displayUser?.role === 'admin' ? 'Admin' : displayUser?.isOrganizerEligible ? 'Organizer Eligible' : 'Guest'}
                   </div>
+                </div>
 
-                  {/* Sidebar Navigation - Actual Classic Style */}
-                  <div className="w-full space-y-3 pt-6 border-t border-[#3a1224]/5">
-                    {[
-                      { label: "My Bookings", icon: Calendar, href: ROUTES.SITE.BOOKINGS },
-                      { label: "My Tickets", icon: Ticket, href: ROUTES.SITE.TICKETS },
-                      { label: "Organizer Hub", icon: Users, href: ROUTES.SITE.ORGANIZER },
-                    ].map((item, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => router.push(item.href || '#')}
-                        className="w-full h-14 flex items-center px-6 gap-4 rounded-2xl bg-[#fdfaf6] hover:bg-white text-[#3a1224] text-xs font-black uppercase tracking-[0.2em] border border-transparent hover:border-[#C0A04C]/20 hover:shadow-lg transition-all duration-300"
-                      >
-                        <item.icon className="w-4 h-4 text-[#C0A04C]" />
-                        {item.label}
-                      </button>
-                    ))}
-                    
+                {/* Quick Links */}
+                <div className="space-y-2 pt-6 border-t border-[#3a1224]/10">
+                  {[
+                    { label: "Bookings", icon: Calendar, href: ROUTES.SITE.BOOKINGS },
+                    { label: "Tickets", icon: Ticket, href: ROUTES.SITE.TICKETS },
+                    { label: "Organizer Hub", icon: Users, href: ROUTES.SITE.ORGANIZER },
+                  ].map((item, idx) => (
                     <button
-                      onClick={handleLogout}
-                      className="w-full h-14 flex items-center px-6 gap-4 rounded-2xl bg-red-50 text-red-600 text-xs font-black uppercase tracking-[0.2em] hover:bg-red-600 hover:text-white transition-all duration-500 shadow-sm hover:shadow-red-200"
+                      key={idx}
+                      onClick={() => router.push(item.href || '#')}
+                      className="w-full h-12 flex items-center px-4 gap-3 rounded-xl bg-gray-50 hover:bg-white text-[#3a1224] text-[9px] font-black uppercase tracking-widest border border-transparent hover:border-[#C0A04C]/20 transition-all cursor-pointer"
                     >
-                      <LogOut className="w-4 h-4" />
-                      Secure Logout
+                      <item.icon className="w-4 h-4 text-[#C0A04C]" />
+                      {item.label}
                     </button>
-                  </div>
+                  ))}
+                  
+                  <button
+                    onClick={handleLogout}
+                    className="w-full h-12 flex items-center px-4 gap-3 rounded-xl bg-red-50 text-red-600 text-[9px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all mt-4 cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
+          </aside>
 
           {/* Main Content */}
-          <div className="lg:col-span-8 space-y-12 pb-20">
-            {/* Profile Information Section */}
-            <section className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-[#C0A04C]/5 to-[#3a1224]/5 rounded-[2.5rem] blur opacity-50 group-hover:opacity-100 transition duration-1000"></div>
+          <div className="lg:col-span-9 space-y-12">
+            {/* Personal Details Section */}
+            <section className="group relative">
+              <div className="absolute -inset-1 bg-gradient-to-b from-[#C0A04C]/10 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition duration-700"></div>
               
-              <div className="relative bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(58,18,36,0.06)] border border-[#3a1224]/5 p-8 md:p-12 overflow-hidden">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-[2px] bg-[#C0A04C] rounded-full" />
-                      <span className="text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Personal Details</span>
+              <div className="relative bg-white/95 rounded-3xl shadow-lg backdrop-blur-sm border border-[#3a1224]/5 p-10 overflow-hidden">
+                <div className="flex items-center justify-between mb-10">
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-6 bg-[#C0A04C] rounded-full" />
+                      <span className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-[0.3em]">Profile</span>
                     </div>
-                    <h3 className="text-4xl font-display font-bold text-[#3a1224] tracking-tight">Identity Profile</h3>
+                    <h3 className="text-3xl font-display font-bold text-[#3a1224]">Personal Information</h3>
                   </div>
                   {!editing && (
                     <button
                       onClick={() => setEditing(true)}
-                      className="h-14 px-8 bg-[#3a1224] text-[#C0A04C] rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] flex items-center gap-3 shadow-xl hover:-translate-y-1 transition-all"
+                      className="h-12 px-6 bg-[#3a1224] text-white rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center gap-2 shadow-lg hover:shadow-xl transition-all cursor-pointer"
                     >
-                      <User className="w-4 h-4" /> Edit Profile
+                      <User className="w-4 h-4" /> Edit
                     </button>
                   )}
                 </div>
 
                 {!editing ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {[
-                      { label: "First Name", value: displayUser?.first_name },
-                      { label: "Last Name", value: displayUser?.last_name },
-                      { label: "Email Address", value: displayUser?.email, tag: isOAuthUser ? "Verified via Google" : null },
-                      { label: "Primary Phone", value: displayUser?.phone || 'No phone added' }
+                      { label: "First Name", value: displayUser?.first_name || "—" },
+                      { label: "Last Name", value: displayUser?.last_name || "—" },
+                      { label: "Email", value: displayUser?.email, tag: isOAuthUser ? "Google" : null },
+                      { label: "Phone", value: displayUser?.phone || "—" }
                     ].map((field, idx) => (
-                      <div key={idx} className="space-y-3 group/item">
-                        <label className="text-[10px] font-black text-[#3a1224]/30 uppercase tracking-[0.3em]">{field.label}</label>
+                      <div key={idx}>
+                        <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2">{field.label}</p>
                         <div className="flex items-center gap-3">
-                          <p className="text-xl font-medium text-[#3a1224] group-hover/item:text-[#C0A04C] transition-colors">{field.value || 'Not set'}</p>
-                          {field.tag && <span className="text-[8px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-black uppercase tracking-widest border border-blue-100">{field.tag}</span>}
+                          <p className="text-lg font-medium text-[#3a1224]">{field.value}</p>
+                          {field.tag && <span className="text-[8px] px-2 py-1 bg-blue-50 text-blue-600 rounded-lg font-black uppercase">{field.tag}</span>}
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <form onSubmit={handleSubmitProfile(saveProfile)} className="grid grid-cols-1 md:grid-cols-2 gap-8 auth-form-container">
-                    <div className="space-y-4">
-                      <label>First Name</label>
-                      <input
-                        type="text"
-                        {...registerProfile('first_name', { required: 'Required' })}
-                        placeholder="First Name"
-                      />
-                      {profileErrors.first_name && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{profileErrors.first_name.message}</p>}
-                    </div>
-
-                    <div className="space-y-4">
-                      <label>Last Name</label>
-                      <input
-                        type="text"
-                        {...registerProfile('last_name', { required: 'Required' })}
-                        placeholder="Last Name"
-                      />
-                      {profileErrors.last_name && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{profileErrors.last_name.message}</p>}
-                    </div>
-
-                    <div className="space-y-4">
-                      <label>Phone Number</label>
-                      <input
-                        type="tel"
-                        {...registerProfile('phone', { pattern: { value: /^[0-9]{10}$/, message: '10 digits required' } })}
-                        placeholder="e.g. 9841234567"
-                      />
-                      {profileErrors.phone && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{profileErrors.phone.message}</p>}
-                    </div>
-
-                    <div className="space-y-4">
-                      <label>Email (Verified)</label>
-                      <input type="email" value={displayUser?.email} disabled className="opacity-50 cursor-not-allowed" />
-                    </div>
+                  <form onSubmit={handleSubmitProfile(saveProfile)} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {[
+                      { name: 'first_name', label: 'First Name', placeholder: 'First Name' },
+                      { name: 'last_name', label: 'Last Name', placeholder: 'Last Name' },
+                      { name: 'phone', label: 'Phone', placeholder: '9841234567', type: 'tel' },
+                    ].map((field) => (
+                      <div key={field.name}>
+                        <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3 block">{field.label}</label>
+                        <input
+                          type={field.type || 'text'}
+                          {...registerProfile(field.name, { 
+                            required: field.name !== 'phone',
+                            pattern: field.name === 'phone' ? { value: /^[0-9]{10}$|^$/, message: '10 digits or empty' } : undefined 
+                          })}
+                          placeholder={field.placeholder}
+                          className="w-full h-12 px-4 bg-gray-50 border border-[#3a1224]/10 rounded-xl text-[#3a1224] text-sm focus:border-[#C0A04C]/50 focus:bg-white focus:ring-2 focus:ring-[#C0A04C]/20 transition-all"
+                        />
+                        {profileErrors[field.name] && <p className="text-red-500 text-[8px] font-black mt-1">{profileErrors[field.name].message}</p>}
+                      </div>
+                    ))}
 
                     <div className="col-span-full flex gap-4 pt-6">
                       <button
                         type="submit"
                         disabled={status.loading}
-                        className="h-14 px-10 bg-[#3a1224] text-[#C0A04C] rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-xl disabled:opacity-50"
+                        className="h-12 px-8 bg-[#3a1224] text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg disabled:opacity-50 cursor-pointer"
                       >
-                        {status.loading ? 'Synchronizing...' : 'Update identity'}
+                        {status.loading ? 'Saving...' : 'Save Changes'}
                       </button>
                       <button
                         type="button"
                         onClick={handleCancelEdit}
-                        className="h-14 px-10 border border-[#3a1224]/10 text-[#3a1224]/60 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-gray-50 transition-all"
+                        className="h-12 px-8 border border-[#3a1224]/10 text-[#3a1224] rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-gray-50 cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -466,71 +440,69 @@ export default function ProfilePage() {
               </div>
             </section>
 
-            {/* Avatar & Security - Glass Cards */}
+            {/* Avatar & Security Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-               <section className="bg-white rounded-[2.5rem] shadow-sm border border-[#3a1224]/5 p-10 group overflow-hidden relative">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-[#3a1224]/[0.02] rounded-bl-full transition-all group-hover:w-32 group-hover:h-32" />
+              {/* Avatar Section */}
+              <div className="bg-white/95 rounded-3xl shadow-lg border border-[#3a1224]/5 p-8 overflow-hidden">
+                <div className="flex items-center gap-2 mb-6">
+                  <Camera className="w-4 h-4 text-[#C0A04C]" />
+                  <span className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Photo</span>
+                </div>
+                <h4 className="text-2xl font-display font-bold text-[#3a1224] mb-6">Profile Photo</h4>
+                
+                {avatarPreview && (
+                  <img src={avatarPreview} alt="Preview" className="w-16 h-16 rounded-xl object-cover mb-4 border-2 border-[#C0A04C]/20" />
+                )}
+
+                <label className="block cursor-pointer">
+                  <div className="h-12 border-2 border-dashed border-[#3a1224]/10 rounded-xl flex items-center justify-center hover:border-[#C0A04C]/40 hover:bg-[#C0A04C]/5 transition-all text-[9px] font-black uppercase tracking-widest text-[#3a1224]/40">
+                    {avatarFile ? avatarFile.name : 'Choose File'}
+                  </div>
+                  <input type="file" onChange={handleAvatarChange} className="hidden" />
+                </label>
+
+                {avatarFile && (
+                  <button 
+                    onClick={uploadAvatar} 
+                    disabled={status.loading}
+                    className="w-full h-12 bg-[#C0A04C] text-[#3a1224] rounded-xl mt-4 font-black text-[9px] uppercase tracking-widest shadow-lg disabled:opacity-50 cursor-pointer"
+                  >
+                    {status.loading ? 'Uploading...' : 'Upload'}
+                  </button>
+                )}
+              </div>
+
+              {/* Security Section */}
+              {!isOAuthUser && (
+                <div className="bg-white/95 rounded-3xl shadow-lg border border-[#3a1224]/5 p-8">
+                  <div className="flex items-center gap-2 mb-6">
+                    <ShieldCheck className="w-4 h-4 text-[#3a1224]" />
+                    <span className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Security</span>
+                  </div>
+                  <h4 className="text-2xl font-display font-bold text-[#3a1224] mb-4">Change Password</h4>
+                  <p className="text-[11px] text-[#3a1224]/50 mb-6 leading-relaxed">Update your password regularly to keep your account secure.</p>
+                  
+                  <button 
+                    onClick={() => setShowPasswordModal(true)}
+                    className="w-full h-12 border-2 border-[#3a1224] text-[#3a1224] rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-[#3a1224] hover:text-white transition-all cursor-pointer"
+                  >
+                    Update Password
+                  </button>
+                </div>
+              )}
+
+              {/* Google Auth Badge */}
+              {isOAuthUser && (
+                <div className="bg-[#3a1224] rounded-3xl p-8 text-white relative overflow-hidden shadow-lg">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
                   <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-8">
-                       <Camera className="w-4 h-4 text-[#C0A04C]" />
-                       <span className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-[0.3em]">Portrait</span>
-                    </div>
-                    <h4 className="text-2xl font-display font-bold text-[#3a1224] mb-4">Profile Photo</h4>
-                    
-                    {avatarPreview && (
-                      <img src={avatarPreview} alt="P" className="w-16 h-16 rounded-2xl object-cover mb-6 border-2 border-[#C0A04C]/20" />
-                    )}
-
-                    <label className="block w-full cursor-pointer">
-                       <div className="h-14 border-2 border-dashed border-[#3a1224]/10 rounded-2xl flex items-center justify-center gap-3 hover:border-[#C0A04C]/40 hover:bg-[#C0A04C]/5 transition-all text-[10px] font-black uppercase tracking-widest text-[#3a1224]/40">
-                          {avatarFile ? avatarFile.name : 'Upload New'}
-                       </div>
-                       <input type="file" onChange={handleAvatarChange} className="hidden" />
-                    </label>
-
-                    {avatarFile && (
-                      <button onClick={uploadAvatar} className="w-full h-14 bg-[#C0A04C] text-[#3a1224] rounded-2xl mt-4 font-black text-[10px] uppercase tracking-widest shadow-lg">Confirm Upload</button>
-                    )}
-                  </div>
-               </section>
-
-               {!isOAuthUser && (
-                 <section className="bg-white rounded-[2.5rem] shadow-sm border border-[#3a1224]/5 p-10 group">
-                    <div className="flex items-center gap-3 mb-8">
-                       <ShieldCheck className="w-4 h-4 text-[#3a1224]" />
-                       <span className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-[0.3em]">Integrity</span>
-                    </div>
-                    <h4 className="text-2xl font-display font-bold text-[#3a1224] mb-4">Security Gate</h4>
-                    <p className="text-[11px] text-[#3a1224]/50 leading-relaxed mb-10 max-w-[200px]">Rotate your password regularly to keep your events secure.</p>
-                    
-                    <button 
-                       onClick={() => setShowPasswordModal(true)}
-                       className="w-full h-14 border-2 border-[#3a1224] text-[#3a1224] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#3a1224] hover:text-white transition-all duration-500"
-                    >
-                       Change Secret
-                    </button>
-                 </section>
-               )}
-            </div>
-            
-            {/* Account Protection Badge for OAuth */}
-            {isOAuthUser && (
-              <div className="bg-[#3a1224] rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl">
-                <div className="absolute top-[-20px] right-[-20px] w-64 h-64 bg-white/[0.03] rounded-full blur-3xl pointer-events-none" />
-                <div className="relative z-10 flex gap-8 items-center">
-                  <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center backdrop-blur-md border border-white/10">
-                    <ShieldCheck className="w-10 h-10 text-[#C0A04C]" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-3xl font-display font-bold mb-2 tracking-tight">Protected by Google Authority</h4>
-                    <p className="text-white/40 text-sm leading-relaxed max-w-lg">
-                      Your identity and secondary factors are verified through Google's secure gateway. 
-                      You don't need to manage a separate password here.
-                    </p>
+                    <ShieldCheck className="w-6 h-6 text-[#C0A04C] mb-4" />
+                    <h4 className="text-xl font-display font-bold mb-2">Google Verified</h4>
+                    <p className="text-white/60 text-[11px] leading-relaxed">Your account is secured through Google's authentication. No password management needed.</p>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
@@ -538,34 +510,40 @@ export default function ProfilePage() {
         {showPasswordModal && !isOAuthUser && (
           <div className="fixed inset-0 bg-[#3a1224]/80 backdrop-blur-md flex items-center justify-center z-50 p-6">
             <motion.div 
-               initial={{ scale: 0.9, opacity: 0 }} 
-               animate={{ scale: 1, opacity: 1 }}
-               className="bg-white rounded-[3rem] shadow-[0_50px_100px_rgba(0,0,0,0.4)] max-w-md w-full p-12 relative overflow-hidden"
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-10 relative"
             >
-              <div className="absolute top-0 left-0 w-full h-2 bg-[#C0A04C]" />
-              <div className="flex justify-between items-center mb-10">
-                <h3 className="text-4xl font-display font-bold text-[#3a1224] tracking-tight">Change Password</h3>
-                <button onClick={() => { setShowPasswordModal(false); resetPassword(); }} className="p-3 rounded-full hover:bg-gray-100 transition-colors">
-                  <X className="w-6 h-6" />
+              <div className="flex justify-between items-center mb-8">
+                <h3 className="text-2xl font-display font-bold text-[#3a1224]">Update Password</h3>
+                <button 
+                  onClick={() => { setShowPasswordModal(false); resetPassword(); }} 
+                  className="p-2 rounded-lg hover:bg-gray-100 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmitPassword(changePassword)} className="space-y-6 auth-form-container">
-                <div className="space-y-4">
-                  <label>Current Gateway Secret</label>
-                  <input type="password" {...registerPassword('currentPassword', { required: 'Required' })} placeholder="••••••••" />
+              <form onSubmit={handleSubmitPassword(changePassword)} className="space-y-4">
+                <div>
+                  <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2 block">Current Password</label>
+                  <input type="password" {...registerPassword('currentPassword', { required: 'Required' })} placeholder="••••••••" className="w-full h-12 px-4 bg-gray-50 border border-[#3a1224]/10 rounded-xl focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20" />
                 </div>
-                <div className="space-y-4">
-                  <label>New Secret Key</label>
-                  <input type="password" {...registerPassword('newPassword', { required: 'Required', minLength: 8 })} placeholder="••••••••" />
+                <div>
+                  <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2 block">New Password</label>
+                  <input type="password" {...registerPassword('newPassword', { required: 'Required', minLength: { value: 8, message: 'Min 8 characters' } })} placeholder="••••••••" className="w-full h-12 px-4 bg-gray-50 border border-[#3a1224]/10 rounded-xl focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20" />
                 </div>
-                <div className="space-y-4">
-                  <label>Confirm New Secret</label>
-                  <input type="password" {...registerPassword('confirmPassword', { validate: v => v === newPassword || 'Mismatch' })} placeholder="••••••••" />
+                <div>
+                  <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2 block">Confirm Password</label>
+                  <input type="password" {...registerPassword('confirmPassword', { validate: v => v === newPassword || 'Passwords must match' })} placeholder="••••••••" className="w-full h-12 px-4 bg-gray-50 border border-[#3a1224]/10 rounded-xl focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20" />
                 </div>
                 
-                <button type="submit" disabled={status.loading} className="w-full h-16 bg-[#3a1224] text-[#C0A04C] rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl mt-6">
-                  {status.loading ? 'Updating Vault...' : 'Seal Changes'}
+                <button 
+                  type="submit" 
+                  disabled={status.loading} 
+                  className="w-full h-12 bg-[#3a1224] text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg mt-6 disabled:opacity-50 cursor-pointer"
+                >
+                  {status.loading ? 'Updating...' : 'Update Password'}
                 </button>
               </form>
             </motion.div>
@@ -574,30 +552,13 @@ export default function ProfilePage() {
       </main>
 
       <style jsx global>{`
-        /* Reuse the modern form styles we shared across the site */
         .auth-form-container input {
           background-color: #f8f9fa !important;
           border-color: rgba(58, 18, 36, 0.05) !important;
-          color: #3a1224 !important;
-          height: 60px !important;
-          border-radius: 16px !important;
-          font-size: 15px !important;
-          padding: 0 24px !important;
-          transition: all 0.3s ease !important;
         }
         .auth-form-container input:focus {
           border-color: rgba(192, 160, 76, 0.5) !important;
           background-color: #fff !important;
-          box-shadow: 0 0 0 4px rgba(192, 160, 76, 0.1) !important;
-        }
-        .auth-form-container label {
-          font-size: 10px !important;
-          font-weight: 900 !important;
-          text-transform: uppercase !important;
-          letter-spacing: 0.2em !important;
-          color: rgba(58, 18, 36, 0.4) !important;
-          margin-bottom: 8px !important;
-          display: block;
         }
       `}</style>
     </div>

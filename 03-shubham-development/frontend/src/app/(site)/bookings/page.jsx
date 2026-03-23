@@ -125,49 +125,52 @@ export default function BookingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fdfaf6] selection:bg-[#C0A04C]/30">
-      {/* Dark Gradient Header background */}
-      <div className="absolute top-0 left-0 w-full h-[450px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/95 to-[#fdfaf6] pointer-events-none z-0" />
+    <div className="min-h-screen bg-[#fdfaf6] relative selection:bg-[#C0A04C]/30 overflow-hidden">
+      {/* Dark Gradient Header Background */}
+      <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/80 to-transparent pointer-events-none z-0" />
 
-      <main className="max-w-[1400px] mx-auto px-6 sm:px-8 pt-40 pb-32 relative z-10">
-        <header className="mb-16">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-[1px] bg-[#C0A04C]" />
-            <span className="text-[11px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Reservation History</span>
+      <main className="max-w-7xl mx-auto px-6 sm:px-8 pt-40 pb-32 relative z-10">
+        {/* Header */}
+        <header className="mb-20">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-[1px] bg-[#C0A04C]" />
+            <span className="text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Reservations</span>
           </div>
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
             <div>
-              <h1 className="text-6xl lg:text-8xl font-display font-bold text-white mb-6 leading-[0.9]">My <span className="text-[#C0A04C] italic font-serif">Bookings</span></h1>
-              <p className="text-white/60 text-lg font-light leading-relaxed max-w-xl">
-                 Review your exclusive event reservations, track payment status, and access digital invoices.
+              <h1 className="text-6xl lg:text-8xl font-display font-bold text-white mb-6 leading-[0.9]">
+                My <span className="text-[#C0A04C] italic font-serif">Bookings</span>
+              </h1>
+              <p className="text-white/70 text-lg font-light leading-relaxed max-w-2xl">
+                 Track your event reservations, payment status, and manage your bookings.
               </p>
             </div>
             
-            <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3">
               <div className="relative group">
                 <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#C0A04C]" />
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="pl-12 pr-10 py-4 bg-white/5 border border-white/10 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest focus:ring-2 focus:ring-[#C0A04C]/50 transition-all appearance-none cursor-pointer backdrop-blur-md group-hover:bg-white/10"
+                  className="pl-12 pr-8 h-12 bg-white/90 border border-[#3a1224]/10 rounded-xl text-[#3a1224] text-[9px] font-black uppercase tracking-widest focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20 transition-all appearance-none cursor-pointer"
                 >
-                  <option value="" className="bg-[#3a1224]">All Reservations</option>
-                  <option value="PENDING" className="bg-[#3a1224]">Pending review</option>
-                  <option value="CONFIRMED" className="bg-[#3a1224]">Confirmed events</option>
-                  <option value="COMPLETED" className="bg-[#3a1224]">Past completions</option>
-                  <option value="CANCELLED" className="bg-[#3a1224]">Cancelled</option>
+                  <option value="">All Bookings</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="CONFIRMED">Confirmed</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
                 </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <ChevronRight className="w-4 h-4 text-[#C0A04C] rotate-90" />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <ChevronRight className="w-4 h-4 text-[#3a1224]/40 rotate-90" />
                 </div>
               </div>
 
               <button
                 onClick={fetchBookings}
-                className="p-4 bg-white/5 border border-white/10 rounded-2xl text-[#C0A04C] hover:bg-white/10 transition-all backdrop-blur-md"
-                title="Refresh History"
+                className="h-12 w-12 flex items-center justify-center bg-white/90 border border-[#3a1224]/10 rounded-xl text-[#3a1224] hover:border-[#C0A04C]/30 hover:bg-white transition-all cursor-pointer"
+                title="Refresh"
               >
-                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
@@ -176,21 +179,21 @@ export default function BookingsPage() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[1, 2, 3].map((n) => (
-              <div key={n} className="h-[400px] bg-white/40 animate-pulse rounded-[2.5rem] border border-[#3a1224]/5" />
+              <div key={n} className="h-96 bg-white/80 animate-pulse rounded-3xl border border-[#3a1224]/5" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-32 flex flex-col items-center text-center">
-            <div className="w-24 h-24 bg-[#3a1224]/5 rounded-full flex items-center justify-center mb-8">
-               <Calendar className="w-10 h-10 text-[#3a1224]/20" />
+            <div className="w-24 h-24 bg-[#3a1224]/5 rounded-2xl flex items-center justify-center mb-8">
+               <Calendar className="w-12 h-12 text-[#3a1224]/20" />
             </div>
-            <h3 className="text-3xl font-display font-bold text-[#3a1224] mb-4">No reservations found</h3>
-            <p className="text-[#3a1224]/50 text-sm max-w-xs mb-8">You haven't made any bookings yet. Start your journey by exploring our exclusive venues.</p>
+            <h3 className="text-3xl font-display font-bold text-[#3a1224] mb-3">No bookings yet</h3>
+            <p className="text-[#3a1224]/50 text-sm max-w-xs mb-8">Explore our exclusive venues and make your first reservation.</p>
             <button 
               onClick={() => router.push(ROUTES.SITE.VENUES())}
-              className="h-14 px-10 bg-[#3a1224] text-[#C0A04C] rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:-translate-y-1 transition-all"
+              className="h-12 px-8 bg-[#3a1224] text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg hover:shadow-xl transition-all cursor-pointer"
             >
-              Discover Venues
+              Browse Venues
             </button>
           </div>
         ) : (
@@ -203,73 +206,69 @@ export default function BookingsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: idx * 0.05 }}
-                  className="group relative"
+                  className="group"
                 >
-                  <div className="absolute -inset-1 bg-gradient-to-b from-[#C0A04C]/10 to-transparent rounded-[2.5rem] blur-xl opacity-0 group-hover:opacity-100 transition duration-1000"></div>
-                  
-                  <div className="relative bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(58,18,36,0.06)] border border-[#3a1224]/5 p-8 flex flex-col h-full overflow-hidden">
+                  <div className="relative bg-white/95 rounded-3xl shadow-lg border border-[#3a1224]/5 p-8 flex flex-col h-full overflow-hidden hover:shadow-xl transition-all">
                     {/* Background Accent */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#C0A04C]/[0.03] rounded-bl-[100px] pointer-events-none" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#C0A04C]/[0.04] rounded-bl-3xl pointer-events-none" />
 
-                    <div className="flex justify-between items-start mb-8 relative z-10">
-                      <div>
+                    <div className="relative z-10">
+                      {/* Status & Amount */}
+                      <div className="flex justify-between items-start mb-8">
                         <StatusBadge status={b.status} />
-                        <div className="mt-4 flex items-center gap-2 text-[#3a1224]/40 text-[10px] font-black uppercase tracking-widest">
-                           <Clock className="w-3 h-3 text-[#C0A04C]" />
-                           Recorded {formatDate(b.createdAt)}
+                        <div className="text-right">
+                           <p className="text-[8px] font-black text-[#3a1224]/30 uppercase tracking-widest mb-1">Amount</p>
+                           <p className="text-xl font-display font-bold text-[#3a1224]">NPR {Number(b.totalAmount || 0).toLocaleString()}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                         <p className="text-[10px] font-black text-[#3a1224]/30 uppercase tracking-widest mb-1">Total Amount</p>
-                         <p className="text-2xl font-display font-bold text-[#3a1224]">NPR {Number(b.totalAmount || 0).toLocaleString()}</p>
-                      </div>
-                    </div>
 
-                    <div className="flex-1 mb-10">
-                      <h3 className="text-3xl font-display font-bold text-[#3a1224] mb-3 group-hover:text-[#C0A04C] transition-colors line-clamp-2">
-                        {b.eventName || "Signature Event"}
+                      {/* Event Title */}
+                      <h3 className="text-2xl font-display font-bold text-[#3a1224] mb-3 group-hover:text-[#C0A04C] transition-colors line-clamp-2">
+                        {b.eventName || "Event"}
                       </h3>
-                      <div className="flex items-center gap-2 mb-6">
-                         <div className="w-6 h-[1px] bg-[#C0A04C]/30" />
-                         <span className="text-[11px] font-medium text-[#3a1224]/60 italic font-serif">
-                            {b.eventType || "Exclusive Venue Reservation"}
+                      <div className="flex items-center gap-2 mb-8">
+                         <div className="w-1 h-4 bg-[#C0A04C]" />
+                         <span className="text-[10px] font-medium text-[#3a1224]/50 uppercase tracking-widest">
+                            {b.eventType || "Venue Reservation"}
                          </span>
                       </div>
 
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-4 p-4 bg-[#fdfaf6] rounded-2xl border border-[#3a1224]/5">
-                           <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center">
-                              <Calendar className="w-5 h-5 text-[#C0A04C]" />
+                      {/* Details */}
+                      <div className="space-y-3 mb-8">
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-[#3a1224]/5">
+                           <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Calendar className="w-4 h-4 text-[#C0A04C]" />
                            </div>
-                           <div>
-                              <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Event date & Slot</p>
-                              <p className="text-sm font-bold text-[#3a1224]">{formatDate(b.date)} <span className="text-[#C0A04C]/50 mx-1">·</span> {b.slot}</p>
+                           <div className="flex-1 min-w-0">
+                              <p className="text-[8px] font-black text-[#3a1224]/40 uppercase tracking-widest">Date & Slot</p>
+                              <p className="text-xs font-bold text-[#3a1224] truncate">{formatDate(b.date)} · {b.slot}</p>
                            </div>
                         </div>
 
-                        <div className="flex items-center gap-4 p-4 bg-[#fdfaf6] rounded-2xl border border-[#3a1224]/5">
-                           <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center">
-                              <Users className="w-5 h-5 text-[#C0A04C]" />
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-[#3a1224]/5">
+                           <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Users className="w-4 h-4 text-[#C0A04C]" />
                            </div>
-                           <div>
-                              <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Guest Capacity</p>
-                              <p className="text-sm font-bold text-[#3a1224]">{guestsLabel(b)} Registered Guests</p>
+                           <div className="flex-1 min-w-0">
+                              <p className="text-[8px] font-black text-[#3a1224]/40 uppercase tracking-widest">Guests</p>
+                              <p className="text-xs font-bold text-[#3a1224]">{guestsLabel(b)} Registered</p>
                            </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="pt-8 border-t border-[#3a1224]/5 flex items-center justify-between gap-4">
-                      {((["CONFIRMED", "COMPLETED"].includes(b.status) && b.paymentId)) || (b.paymentId && (b.paymentId.status === "COMPLETED" || b.paymentId.gateway === "CASH")) ? (
+                    {/* Footer Actions */}
+                    <div className="mt-auto pt-8 border-t border-[#3a1224]/5 flex items-center gap-3">
+                      {((["CONFIRMED", "COMPLETED"].includes(b.status) && b.paymentId) || (b.paymentId && (b.paymentId.status === "COMPLETED" || b.paymentId.gateway === "CASH"))) ? (
                         <button
                           onClick={() => handleDownloadInvoice(b._id)}
-                          className="flex items-center gap-2 h-14 px-6 bg-[#3a1224] text-[#C0A04C] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:shadow-xl transition-all"
+                          className="flex items-center gap-2 h-10 px-4 bg-[#3a1224] text-white rounded-lg font-black text-[8px] uppercase tracking-widest hover:shadow-lg transition-all cursor-pointer"
                         >
-                          <Download className="w-4 h-4" /> Invoice
+                          <Download className="w-3 h-3" /> Invoice
                         </button>
                       ) : (
-                        <div className="px-5 py-3 bg-gray-50 rounded-2xl text-[9px] font-black text-[#3a1224]/30 uppercase tracking-[0.2em]">
-                           Awaiting Pmt.
+                        <div className="px-4 py-2 bg-gray-100 rounded-lg text-[8px] font-black text-[#3a1224]/30 uppercase tracking-widest">
+                           Pending...
                         </div>
                       )}
 
@@ -278,12 +277,9 @@ export default function BookingsPage() {
                           const slug = b.hallId?.slug || b.hallId?._id || b.hallId || "";
                           if (slug) router.push(ROUTES.SITE.VENUES(slug));
                         }}
-                        className="group/btn flex items-center gap-3 text-[#3a1224] text-[10px] font-black uppercase tracking-widest hover:text-[#C0A04C] transition-colors"
+                        className="ml-auto flex items-center gap-2 text-[#3a1224] text-[8px] font-black uppercase tracking-widest hover:text-[#C0A04C] transition-colors cursor-pointer"
                       >
-                        View Venue
-                        <div className="w-10 h-10 rounded-full border border-[#3a1224]/10 flex items-center justify-center group-hover/btn:border-[#C0A04C] group-hover/btn:bg-[#C0A04C] group-hover/btn:text-white transition-all">
-                          <ArrowRight className="w-4 h-4" />
-                        </div>
+                        View <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
