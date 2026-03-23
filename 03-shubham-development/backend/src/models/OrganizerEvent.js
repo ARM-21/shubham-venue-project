@@ -27,8 +27,61 @@ const organizerEventSchema = new mongoose.Schema(
     isPublic: { type: Boolean, default: true, index: true },
     accessCode: { type: String, trim: true },
     bannerUrl: { type: String, trim: true },
+    // Event Timing
     startDateTime: { type: Date },
     endDateTime: { type: Date },
+    eventDate: { type: Date }, // Specific date when event happens
+    // Registration Period
+    registrationStartDate: { type: Date },
+    registrationEndDate: { type: Date },
+    // Professional Event Details
+    eventCategory: {
+      type: String,
+      enum: [
+        "WEDDING",
+        "CORPORATE",
+        "CONFERENCE",
+        "SEMINAR",
+        "WORKSHOP",
+        "TRADE_SHOW",
+        "PRODUCT_LAUNCH",
+        "FUNDRAISER",
+        "EDUCATIONAL",
+        "CULTURAL",
+        "SPORTS",
+        "ENTERTAINMENT",
+        "PRIVATE_PARTY",
+        "OTHER",
+      ],
+      trim: true,
+    },
+    tags: [{ type: String, trim: true }],
+    maxAttendees: { type: Number, min: 1 },
+    expectedAttendees: { type: Number, min: 0 },
+    targetAudience: { type: String, trim: true },
+    dressCode: { type: String, trim: true },
+    ageRestriction: { type: String, trim: true },
+    // Event Requirements
+    specialRequirements: { type: String, trim: true },
+    catering: { type: Boolean, default: false },
+    decoration: { type: Boolean, default: false },
+    requiresTicket: { type: Boolean, default: true },
+    // Location Details
+    location: {
+      city: { type: String, trim: true },
+      state: { type: String, trim: true },
+      country: { type: String, trim: true },
+      coordinates: {
+        latitude: Number,
+        longitude: Number,
+      },
+    },
+    // Media & Content
+    additionalDetails: {
+      type: Map,
+      of: String,
+      default: {},
+    },
     status: {
       type: String,
       enum: ["DRAFT", "PUBLISHED", "CANCELLED"],

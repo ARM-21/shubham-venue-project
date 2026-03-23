@@ -6,10 +6,11 @@ import { httpError } from "../../utils/http.utils.js";
 const BLOCKING_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"];
 
 function getConflictSlots(slot) {
-  if (slot === "wholeday") return ["morning", "evening", "wholeday"];
+  if (slot === "wholeday") return ["morning", "afternoon", "evening", "wholeday"];
   if (slot === "morning") return ["morning", "wholeday"];
+  if (slot === "afternoon") return ["afternoon", "wholeday"];
   if (slot === "evening") return ["evening", "wholeday"];
-  throw httpError(400, "slot must be morning|evening|wholeday");
+  throw httpError(400, "slot must be morning|afternoon|evening|wholeday");
 }
 
 function toLocalDateString(date) {
@@ -34,6 +35,8 @@ function isSlotTimeBlocked(dateValue, slot) {
   const start = new Date(today);
   if (slot === "evening") {
     start.setHours(17, 0, 0, 0);
+  } else if (slot === "afternoon") {
+    start.setHours(13, 0, 0, 0);
   } else {
     start.setHours(9, 0, 0, 0);
   }
@@ -65,8 +68,8 @@ export async function checkHallAvailability(req, res) {
     if (!date || typeof date !== "string") {
       return res.status(400).json({ message: "date is required (yyyy-mm-dd)" });
     }
-    if (!slot || !["morning", "evening", "wholeday"].includes(slot)) {
-      return res.status(400).json({ message: "slot must be morning|evening|wholeday" });
+    if (!slot || !["morning", "afternoon", "evening", "wholeday"].includes(slot)) {
+      return res.status(400).json({ message: "slot must be morning|afternoon|evening|wholeday" });
     }
 
     const guestsNum = Number(guests);
