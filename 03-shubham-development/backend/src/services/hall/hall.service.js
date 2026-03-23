@@ -30,10 +30,11 @@ export async function getHallBySlug(slug) {
 const BLOCKING_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"];
 
 function getConflictSlots(slot) {
-  if (slot === "wholeday") return ["morning", "evening", "wholeday"];
+  if (slot === "wholeday") return ["morning", "afternoon", "evening", "wholeday"];
   if (slot === "morning") return ["morning", "wholeday"];
+  if (slot === "afternoon") return ["afternoon", "wholeday"];
   if (slot === "evening") return ["evening", "wholeday"];
-  throw httpError(400, "slot must be morning|evening|wholeday");
+  throw httpError(400, "slot must be morning|afternoon|evening|wholeday");
 }
 
 function toLocalDateString(date) {
@@ -58,6 +59,8 @@ function isSlotTimeBlocked(dateValue, slot) {
   const start = new Date(today);
   if (slot === "evening") {
     start.setHours(17, 0, 0, 0);
+  } else if (slot === "afternoon") {
+    start.setHours(13, 0, 0, 0);
   } else {
     start.setHours(9, 0, 0, 0);
   }

@@ -127,8 +127,8 @@ router.patch("/:id", async (req, res, next) => {
     const nextSlot = slot || booking.slot;
     const nextDateStr = date || booking.date?.toISOString?.().slice(0, 10);
 
-    if (!["morning", "evening", "wholeday"].includes(nextSlot)) {
-      return res.status(400).json({ message: "slot must be morning|evening|wholeday" });
+    if (!["morning", "afternoon", "evening", "wholeday"].includes(nextSlot)) {
+      return res.status(400).json({ message: "slot must be morning|afternoon|evening|wholeday" });
     }
 
     const dateObj = new Date(`${nextDateStr}T00:00:00.000Z`);
@@ -137,7 +137,7 @@ router.patch("/:id", async (req, res, next) => {
     }
 
     const conflictSlots = nextSlot === "wholeday"
-      ? ["morning", "evening", "wholeday"]
+      ? ["morning", "afternoon", "evening", "wholeday"]
       : nextSlot === "morning"
         ? ["morning", "wholeday"]
         : ["evening", "wholeday"];
