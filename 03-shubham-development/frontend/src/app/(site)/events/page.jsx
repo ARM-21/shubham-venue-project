@@ -62,98 +62,154 @@ export default function EventsPage() {
   const canNext = page < pages;
 
   return (
-    <main className="min-h-screen bg-[#fdfbf7]">
-      <section className="bg-gradient-to-r from-[#3f1228] via-[#5a1b33] to-[#7a2445] text-white">
-        <div className="max-w-6xl mx-auto px-4 py-12">
-          <p className="text-xs uppercase tracking-[0.3em] text-white/70">Events</p>
-          <h1 className="text-3xl md:text-4xl font-bold mt-3">Explore upcoming events</h1>
-          <p className="text-sm text-white/80 mt-3 max-w-2xl">
-            Browse events hosted by verified organizers and reserve your tickets instantly.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
+    <main className="min-h-screen bg-[#fdfaf6] relative selection:bg-[#C0A04C]/30 overflow-hidden">
+      {/* Background Decorative Elements */}
+      <div className="fixed inset-0 pointer-events-none opacity-30">
+        <div className="absolute top-0 right-[-10%] w-[40%] h-[40%] bg-[#C0A04C]/5 blur-[120px] rounded-full" />
+        <div className="absolute bottom-0 left-[-10%] w-[40%] h-[40%] bg-[#3a1224]/5 blur-[120px] rounded-full" />
+      </div>
+
+      {/* Dark Gradient Header background */}
+      <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/95 to-[#3c3a37] pointer-events-none z-0" />
+      
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 pt-40 pb-12 relative z-10">
+        <header className="mb-20">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-12 h-[1px] bg-[#C0A04C]" />
+            <span className="text-[11px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Event Discovery</span>
+          </div>
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-12 mb-16">
+            <div>
+              <h1 className="text-6xl lg:text-8xl font-display font-bold text-white mb-6 leading-[0.9]">Explore <span className="text-[#C0A04C] italic font-serif">upcoming</span></h1>
+              <p className="text-white/60 text-lg font-light leading-relaxed max-w-xl">
+                Browse curated events and reserve your tickets instantly for an unforgettable experience.
+              </p>
+            </div>
+          </div>
+
+          {/* Search Bar - Modern Integrated Design */}
+          <div className="flex flex-col sm:flex-row gap-3 max-w-2xl">
             <input
+              type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search by event name or type"
-              className="w-full md:w-[320px] px-4 py-2 rounded-lg text-sm text-gray-900"
+              placeholder="Search events by name or type"
+              className="flex-1 px-6 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/40 focus:outline-none focus:border-[#C0A04C]/50 focus:bg-white/15 transition-all backdrop-blur-md text-[10px] font-black uppercase tracking-widest"
             />
             <button
               onClick={() => {
                 setPage(1);
                 setSearchTerm(searchInput.trim());
               }}
-              className="px-4 py-2 rounded-lg bg-white text-[#3f1228] text-sm font-semibold"
+              className="px-8 py-4 bg-[#C0A04C] text-[#3a1224] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:shadow-xl hover:shadow-[#C0A04C]/30 transition-all"
             >
               Search
             </button>
           </div>
-        </div>
-      </section>
+        </header>
+      </div>
 
-      <section className="max-w-6xl mx-auto px-4 py-10">
+      {/* Events Grid Section */}
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-20">
         {error ? (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6">{error}</div>
+          <div className="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl text-sm mb-6 font-semibold">{error}</div>
         ) : null}
 
         {loading ? (
-          <div className="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-600">Loading events...</div>
-        ) : events.length ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map((event) => (
-              <article
-                key={event._id}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition"
-              >
-                <div className="relative h-44 w-full">
-                  <Image
-                    src={event.bannerUrl || PLACEHOLDER_IMAGE}
-                    alt={event.name || "Event"}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                </div>
-                <div className="p-4 space-y-2">
-                  <p className="text-xs text-gray-500">{event.type || "Event"}</p>
-                  <h3 className="text-lg font-semibold text-gray-900">{event.name}</h3>
-                  <p className="text-sm text-gray-600">{event.hallId?.name || "Venue"}</p>
-                  <p className="text-xs text-gray-500">{formatDateTime(event.startDateTime)}</p>
-                  <button
-                    onClick={() => router.push(ROUTES.SITE.EVENT_DETAIL(event._id))}
-                    className="text-sm text-[#6b1f3a] font-semibold hover:underline"
-                  >
-                    View details
-                  </button>
-                </div>
-              </article>
-            ))}
+          <div className="text-center py-16">
+            <div className="inline-block w-12 h-12 border-4 border-[#C0A04C] border-t-transparent rounded-full animate-spin"></div>
+            <p className="mt-6 text-[#3a1224]/60 text-sm font-semibold">Discovering amazing events...</p>
           </div>
+        ) : events.length ? (
+          <>
+            <div className="mb-16">
+              <div className="flex items-center gap-6 mb-12">
+                <div className="w-12 h-[1px] bg-[#C0A04C]"></div>
+                <span className="text-[11px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Featured Events • Page {page} of {pages}</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {events.map((event) => (
+                  <div
+                    key={event._id}
+                    className="group bg-white rounded-[2.5rem] overflow-hidden border border-gray-100 hover:shadow-2xl hover:shadow-[#3a1224]/5 transition-all duration-700 flex flex-col cursor-pointer"
+                    onClick={() => router.push(ROUTES.SITE.EVENT_DETAIL(event._id))}
+                  >
+                    {/* Image Section */}
+                    <div className="relative aspect-[4/3] overflow-hidden bg-gray-50">
+                      <Image
+                        src={event.bannerUrl || PLACEHOLDER_IMAGE}
+                        alt={event.name || "Event"}
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-1000"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/80 via-transparent to-transparent flex flex-col justify-end p-8">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[9px] font-black text-white uppercase tracking-[0.2em] bg-[#C0A04C] px-3 py-1 rounded-full">{event.type || "Event"}</span>
+                        </div>
+                        <h3 className="text-2xl font-black text-white uppercase tracking-tight leading-none">{event.name}</h3>
+                      </div>
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="p-8 flex-1 flex flex-col justify-between">
+                      <div className="space-y-5">
+                        <div className="space-y-1">
+                          <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Host Venue</p>
+                          <p className="font-bold text-[#3a1224]">{event.hallId?.name || "Venue"}</p>
+                        </div>
+
+                        <div className="space-y-2 p-4 bg-[#fdfaf6] rounded-2xl border border-[#3a1224]/5">
+                          <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Event Date & Time</p>
+                          <p className="text-sm font-bold text-[#3a1224]">{formatDateTime(event.startDateTime)}</p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(ROUTES.SITE.EVENT_DETAIL(event._id));
+                        }}
+                        className="mt-8 pt-8 border-t border-gray-100 flex items-center gap-3 text-[#3a1224] text-[10px] font-black uppercase tracking-widest group-hover:text-[#C0A04C] transition-colors"
+                      >
+                        View Event
+                        <div className="w-10 h-10 rounded-full border border-[#3a1224]/10 flex items-center justify-center group-hover:border-[#C0A04C] group-hover:bg-[#C0A04C] group-hover:text-white transition-all">
+                          <span>→</span>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-8 border-t border-[#3a1224]/10">
+              <span className="text-xs text-[#3a1224]/50 font-bold uppercase tracking-wider">Showing {((page - 1) * 9) + 1} - {Math.min(page * 9, (page * 9))} of {pages * 9}</span>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => canPrev && setPage((p) => p - 1)}
+                  disabled={!canPrev}
+                  className="px-6 py-3 rounded-xl border border-[#3a1224]/20 text-sm font-black text-[#3a1224] hover:border-[#C0A04C] hover:text-[#C0A04C] disabled:opacity-40 disabled:cursor-not-allowed transition duration-300"
+                >
+                  ← Previous
+                </button>
+                <button
+                  onClick={() => canNext && setPage((p) => p + 1)}
+                  disabled={!canNext}
+                  className="px-6 py-3 rounded-xl border border-[#3a1224]/20 text-sm font-black text-[#3a1224] hover:border-[#C0A04C] hover:text-[#C0A04C] disabled:opacity-40 disabled:cursor-not-allowed transition duration-300"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          </>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-600">
-            No events found.
+          <div className="text-center py-16">
+            <h3 className="text-2xl font-display font-bold text-[#3a1224] mb-3">No Events Found</h3>
+            <p className="text-[#3a1224]/60 text-sm">Try a different search or check back later for new events.</p>
           </div>
         )}
-
-        <div className="mt-8 flex items-center justify-between">
-          <span className="text-xs text-gray-500">Page {page} of {pages}</span>
-          <div className="flex gap-2">
-            <button
-              className="px-3 py-1 rounded bg-white border border-gray-200 text-sm text-gray-700 disabled:opacity-40"
-              onClick={() => canPrev && setPage((p) => p - 1)}
-              disabled={!canPrev}
-            >
-              Prev
-            </button>
-            <button
-              className="px-3 py-1 rounded bg-white border border-gray-200 text-sm text-gray-700 disabled:opacity-40"
-              onClick={() => canNext && setPage((p) => p + 1)}
-              disabled={!canNext}
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      </section>
+      </div>
     </main>
   );
 }

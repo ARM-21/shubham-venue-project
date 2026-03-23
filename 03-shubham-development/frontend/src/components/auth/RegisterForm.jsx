@@ -122,9 +122,9 @@ export default function RegisterForm({ onSwitch }) {
 
   return (
     <>
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="group">
-        <label className="block text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Email Address</label>
+        <label className="block text-[11px] font-bold text-[#3a1224]/40 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Email Address</label>
         <div className="relative">
           <input
             type="email"
@@ -135,18 +135,18 @@ export default function RegisterForm({ onSwitch }) {
                 message: 'Enter a valid email' 
               } 
             })}
-            className="w-full bg-white/[0.03] border border-white/10 text-white px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-white/[0.05] transition-all duration-300 placeholder-white/20 text-sm"
+            className="w-full bg-[#3a1224]/3 border border-[#3a1224]/10 text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm font-medium"
             placeholder="e.g. alex@example.com"
           />
         </div>
         {errors.email && (
-          <p className="text-red-400 text-[10px] mt-2 ml-1 font-bold uppercase tracking-wider">{errors.email.message}</p>
+          <p className="text-red-600 text-[10px] mt-2 ml-1 font-bold uppercase tracking-wider">{errors.email.message}</p>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="group">
-          <label className="block text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Password</label>
+          <label className="block text-[11px] font-bold text-[#3a1224]/40 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Password</label>
           <div className="relative">
             <input
               type="password"
@@ -157,17 +157,17 @@ export default function RegisterForm({ onSwitch }) {
                   message: 'Min 6' 
                 } 
               })}
-              className="w-full bg-white/[0.03] border border-white/10 text-white px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-white/[0.05] transition-all duration-300 placeholder-white/20 text-sm"
+              className="w-full bg-[#3a1224]/3 border border-[#3a1224]/10 text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm font-medium"
               placeholder="••••••••"
             />
           </div>
           {errors.password && (
-            <p className="text-red-400 text-[10px] mt-2 ml-1 font-bold uppercase tracking-wider">{errors.password.message}</p>
+            <p className="text-red-600 text-[10px] mt-2 ml-1 font-bold uppercase tracking-wider">{errors.password.message}</p>
           )}
         </div>
 
         <div className="group">
-          <label className="block text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Confirm</label>
+          <label className="block text-[11px] font-bold text-[#3a1224]/40 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Confirm</label>
           <div className="relative">
             <input
               type="password"
@@ -175,12 +175,12 @@ export default function RegisterForm({ onSwitch }) {
                 required: 'Required', 
                 validate: (value) => value === password || 'No match' 
               })}
-              className="w-full bg-white/[0.03] border border-white/10 text-white px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-white/[0.05] transition-all duration-300 placeholder-white/20 text-sm"
+              className="w-full bg-[#3a1224]/3 border border-[#3a1224]/10 text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm font-medium"
               placeholder="••••••••"
             />
           </div>
           {errors.confirmPassword && (
-            <p className="text-red-400 text-[10px] mt-2 ml-1 font-bold uppercase tracking-wider">{errors.confirmPassword.message}</p>
+            <p className="text-red-600 text-[10px] mt-2 ml-1 font-bold uppercase tracking-wider">{errors.confirmPassword.message}</p>
           )}
         </div>
       </div>
@@ -188,23 +188,23 @@ export default function RegisterForm({ onSwitch }) {
       <button 
         type="submit" 
         disabled={isSubmitting}
-        className="relative w-full group overflow-hidden bg-[#C0A04C] hover:bg-[#D4BC7B] text-[#3a1224] py-4 px-6 rounded-xl font-bold text-xs uppercase tracking-[0.2em] shadow-[0_10px_20px_-10px_rgba(192,160,76,0.3)] transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+        className="relative w-full group overflow-hidden bg-[#C0A04C] hover:bg-[#D4BC7B] text-white py-4 px-6 rounded-xl font-bold text-xs uppercase tracking-[0.2em] shadow-[0_10px_20px_-10px_rgba(192,160,76,0.3)] transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
       >
         <div className="absolute inset-0 w-full h-full bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700 skew-x-12"></div>
         <span className="relative flex items-center justify-center gap-2">
           {isSubmitting ? (
-            <div className="w-4 h-4 border-2 border-[#3a1224] border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           ) : null}
           Create Account
         </span>
       </button>
 
       <div className="text-center pt-2">
-        <span className="text-white/30 text-[11px] font-medium">Already have an account?</span>{' '}
+        <span className="text-[#3a1224]/50 text-[11px] font-medium">Already have an account?</span>{' '}
         <button 
           type="button" 
           onClick={() => onSwitch && onSwitch()} 
-          className="text-[#C0A04C] text-[11px] font-bold hover:text-white transition-colors cursor-pointer ml-1 uppercase tracking-wider"
+          className="text-[#C0A04C] text-[11px] font-bold hover:text-[#3a1224] transition-colors cursor-pointer ml-1 uppercase tracking-wider"
         >
           Sign In
         </button>

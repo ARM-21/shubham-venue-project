@@ -63,7 +63,7 @@ export default function ExploreMenus({ limit = 3 }) {
   }).format(val);
 
   return (
-    <div className="px-6 py-24 relative overflow-hidden">
+    <div className="px-6 py-5 relative overflow-hidden">
       {/* Premium Textures */}
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#3a1224]/3 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2 -z-10" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#C0A04C]/5 blur-[100px] rounded-full translate-y-1/2 -translate-x-1/2 -z-10" />

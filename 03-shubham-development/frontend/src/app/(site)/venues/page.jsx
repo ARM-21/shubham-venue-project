@@ -34,6 +34,23 @@ export default function VenuesPage() {
 
   const today = new Date().toISOString().split('T')[0];
 
+  // Animation styles
+  const animationStyle = `
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.6s ease-out forwards;
+    }
+  `;
+
   useEffect(() => {
     async function fetchHalls() {
       try {
@@ -128,93 +145,101 @@ export default function VenuesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCFB]">
+    <div className="min-h-screen bg-[#fdfaf6] selection:bg-[#C0A04C]/30 overflow-hidden">
+      {/* Dark Gradient Header Background */}
+      <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/80 to-[#342d2d] pointer-events-none z-0" />
+
       {/* Header Section */}
-      <section className="bg-[#3a1224] pt-40 pb-20 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white rounded-full blur-[100px]" />
-        </div>
-        <div className="max-w-7xl mx-auto relative z-10">
+      <section className="pt-40 pb-20 px-6 relative z-10">
+        <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-[1px] bg-[#C0A04C]" />
-            <span className="text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">The Collection</span>
+            <span className="text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Exclusive Venues</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter leading-none mb-12">
-            Signature <span className="text-[#C0A04C] italic serif">spaces</span>
-          </h1>
+          <div className="mb-12">
+            <h1 className="text-6xl lg:text-8xl font-display font-bold text-white mb-6 leading-[0.9]">
+              Signature <span className="text-[#C0A04C] italic font-serif">Spaces</span>
+            </h1>
+            <p className="text-white/70 text-lg font-light leading-relaxed max-w-2xl">
+              Discover exquisite venues perfect for your most memorable occasions. Filter by capacity, availability, and budget to find your ideal celebration space.
+            </p>
+          </div>
 
-          {/* Search/Filter Bar - Modern Profile Style */}
-          <div className="bg-white p-3 rounded-2xl shadow-2xl flex flex-col md:flex-row gap-2">
-            <div className="flex-1 flex items-center px-6 gap-4 border-b md:border-b-0 md:border-r border-gray-100 py-4">
-              <Calendar className="text-[#C0A04C]" size={20} />
-              <input 
-                type="date" 
-                min={today}
-                value={filters.date}
-                onChange={(e) => setFilters(f => ({...f, date: e.target.value}))}
-                className="w-full bg-transparent text-[#3a1224] text-[11px] font-black uppercase outline-none"
-              />
-            </div>
-            <div className="flex-1 flex items-center px-6 gap-4 border-b md:border-b-0 md:border-r border-gray-100 py-4">
-              <Clock className="text-[#C0A04C]" size={20} />
-              <select 
-                value={filters.timeSlot}
-                onChange={(e) => setFilters(f => ({...f, timeSlot: e.target.value}))}
-                className="w-full bg-transparent text-[#3a1224] text-[11px] font-black uppercase outline-none appearance-none cursor-pointer"
+          {/* Search/Filter Bar - Premium Style */}
+          <div className="bg-white/10 backdrop-blur-xl p-6 rounded-3xl border border-white/20 shadow-2xl">
+            <div className="flex flex-col lg:flex-row gap-4">
+                    <div className="flex-1 flex items-center px-6 py-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+                <Calendar className="text-[#C0A04C] flex-shrink-0" size={20} />
+                <input 
+                  type="date" 
+                  min={today}
+                  value={filters.date}
+                  onChange={(e) => setFilters(f => ({...f, date: e.target.value}))}
+                  className="w-full bg-transparent text-white text-[11px] font-black uppercase outline-none ml-4 placeholder-white/50 cursor-pointer"
+                  placeholder="Select Date"
+                />
+              </div>
+              <div className="flex-1 flex items-center px-6 py-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+                <Clock className="text-[#C0A04C] flex-shrink-0" size={20} />
+                <select 
+                  value={filters.timeSlot}
+                  onChange={(e) => setFilters(f => ({...f, timeSlot: e.target.value}))}
+                  className="w-full bg-transparent text-white text-[11px] font-black uppercase outline-none appearance-none ml-4 cursor-pointer"
+                >
+                  <option value="" className="bg-[#3a1224] text-white">Any Time Slot</option>
+                  <option value="morning" className="bg-[#3a1224] text-white">Morning</option>
+                  <option value="afternoon" className="bg-[#3a1224] text-white">Afternoon</option>
+                  <option value="evening" className="bg-[#3a1224] text-white">Evening</option>
+                  <option value="full" className="bg-[#3a1224] text-white">Full Day</option>
+                </select>
+              </div>
+              <div className="flex-1 flex items-center px-6 py-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+                <Users className="text-[#C0A04C] flex-shrink-0" size={20} />
+                <select 
+                  value={filters.capacity}
+                  onChange={(e) => setFilters(f => ({...f, capacity: e.target.value}))}
+                  className="w-full bg-transparent text-white text-[11px] font-black uppercase outline-none appearance-none ml-4 cursor-pointer"
+                >
+                  <option className="bg-[#3a1224] text-white">Any Capacity</option>
+                  <option className="bg-[#3a1224] text-white">50 - 100 Guests</option>
+                  <option className="bg-[#3a1224] text-white">100 - 300 Guests</option>
+                  <option className="bg-[#3a1224] text-white">300 - 500 Guests</option>
+                  <option className="bg-[#3a1224] text-white">500+ Guests</option>
+                </select>
+              </div>
+              <button 
+                onClick={applyFilters}
+                className="px-8 py-4 bg-gradient-to-r from-[#C0A04C] to-[#C0A04C]/95 text-[#3a1224] rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:shadow-lg hover:shadow-[#C0A04C]/30 transition-all flex items-center justify-center gap-3 flex-shrink-0 cursor-pointer"
               >
-                <option value="">Any Time Slot</option>
-                <option value="morning">Morning</option>
-                <option value="afternoon">Afternoon</option>
-                <option value="evening">Evening</option>
-                <option value="full">Full Day</option>
-              </select>
+                <Search size={16} /> Search
+              </button>
             </div>
-            <div className="flex-1 flex items-center px-6 gap-4 py-4">
-              <Users className="text-[#C0A04C]" size={20} />
-              <select 
-                value={filters.capacity}
-                onChange={(e) => setFilters(f => ({...f, capacity: e.target.value}))}
-                className="w-full bg-transparent text-[#3a1224] text-[11px] font-black uppercase outline-none appearance-none cursor-pointer"
-              >
-                <option>Any Capacity</option>
-                <option>50 - 100 Guests</option>
-                <option>100 - 300 Guests</option>
-                <option>300 - 500 Guests</option>
-                <option>500+ Guests</option>
-              </select>
-            </div>
-            <button 
-              onClick={applyFilters}
-              className="bg-[#3a1224] text-white px-10 py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-[#C0A04C] transition-all flex items-center justify-center gap-3"
-            >
-              <Search size={16} /> Search
-            </button>
           </div>
         </div>
       </section>
 
-      <main className="max-w-7xl mx-auto px-6 py-20 flex flex-col lg:flex-row gap-16">
+      <main className="max-w-7xl mx-auto px-6 py-20 flex flex-col lg:flex-row gap-16 relative z-10">
         {/* Sidebar Filters */}
         <aside className="lg:w-1/4 space-y-12">
-          <div className="space-y-8">
-            <div className="flex items-center justify-between">
+          <div className="bg-white/80 backdrop-blur-sm p-8 rounded-3xl border border-white/20 shadow-lg">
+            <div className="flex items-center justify-between mb-8">
               <h3 className="text-[12px] font-black text-[#3a1224] uppercase tracking-[0.3em]">Refine Collection</h3>
               <button 
                 onClick={() => {
                   setFilters({date:'', timeSlot:'', capacity:'Any Capacity', price:500000});
                   setSortBy('price-desc');
                 }}
-                className="text-[9px] font-bold text-[#C0A04C] uppercase tracking-widest border-b border-[#C0A04C]"
+                className="text-[9px] font-bold text-[#C0A04C] uppercase tracking-widest border-b border-[#C0A04C] hover:text-[#3a1224] transition-colors cursor-pointer"
               >
-                Reset
+                Reset All
               </button>
             </div>
 
             {/* Price Range */}
-            <div className="space-y-6">
+            <div className="space-y-6 pb-8 border-b border-[#3a1224]/10">
               <div className="flex justify-between items-end">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pricing Max</span>
-                <span className="text-sm font-black text-[#3a1224]">NPR {filters.price.toLocaleString()}</span>
+                <span className="text-[10px] font-black text-[#3a1224]/60 uppercase tracking-widest">Max Price</span>
+                <span className="text-sm font-black text-[#C0A04C]">NPR {filters.price.toLocaleString()}</span>
               </div>
               <input 
                 type="range" 
@@ -228,28 +253,30 @@ export default function VenuesPage() {
                   if(priceDebounce.current) clearTimeout(priceDebounce.current);
                   priceDebounce.current = setTimeout(applyFilters, 300);
                 }}
-                className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-[#3a1224]"
+                className="w-full h-2 bg-gradient-to-r from-gray-200 to-[#C0A04C]/30 rounded-lg appearance-none cursor-pointer accent-[#C0A04C] hover:cursor-pointer"
               />
             </div>
 
             {/* Sort Options */}
-            <div className="space-y-4">
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Order By</span>
-              <div className="flex flex-col gap-2">
+            <div className="space-y-4 pt-8">
+              <span className="text-[10px] font-black text-[#3a1224]/60 uppercase tracking-widest">Sort By</span>
+              <div className="flex flex-col gap-3">
                 {[
                   { id: 'price-desc', label: 'Highest Luxury' },
-                  { id: 'price-asc', label: 'Value First' },
-                  { id: 'capacity-desc', label: 'Grand Space' }
+                  { id: 'price-asc', label: 'Best Value' },
+                  { id: 'capacity-desc', label: 'Largest Spaces' }
                 ].map((option) => (
                   <button
                     key={option.id}
                     onClick={() => setSortBy(option.id)}
-                    className={`flex items-center justify-between p-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                      sortBy === option.id ? 'bg-[#3a1224] text-white' : 'bg-white border border-gray-100 text-[#3a1224]'
+                    className={`flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
+                      sortBy === option.id 
+                        ? 'bg-gradient-to-r from-[#3a1224] to-[#3a1224]/80 text-white shadow-lg shadow-[#3a1224]/20' 
+                        : 'bg-white border border-gray-200 text-[#3a1224] hover:border-[#C0A04C]/50'
                     }`}
                   >
                     {option.label}
-                    {sortBy === option.id && <Circle size={8} fill="#C0A04C" className="text-[#C0A04C]" />}
+                    {sortBy === option.id && <div className="w-2 h-2 rounded-full bg-[#C0A04C]" />}
                   </button>
                 ))}
               </div>
@@ -260,74 +287,81 @@ export default function VenuesPage() {
         {/* Content Grid */}
         <section className="lg:w-3/4">
           <div className="flex items-center justify-between mb-12">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">
-              Showing {filteredHalls.length} Elite Spaces
-            </p>
-            <Settings2 size={18} className="text-gray-300" />
+            <h2 className="text-[11px] font-black text-[#3a1224] uppercase tracking-[0.4em]">
+              {filteredHalls.length} Elite <span className="text-[#C0A04C]">Venues</span>
+            </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {filteredHalls.map((hall) => (
+            {filteredHalls.map((hall, idx) => (
               <div 
-                key={hall._id} 
-                className="group bg-white rounded-[2.5rem] overflow-hidden border border-gray-100 hover:shadow-2xl hover:shadow-[#3a1224]/5 transition-all duration-700 flex flex-col"
+                key={hall._id}
+                className="group relative opacity-0 animate-fadeIn"
+                style={{ animationDelay: `${idx * 100}ms` }}
               >
-                <div className="relative aspect-[4/3] overflow-hidden bg-gray-50">
-                  <Image 
-                    src={hall.images?.[0] || '/assets/business-images/placeholder.jpg'} 
-                    alt={hall.name}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-1000"
-                  />
-                  <div className="absolute top-6 left-6">
-                    <div className="bg-white/90 backdrop-blur-xl px-4 py-2 rounded-full border border-white flex items-center gap-2">
-                       <div className="w-1.5 h-1.5 rounded-full bg-[#C0A04C]" />
-                       <span className="text-[9px] font-black text-[#3a1224] uppercase tracking-widest">Verified</span>
+                <div className="absolute -inset-1 bg-gradient-to-b from-[#C0A04C]/20 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition duration-700"></div>
+                
+                <div className="relative bg-white/95 rounded-3xl overflow-hidden border border-[#3a1224]/5 flex flex-col shadow-lg backdrop-blur-sm">
+                  <div className="relative aspect-[4/3] overflow-hidden bg-gray-50">
+                    <Image 
+                      src={hall.images?.[0] || '/assets/business-images/placeholder.jpg'} 
+                      alt={hall.name}
+                      fill
+                      className="object-cover group-hover:scale-110 transition-transform duration-1000"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/60 via-transparent to-transparent" />
+                    
+                    <div className="absolute top-6 left-6">
+                      <div className="bg-white/90 backdrop-blur-xl px-3 py-1.5 rounded-full border border-white/50 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span className="text-[8px] font-black text-[#3a1224] uppercase tracking-widest">Available</span>
+                      </div>
+                    </div>
+                    
+                    <div className="absolute bottom-0 left-0 right-0 p-6">
+                      <div className="flex items-center gap-2 mb-2">
+                        <MapPin size={10} className="text-[#C0A04C]" />
+                        <span className="text-[9px] font-bold text-white uppercase tracking-[0.2em]">{hall.location?.city || 'Premium Location'}</span>
+                      </div>
+                      <h3 className="text-2xl font-black text-white uppercase tracking-tight leading-tight">{hall.name}</h3>
                     </div>
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/80 via-transparent to-transparent flex flex-col justify-end p-8">
-                    <div className="flex items-center gap-2 mb-2">
-                       <MapPin size={10} className="text-[#C0A04C]" />
-                       <span className="text-[9px] font-bold text-white uppercase tracking-[0.2em]">{hall.location?.city || 'Waling'}</span>
-                    </div>
-                    <h3 className="text-2xl font-black text-white uppercase tracking-tight leading-none">{hall.name}</h3>
-                  </div>
-                </div>
 
-                <div className="p-10 flex-1 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center gap-8 mb-8 pb-8 border-b border-gray-50">
+                  <div className="p-8 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-6 mb-8 pb-8 border-b border-[#3a1224]/10">
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-black text-[#3a1224]/50 uppercase tracking-widest">Guest Count</span>
+                          <div className="flex items-center gap-2 text-[#3a1224]">
+                            <Users size={14} className="text-[#C0A04C]" />
+                            <span className="text-sm font-black">{hall.capacity}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-black text-[#3a1224]/50 uppercase tracking-widest">Dimensions</span>
+                          <div className="flex items-center gap-2 text-[#3a1224]">
+                            <Ruler size={14} className="text-[#C0A04C]" />
+                            <span className="text-sm font-black">{hall.area || '2850'} FT²</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[#3a1224]/70 text-[10px] font-medium leading-relaxed line-clamp-2 mb-10">
+                        {hall.description || 'A masterpiece destination tailored for distinguished assemblies and lifelong celebrations.'}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-8 border-t border-[#3a1224]/10">
                       <div className="space-y-1">
-                        <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Guest Count</span>
-                        <div className="flex items-center gap-2 text-[#3a1224]">
-                          <Users size={14} className="text-[#C0A04C]" />
-                          <span className="text-xs font-black">{hall.capacity}</span>
-                        </div>
+                        <span className="text-[9px] font-black text-[#3a1224]/50 uppercase tracking-widest">Starting From</span>
+                        <p className="text-2xl font-display font-bold text-[#3a1224]">NPR {hall.pricePerHour?.toLocaleString()}</p>
                       </div>
-                      <div className="space-y-1 border-l border-gray-100 pl-8">
-                        <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Dimensions</span>
-                        <div className="flex items-center gap-2 text-[#3a1224]">
-                          <Ruler size={14} className="text-[#C0A04C]" />
-                          <span className="text-xs font-black">{hall.area || '2850'} FT²</span>
-                        </div>
-                      </div>
+                      <button 
+                        onClick={() => router.push(ROUTES.SITE.VENUES(hall.slug))}
+                        className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#3a1224] to-[#3a1224]/80 text-white flex items-center justify-center hover:shadow-lg hover:shadow-[#C0A04C]/30 hover:scale-110 transition-all duration-500 cursor-pointer"
+                      >
+                        <ArrowRight size={20} />
+                      </button>
                     </div>
-                    <p className="text-[#3a1224]/60 text-[11px] font-medium leading-relaxed uppercase tracking-wide italic line-clamp-2 mb-10">
-                      {hall.description || 'A masterpiece destination tailored for distinguished assemblies and lifelong celebrations.'}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-8 border-t border-gray-50">
-                    <div className="space-y-1">
-                      <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest italic">Starting From</span>
-                      <p className="text-lg font-black text-[#3a1224]">NPR {hall.pricePerHour?.toLocaleString()}</p>
-                    </div>
-                    <button 
-                      onClick={() => router.push(ROUTES.SITE.VENUES(hall.slug))}
-                      className="w-12 h-12 rounded-2xl bg-[#3a1224] text-white flex items-center justify-center hover:bg-[#C0A04C] transition-all duration-500 shadow-xl shadow-[#3a1224]/20"
-                    >
-                      <ArrowRight size={20} />
-                    </button>
                   </div>
                 </div>
               </div>
@@ -335,14 +369,16 @@ export default function VenuesPage() {
           </div>
 
           {filteredHalls.length === 0 && (
-            <div className="text-center py-40 border-2 border-dashed border-gray-100 rounded-[3rem]">
-              <Search size={48} className="text-gray-100 mx-auto mb-6" />
-              <h3 className="text-xl font-black text-[#3a1224] uppercase tracking-widest">No Matches Found</h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">Adjust your refinement settings</p>
+            <div className="text-center py-48 border-2 border-dashed border-[#3a1224]/20 rounded-[3rem] bg-white/50">
+              <Search size={48} className="text-[#3a1224]/20 mx-auto mb-6" />
+              <h3 className="text-2xl font-black text-[#3a1224] uppercase tracking-widest mb-2">No Matches Found</h3>
+              <p className="text-[10px] font-bold text-[#3a1224]/50 uppercase tracking-widest">Adjust your filters and try again</p>
             </div>
           )}
         </section>
       </main>
+
+      <style>{animationStyle}</style>
     </div>
   );
 }

@@ -2,15 +2,15 @@
 import React from 'react';
 import { Calendar, Users, Clock, Sparkles } from 'lucide-react';
 
-export const AvailabilityForm = ({ register, handleSubmit, checkAvailability, isSubmitting, errors, minDate, disableMorning, disableEvening, SLOT_LABELS }) => {
+export const AvailabilityForm = ({ register, handleSubmit, checkAvailability, isSubmitting, errors, minDate, disableMorning, disableAfternoon, disableEvening, SLOT_LABELS }) => {
   return (
-    <div className="bg-white p-8 rounded-2xl shadow-[0_20px_50px_rgba(58,18,36,0.05)] border border-gray-100">
+    <div className="bg-white p-4 sm:p-6 md:p-8 rounded-2xl shadow-[0_20px_50px_rgba(58,18,36,0.05)] border border-gray-100 overflow-hidden">
       <div className="flex items-center gap-4 mb-8">
         <div className="w-12 h-[1px] bg-[#C0A04C]" />
         <span className="text-[11px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Check Availability</span>
       </div>
 
-      <form onSubmit={handleSubmit(checkAvailability)} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+      <form onSubmit={handleSubmit(checkAvailability)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 items-end">
         <div className="space-y-2">
           <label className="text-[10px] font-black text-[#3a1224] uppercase tracking-[0.2em] flex items-center gap-2">
             <Calendar className="w-3 h-3 text-[#C0A04C]" /> Date
@@ -33,6 +33,7 @@ export const AvailabilityForm = ({ register, handleSubmit, checkAvailability, is
           >
             <option value="">Select Slot</option>
             <option value="morning" disabled={disableMorning}>Morning (08:00-13:00)</option>
+            <option value="afternoon" disabled={disableAfternoon}>Afternoon (13:00-17:00)</option>
             <option value="evening" disabled={disableEvening}>Evening (17:00-23:00)</option>
             <option value="wholeday">Whole Day (08:00-23:00)</option>
           </select>

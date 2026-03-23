@@ -45,7 +45,7 @@ export default function LoginForm({ onSwitch }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="group">
-        <label className="block text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Email Address</label>
+        <label className="block text-[11px] font-bold text-[#3a1224]/40 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Email Address</label>
         <div className="relative">
           <input
             type="email"
@@ -56,18 +56,18 @@ export default function LoginForm({ onSwitch }) {
                 message: 'Enter a valid email' 
               } 
             })}
-            className="w-full bg-white/[0.03] border border-white/10 text-white px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-white/[0.05] transition-all duration-300 placeholder-white/20 text-sm"
+            className="w-full bg-[#3a1224]/3 border border-[#3a1224]/10 text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm font-medium"
             placeholder="e.g. alex@example.com"
           />
         </div>
         {errors.email && (
-          <p className="text-red-400 text-[10px] mt-2 ml-1 font-bold uppercase tracking-wider">{errors.email.message}</p>
+          <p className="text-red-600 text-[10px] mt-2 ml-1 font-bold uppercase tracking-wider">{errors.email.message}</p>
         )}
       </div>
 
       <div className="group">
-        <div className="flex items-center justify-between mb-2 ml-1">
-          <label className="block text-[11px] font-bold text-white/40 uppercase tracking-widest group-focus-within:text-[#C0A04C] transition-colors">Password</label>
+        <div className="flex items-center justify-between mb-3 ml-1">
+          <label className="block text-[11px] font-bold text-[#3a1224]/40 uppercase tracking-widest group-focus-within:text-[#C0A04C] transition-colors">Password</label>
           <a href="#" className="text-[10px] text-[#C0A04C]/60 hover:text-[#C0A04C] transition-colors duration-200 uppercase tracking-widest font-bold">
             Forgot?
           </a>
@@ -82,35 +82,35 @@ export default function LoginForm({ onSwitch }) {
                 message: 'Min 6 characters' 
               } 
             })}
-            className="w-full bg-white/[0.03] border border-white/10 text-white px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-white/[0.05] transition-all duration-300 placeholder-white/20 text-sm"
+            className="w-full bg-[#3a1224]/3 border border-[#3a1224]/10 text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm font-medium"
             placeholder="••••••••"
           />
         </div>
         {errors.password && (
-          <p className="text-red-400 text-[10px] mt-2 ml-1 font-bold uppercase tracking-wider">{errors.password.message}</p>
+          <p className="text-red-600 text-[10px] mt-2 ml-1 font-bold uppercase tracking-wider">{errors.password.message}</p>
         )}
       </div>
 
       <button 
         type="submit" 
         disabled={isSubmitting}
-        className="relative w-full group overflow-hidden bg-[#C0A04C] hover:bg-[#D4BC7B] text-[#3a1224] py-4 px-6 rounded-xl font-bold text-xs uppercase tracking-[0.2em] shadow-[0_10px_20px_-10px_rgba(192,160,76,0.3)] transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+        className="relative w-full group overflow-hidden bg-[#C0A04C] hover:bg-[#D4BC7B] text-white py-4 px-6 rounded-xl font-bold text-xs uppercase tracking-[0.2em] shadow-[0_10px_20px_-10px_rgba(192,160,76,0.3)] transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
       >
         <div className="absolute inset-0 w-full h-full bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700 skew-x-12"></div>
         <span className="relative flex items-center justify-center gap-2">
           {isSubmitting ? (
-            <div className="w-4 h-4 border-2 border-[#3a1224] border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           ) : null}
           Sign In
         </span>
       </button>
 
-      <div className="text-center pt-4">
-        <span className="text-white/30 text-[11px] font-medium">New to Shubham?</span>{' '}
+      <div className="text-center pt-2">
+        <span className="text-[#3a1224]/50 text-[11px] font-medium">New to Shubham?</span>{' '}
         <button 
           type="button" 
           onClick={() => onSwitch && onSwitch()} 
-          className="text-[#C0A04C] text-[11px] font-bold hover:text-white transition-colors cursor-pointer ml-1 uppercase tracking-wider"
+          className="text-[#C0A04C] text-[11px] font-bold hover:text-[#3a1224] transition-colors cursor-pointer ml-1 uppercase tracking-wider"
         >
           Create Account
         </button>

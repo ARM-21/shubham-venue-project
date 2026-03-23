@@ -17,9 +17,10 @@ import { VenueResultCard } from '../../app/(site)/search-availability/components
 import { BookingSummary } from '../../app/(site)/search-availability/components/modern/BookingSummary';
 
 const SLOT_LABELS = {
-  morning: 'Morning Cycle',
-  evening: 'Evening Cycle',
-  wholeday: 'Full Day Cycle',
+  morning: 'Morning Cycle (08:00-13:00)',
+  afternoon: 'Afternoon Cycle (13:00-17:00)',
+  evening: 'Evening Cycle (17:00-23:00)',
+  wholeday: 'Full Day Cycle (08:00-23:00)',
 };
 
 export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapacity, showAllHalls }) {
@@ -65,6 +66,7 @@ export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapa
   }, [searchParams, setValue]);
 
   const disableMorning = isToday && currentHour >= 13;
+  const disableAfternoon = isToday && currentHour >= 17;
   const disableEvening = isToday && currentHour >= 23;
 
   async function checkAvailability(formData) {
@@ -121,15 +123,15 @@ export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapa
   const canProceed = !!selectedHall && isFormFilled && (selectedAvailable === undefined ? true : selectedAvailable === true);
 
   return (
-    <div className="min-h-screen bg-[#fdfaf6] relative selection:bg-[#C0A04C]/30">
-        <div className="fixed inset-0 pointer-events-none opacity-30">
+    <div className="min-h-screen bg-[#fdfaf6] relative selection:bg-[#C0A04C]/30 overflow-x-hidden">
+        <div className="fixed inset-0 pointer-events-none opacity-30 overflow-hidden">
             <div className="absolute top-0 right-[-10%] w-[40%] h-[40%] bg-[#C0A04C]/5 blur-[120px] rounded-full" />
             <div className="absolute bottom-0 left-[-10%] w-[40%] h-[40%] bg-[#3a1224]/5 blur-[120px] rounded-full" />
         </div>
         
         <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/90 to-[#fdfaf6] pointer-events-none z-0" />
 
-        <main className="max-w-[1400px] mx-auto px-6 sm:px-8 pt-40 pb-32 relative z-10">
+        <main className="w-full max-w-full overflow-x-hidden"><div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 pt-40 pb-32 relative z-10">
             <header className="mb-20 text-center lg:text-left">
                 <div className="flex items-center justify-center lg:justify-start gap-4 mb-8">
                     <div className="w-12 h-[1px] bg-[#C0A04C]" />
@@ -153,7 +155,7 @@ export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapa
                             <AvailabilityForm 
                                 register={register} handleSubmit={handleSubmit} checkAvailability={checkAvailability} 
                                 isSubmitting={isSubmitting} errors={errors} minDate={minDate} 
-                                disableMorning={disableMorning} disableEvening={disableEvening} SLOT_LABELS={SLOT_LABELS} 
+                                disableMorning={disableMorning} disableAfternoon={disableAfternoon} disableEvening={disableEvening} SLOT_LABELS={SLOT_LABELS} 
                             />
                         </div>
                     </div>
@@ -174,7 +176,7 @@ export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapa
                     )}
 
                     <section>
-                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 px-2">
+                        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-8 mb-8 sm:mb-16 px-0 sm:px-2">
                            <div className="space-y-4">
                               <div className="flex items-center gap-3">
                                 <Sparkles className="w-4 h-4 text-[#C0A04C]" />
@@ -233,6 +235,7 @@ export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapa
                    </div>
                 </div>
             </div>
+        </div>
         </main>
     </div>
   );
