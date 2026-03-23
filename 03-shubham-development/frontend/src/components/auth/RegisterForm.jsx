@@ -79,12 +79,14 @@ export default function RegisterForm({ onSwitch }) {
         error: (err) => err?.response?.data?.message || 'Invalid OTP',
       });
 
-      // Set user data and redirect
+      // Set user data and redirect to onboarding
       if (res?.data) {
         setUser(res.data);
         
-        // Redirect after successful verification
-        if (redirectUrl) {
+        // Redirect to onboarding if not already completed
+        if (!res.data.hasCompletedOnboarding) {
+          router.replace(ROUTES.AUTH.ONBOARDING);
+        } else if (redirectUrl) {
           router.replace(redirectUrl);
         } else {
           router.replace('/');

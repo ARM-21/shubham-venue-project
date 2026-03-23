@@ -70,31 +70,60 @@ export async function updateUserProfile(req, res) {
       });
     }
 
-    // Validate input
-    const { first_name, last_name, phone } = req.body;
+    // Validate input (support both camelCase and snake_case)
+    const { first_name, last_name, firstName, lastName, phone, city, preferredEventTypes, hasCompletedOnboarding } = req.body;
+    
+    const fname = first_name || firstName;
+    const lname = last_name || lastName;
 
-    if (!first_name || !last_name) {
+    if (!fname || !lname) {
       return res.status(400).json({
         success: false,
         message: 'First name and last name are required',
       });
     }
 
-    if (first_name.length < 2 || last_name.length < 2) {
+    if (fname.length < 2 || lname.length < 2) {
       return res.status(400).json({
         success: false,
         message: 'First name and last name must be at least 2 characters',
       });
     }
 
-    if (phone && !/^[0-9]{10}$/.test(phone)) {
+    if (phone && !/^[0-9\-\s+()]{10,15}$/.test(phone.replace(/\s/g, ''))) {
       return res.status(400).json({
         success: false,
-        message: 'Phone number must be exactly 10 digits',
+        message: 'Phone number must be valid (10-15 digits)',
       });
     }
 
-    const updatedUser = await updateUserProfileService(userId, req.body);
+    if (city && typeof city !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'City must be a valid string',
+      });
+    }
+
+    if (preferredEventTypes && !Array.isArray(preferredEventTypes)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Preferred event types must be an array',
+      });
+    }
+
+    // Build update data
+    const updateData = {
+      first_name: fname,
+      last_name: lname,
+      firstName: fname,
+      lastName: lname,
+      phone,
+      ...(city && { city }),
+      ...(preferredEventTypes && { preferredEventTypes }),
+      ...(typeof hasCompletedOnboarding === 'boolean' && { hasCompletedOnboarding })
+    };
+
+    const updatedUser = await updateUserProfileService(userId, updateData);
 
     return res.status(200).json({
       success: true,

@@ -159,7 +159,7 @@ export default function Venue() {
   const submitBooking = (values) => {
     const serverSlot = values.slot === 'day' ? 'wholeday' : values.slot;
     const params = new URLSearchParams({ date: values.date, slot: serverSlot, guests: String(Number(values.guests)) });
-    router.push(`${ROUTES.SITE.SEARCH_AVAILABILITY(venueSlug)}?${params.toString()}`);
+    router.push(`${ROUTES.SITE.VENUE_BOOK(venueSlug)}?${params.toString()}`);
   };
 
   const getAmenityIcon = (amenity) => {

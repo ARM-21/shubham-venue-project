@@ -33,6 +33,7 @@ export async function middleware(request) {
   const { pathname, search } = request.nextUrl;
   const isAdminRoute = pathname.startsWith(ROUTES.ADMIN.ROOT);
   const isAuthRoute = pathname.startsWith(ROUTES.AUTH.ROOT);
+  const isOnboardingRoute = pathname === ROUTES.AUTH.ONBOARDING;
 
   const sessionCookie = getSessionCookie(request);
   const hasSession = Boolean(sessionCookie?.value);
@@ -41,6 +42,24 @@ export async function middleware(request) {
   const role = user?.role?.toLowerCase?.();
   const isAdmin = role === "admin";
   const isLoggedIn = Boolean(user);
+
+  // Handle Onboarding Route
+  if (isOnboardingRoute) {
+    // User must be logged in
+    if (!isLoggedIn) {
+      const loginUrl = new URL(ROUTES.AUTH.LOGIN, request.url);
+      loginUrl.searchParams.set("redirect", pathname + search);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // User must not have completed onboarding
+    if (user?.hasCompletedOnboarding) {
+      const homeUrl = new URL(ROUTES.HOME, request.url);
+      return NextResponse.redirect(homeUrl);
+    }
+
+    return NextResponse.next();
+  }
 
   if (isAdminRoute) {
     // Require a session cookie for admin pages in all cases.
@@ -66,6 +85,12 @@ export async function middleware(request) {
   }
 
   if (isAuthRoute && isLoggedIn) {
+    // If user hasn't completed onboarding, send them there
+    if (!user?.hasCompletedOnboarding) {
+      const onboardingUrl = new URL(ROUTES.AUTH.ONBOARDING, request.url);
+      return NextResponse.redirect(onboardingUrl);
+    }
+    
     const target = isAdmin ? ROUTES.ADMIN.DASHBOARD : ROUTES.HOME;
     const redirectUrl = new URL(target, request.url);
     return NextResponse.redirect(redirectUrl);
