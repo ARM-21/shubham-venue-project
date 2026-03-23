@@ -7,6 +7,10 @@ import toast from "react-hot-toast";
 import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
 import { useAuth } from "contexts/AuthProvider";
+import { EventHero } from "./components/EventHero";
+import { EventDetails } from "./components/EventDetails";
+import { TicketsSection } from "./components/TicketsSection";
+import { VenueInfo } from "./components/VenueInfo";
 
 const PLACEHOLDER_IMAGE = "/assets/business-images/placeholder.jpg";
 
@@ -38,6 +42,7 @@ export default function EventDetailPage() {
   const [needsAccessCode, setNeedsAccessCode] = useState(false);
   const [submitting, setSubmitting] = useState(null);
   const [gatewayTicketId, setGatewayTicketId] = useState(null);
+  const [selectedPaymentGateway, setSelectedPaymentGateway] = useState(null);
 
   const redirectToEsewa = (paymentUrl, payload) => {
     const form = document.createElement("form");
@@ -134,19 +139,25 @@ export default function EventDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#fdfbf7] px-4 py-10">
-        <div className="max-w-5xl mx-auto bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-600">
-          Loading event...
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#3a1224]">
+        <div className="w-12 h-12 border-4 border-[#C0A04C] border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-[#C0A04C] font-black text-[10px] uppercase tracking-[0.4em]">Loading event</p>
       </div>
     );
   }
 
   if (!event) {
     return (
-      <div className="min-h-screen bg-[#fdfbf7] px-4 py-10">
-        <div className="max-w-5xl mx-auto bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-600">
-          {error || "Event not found."}
+      <div className="min-h-screen bg-[#FDFCFB] flex flex-col items-center justify-center px-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-black text-[#3a1224] uppercase tracking-tight mb-3">Event Not Found</h2>
+          <p className="text-gray-600 mb-6">{error || "This event is no longer available."}</p>
+          <button
+            onClick={() => router.push(ROUTES.SITE.EVENTS)}
+            className="px-6 py-3 bg-[#3a1224] text-white font-black uppercase tracking-wider rounded-lg hover:bg-[#C0A04C] hover:text-[#3a1224] transition"
+          >
+            Back to Events
+          </button>
         </div>
       </div>
     );
@@ -161,162 +172,78 @@ export default function EventDetailPage() {
   const eventEnded = event.endDateTime ? new Date(event.endDateTime).getTime() < Date.now() : false;
 
   return (
-    <main className="min-h-screen bg-[#fdfbf7]">
-      <section className="relative">
-        <div className="relative h-64 md:h-80 w-full">
-          <Image src={banner} alt={event.name || "Event"} fill className="object-cover" priority />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-          <div className="absolute bottom-6 left-6 text-white">
-            <p className="text-xs uppercase tracking-[0.3em] text-white/70">{event.type || "Event"}</p>
-            <h1 className="text-3xl md:text-4xl font-bold mt-2">{event.name}</h1>
-            <p className="text-sm text-white/80 mt-2">
-              {hallName} · {formatDateTime(event.startDateTime)}
-            </p>
-          </div>
-        </div>
-      </section>
+    <main className="min-h-screen bg-[#fdfaf6]/50 relative selection:bg-[#C0A04C]/30 overflow-x-hidden">
+      {/* Background effects */}
+      <div className="fixed inset-0 pointer-events-none opacity-30 z-0">
+        <div className="absolute top-0 right-[-10%] w-[40%] h-[40%] bg-[#C0A04C]/5 blur-[120px] rounded-full" />
+        <div className="absolute bottom-0 left-[-10%] w-[40%] h-[40%] bg-[#3a1224]/5 blur-[120px] rounded-full" />
+      </div>
+      <div className="absolute top-0 left-0 w-full h-[800px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/70 to-transparent pointer-events-none z-0" />
 
-      <section className="max-w-5xl mx-auto px-4 py-10 space-y-6">
+      {/* Event Hero with Banner */}
+      <div className="relative z-10">
+        <EventHero event={event} banner={event.bannerUrl || PLACEHOLDER_IMAGE} />
+      </div>
+
+      <div className="relative z-10 max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 pb-8 lg:pb-12 pt-8 lg:pt-12">
         {error ? (
-          <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-lg text-sm">{error}</div>
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-sm font-bold uppercase tracking-wider">
+            {error}
+          </div>
         ) : null}
 
         {needsAccessCode ? (
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-gray-900">Access code required</h2>
-            <p className="text-sm text-gray-600 mt-2">Enter the event access code to view details.</p>
-            <div className="mt-4 flex flex-col sm:flex-row gap-3">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(58,18,36,0.06)] border border-[#3a1224]/5 p-10 md:p-14">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-8 h-[1px] bg-[#C0A04C]" />
+                <span className="text-[11px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Restricted Event</span>
+              </div>
+              <h2 className="text-3xl font-display font-bold text-[#3a1224] mb-3 tracking-tight">🔒 Access Code Required</h2>
+              <p className="text-[#3a1224]/60 font-medium mb-8">This is a private event. Please enter the access code to view details and purchase tickets.</p>
+              
               <input
+                type="text"
                 value={accessCode}
                 onChange={(e) => setAccessCode(e.target.value)}
-                placeholder="Enter access code"
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                placeholder="Enter event access code"
+                className="w-full bg-[#3a1224]/3 border border-[#3a1224]/10 text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm mb-6 font-medium"
               />
               <button
                 onClick={() => fetchEvent(accessCode.trim())}
-                className="px-4 py-2 rounded-lg bg-[#9e1c3f] text-white text-sm font-semibold"
+                className="w-full py-4 rounded-xl bg-[#3a1224] text-white font-black uppercase tracking-wider hover:bg-[#C0A04C] hover:text-[#3a1224] transition duration-300"
               >
-                Unlock event
+                Unlock Event
               </button>
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="space-y-12 lg:space-y-16">
+            {/* Event Details Section */}
+            <EventDetails 
+              event={event} 
+              formatDateTime={formatDateTime}
+              hallName={event.hallId?.name || "Venue"}
+            />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-gray-900">Event details</h2>
-            <p className="text-sm text-gray-600 mt-3">{event.description || "No description provided."}</p>
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-700">
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <p className="text-xs text-gray-500 uppercase">Start</p>
-                <p className="font-semibold">{formatDateTime(event.startDateTime)}</p>
-              </div>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <p className="text-xs text-gray-500 uppercase">End</p>
-                <p className="font-semibold">{formatDateTime(event.endDateTime)}</p>
-              </div>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <p className="text-xs text-gray-500 uppercase">Venue</p>
-                <p className="font-semibold">{hallName}</p>
-              </div>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <p className="text-xs text-gray-500 uppercase">Access</p>
-                <p className="font-semibold">{event.isPublic ? "Public" : "Private"}</p>
-              </div>
-            </div>
-            {event.hallId?.slug ? (
-              <button
-                onClick={() => router.push(ROUTES.SITE.VENUES(event.hallId.slug))}
-                className="mt-4 text-sm text-[#6b1f3a] font-semibold hover:underline"
-              >
-                View venue details
-              </button>
-            ) : null}
-          </div>
+            {/* Venue Information */}
+            <VenueInfo venue={event.hallId} />
 
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-gray-900">Tickets</h2>
-            <p className="text-sm text-gray-600 mt-2">Choose your ticket type.</p>
-            {eventEnded ? (
-              <div className="mt-3 text-xs text-red-600">Ticket sales closed. This event has ended.</div>
-            ) : null}
-            <div className="mt-4 space-y-3">
-              {remainingTypes.length ? (
-                remainingTypes.map((type) => {
-                  const soldOut = type.remaining <= 0;
-                  const isPaid = Number(type.price || 0) > 0;
-                  const showGateway = gatewayTicketId === type._id && !soldOut && !eventEnded && isPaid;
-                  const priceLabel = Number(type.price || 0) > 0 ? `NPR ${Number(type.price || 0).toLocaleString()}` : "Free";
-                  return (
-                    <div key={type._id} className="border border-gray-200 rounded-lg p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-gray-900">{type.name}</p>
-                          <p className="text-xs text-gray-500">{priceLabel}</p>
-                          <p className="text-xs text-gray-500">Remaining: {type.remaining}</p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            if (soldOut || eventEnded || submitting === type._id) return;
-                            if (isPaid) {
-                              setGatewayTicketId(type._id);
-                              return;
-                            }
-                            handleBuyTicket(type._id);
-                          }}
-                          disabled={soldOut || eventEnded || submitting === type._id}
-                          className={`px-3 py-2 rounded-lg text-xs font-semibold ${
-                            soldOut || eventEnded
-                              ? "bg-gray-200 text-gray-500"
-                              : "bg-[#9e1c3f] text-white hover:bg-[#b32346]"
-                          }`}
-                        >
-                          {eventEnded
-                            ? "Event ended"
-                            : soldOut
-                            ? "Sold out"
-                            : submitting === type._id
-                            ? "Processing..."
-                            : isPaid
-                            ? "Buy ticket"
-                            : "Get ticket"}
-                        </button>
-                      </div>
-                      {showGateway ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <button
-                            onClick={() => handleBuyTicket(type._id, "ESEWA")}
-                            disabled={submitting === type._id}
-                            className="px-3 py-2 rounded-lg text-xs font-semibold bg-[#0f6a37] text-white hover:bg-[#0b552d]"
-                          >
-                            Pay via eSewa
-                          </button>
-                          <button
-                            onClick={() => handleBuyTicket(type._id, "KHALTI")}
-                            disabled={submitting === type._id}
-                            className="px-3 py-2 rounded-lg text-xs font-semibold bg-[#5b2a86] text-white hover:bg-[#4a226f]"
-                          >
-                            Pay via Khalti
-                          </button>
-                          <button
-                            onClick={() => setGatewayTicketId(null)}
-                            disabled={submitting === type._id}
-                            className="px-3 py-2 rounded-lg text-xs font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="text-sm text-gray-500">No ticket types available yet.</div>
-              )}
-            </div>
+            {/* Tickets Section */}
+            <TicketsSection 
+              ticketTypes={ticketTypes}
+              onBuyTicket={handleBuyTicket}
+              eventEnded={eventEnded}
+              submitting={submitting}
+              onSelectPaymentGateway={setGatewayTicketId}
+              selectedPaymentGateway={gatewayTicketId}
+              eventCapacity={event.hallId?.capacity || 0}
+              totalSold={ticketTypes.reduce((sum, t) => sum + (t.quantitySold || 0), 0)}
+            />
           </div>
-        </div>
-      </section>
+        )}
+      </div>
     </main>
+
   );
 }

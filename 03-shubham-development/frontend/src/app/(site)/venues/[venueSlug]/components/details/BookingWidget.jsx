@@ -1,7 +1,9 @@
 "use client";
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Sparkles, Thermometer, Music, ArrowRight, Phone, Download, Share2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, Phone, Download, Share2 } from 'lucide-react';
+import axiosInstance from 'lib/axios';
+import { ROUTES } from 'config/routes';
 
 export const BookingWidget = ({ 
   venueData, 
@@ -20,82 +22,144 @@ export const BookingWidget = ({
   handleSubmit, 
   submitBooking 
 }) => {
+  const [availableSlots, setAvailableSlots] = useState(['morning', 'wholeday']);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotError, setSlotError] = useState(null);
+
+  // Fetch available slots for selected date
+  useEffect(() => {
+    if (!date || !venueData?._id) {
+      setAvailableSlots(['morning', 'wholeday']);
+      return;
+    }
+
+    setSlotsLoading(true);
+    setSlotError(null);
+    const fetchAvailableSlots = async () => {
+      try {
+        const response = await axiosInstance.post(
+          ROUTES.API.HALLS.BY_ID_AVAILABILITY(venueData._id),
+          {
+            date,
+            slot: 'morning',
+            guests: guests || 50
+          }
+        );
+        
+        // Extract available slots from response - API returns availableSlots array
+        const slots = response.data?.availableSlots || response.data?.slots || ['morning', 'wholeday'];
+        setAvailableSlots(Array.isArray(slots) ? slots : ['morning', 'wholeday']);
+        setSlotError(null);
+        
+        // If current shift is not available, switch to first available
+        if (slots && !slots.includes(shift)) {
+          setValue('slot', slots[0] || 'morning');
+        }
+      } catch (err) {
+        console.error('Error fetching slots:', err?.response?.data || err?.message || err);
+        setSlotError(err?.response?.data?.message || err?.message || 'Failed to fetch slots');
+        setAvailableSlots(['morning', 'wholeday']);
+      } finally {
+        setSlotsLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchAvailableSlots, 300);
+    return () => clearTimeout(timeoutId);
+  }, [date, venueData?._id, guests, shift, setValue]);
+
+  const slotOptions = [
+    { id: 'morning', label: 'Morning (08:00-13:00)' },
+    { id: 'afternoon', label: 'Afternoon (13:00-17:00)' },
+    { id: 'evening', label: 'Evening (17:00-23:00)' },
+    { id: 'wholeday', label: 'Whole Day (08:00-23:00)' }
+  ];
+
   return (
-    <div className="sticky top-32">
+    <div className="sticky top-20 z-20">
       <motion.div 
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-none shadow-[0_50px_100px_rgba(58,18,36,0.08)] border border-[#3a1224]/5 overflow-hidden ring-1 ring-[#3a1224]/5"
+        className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(58,18,36,0.08)] border border-gray-200"
       >
-        {/* Pricing Reveal */}
-        <div className="bg-[#3a1224] p-10 text-center text-white relative overflow-hidden">
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#C0A04C]/40 blur-[60px] rounded-full" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#C0A04C]/20 blur-[60px] rounded-full" />
-          </div>
-          
-          <div className="relative z-10">
-            <p className="text-[#C0A04C] text-[10px] font-black tracking-[0.4em] uppercase mb-4 opacity-80">Initial Investment</p>
-            <div className="flex items-baseline justify-center gap-3">
-              <span className="text-5xl font-display font-bold tracking-tight">
-                {currencyFormatter.format(venueData.pricePerHour || 0)}
+        {/* Hall Description - New Section */}
+        <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-100">
+          <p className="text-xs sm:text-sm lg:text-base text-[#3a1224]/80 leading-relaxed font-light break-words">
+            {venueData?.description || 'Premium venue offering exceptional facilities for your special events with professional service and perfect ambiance.'}
+          </p>
+        </div>
+
+        {/* Pricing Section - Simplified */}
+        <div className="bg-gradient-to-r from-[#3a1224] to-[#3a1224]/95 p-4 sm:p-6 lg:p-8 text-white border-b border-[#3a1224]/50">
+          <div className="text-center">
+            <p className="text-[9px] sm:text-[10px] font-black tracking-[0.2em] sm:tracking-[0.3em] uppercase mb-3 opacity-80">Per Slot Price</p>
+            <div className="flex items-baseline justify-center gap-1 sm:gap-2 flex-wrap">
+              <span className="text-2xl sm:text-3xl lg:text-4xl font-display font-bold tracking-tight whitespace-nowrap">
+                {currencyFormatter.format(venueData?.pricePerHour || 0)}
               </span>
-              <span className="text-[11px] text-[#C0A04C] font-black tracking-[0.2em] uppercase">/ Slot</span>
+              <span className="text-[10px] sm:text-xs lg:text-sm text-white/70 whitespace-nowrap">/ Slot</span>
             </div>
-            <div className="mt-8 pt-6 border-t border-white/10 grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1 border-r border-white/10">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#C0A04C]">Capacity</span>
-                <span className="text-xs font-bold">{venueData.capacity} Pax</span>
+            <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-white/10 grid grid-cols-2 gap-3 sm:gap-4 text-[10px] sm:text-xs lg:text-sm">
+              <div>
+                <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] opacity-70">Capacity</span>
+                <p className="font-bold mt-1 truncate">{venueData?.capacity || '—'} Guests</p>
               </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#C0A04C]">Availability</span>
-                <span className="text-xs font-bold">Standard</span>
+              <div>
+                <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] opacity-70">Space</span>
+                <p className="font-bold mt-1 truncate">{venueData?.size || 'Premium'}</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="p-10">
-          <form className="space-y-10">
+        <div className="p-4 sm:p-6 lg:p-8">
+          <form className="space-y-6 sm:space-y-8">
             {/* Date Picker Section */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black text-[#3a1224] uppercase tracking-[0.3em]">1. Select Date</span>
+                <span className="text-xs sm:text-sm font-bold text-[#3a1224] uppercase tracking-wide">Select Date</span>
                 <div className="flex gap-1">
-                  <button onClick={(e) => { e.preventDefault(); prevMonth(); }} className="w-8 h-8 flex items-center justify-center hover:bg-[#3a1224] hover:text-white rounded-full transition-all border border-gray-100"><ChevronLeft className="w-4 h-4" /></button>
-                  <button onClick={(e) => { e.preventDefault(); nextMonth(); }} className="w-8 h-8 flex items-center justify-center hover:bg-[#3a1224] hover:text-white rounded-full transition-all border border-gray-100"><ChevronRight className="w-4 h-4" /></button>
+                  <button onClick={(e) => { e.preventDefault(); prevMonth(); }} className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center hover:bg-gray-100 rounded cursor-pointer transition-colors"><ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 text-[#3a1224]" /></button>
+                  <button onClick={(e) => { e.preventDefault(); nextMonth(); }} className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center hover:bg-gray-100 rounded cursor-pointer transition-colors"><ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-[#3a1224]" /></button>
                 </div>
               </div>
 
-              <div className="bg-[#fdfaf6]/80 p-6 rounded-[2rem] border border-[#3a1224]/5">
-                <div className="text-center text-[11px] font-black text-[#3a1224] mb-6 tracking-[0.2em] uppercase border-b border-[#3a1224]/5 pb-4">
-                  {displayMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+              <div className="bg-gray-50 p-2 sm:p-5 rounded-xl border border-gray-100">
+                <div className="text-center text-[11px] sm:text-sm font-bold text-[#3a1224] mb-1 sm:mb-3 uppercase tracking-wide">
+                  {displayMonth.toLocaleString('default', { month: 'short', year: 'numeric' })}
                 </div>
-                <div className="grid grid-cols-7 gap-2 text-[10px] font-black text-[#3a1224]/20 mb-4 text-center">
+                <div className="grid grid-cols-7 gap-0.5 sm:gap-1 text-[7px] sm:text-[9px] font-bold text-gray-400 mb-1 sm:mb-2 text-center">
                   {['S','M','T','W','T','F','S'].map((d, i) => <span key={i}>{d}</span>)}
                 </div>
-                <div className="grid grid-cols-7 gap-2">
+                <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
                   {generateCalendarDays(displayMonth).map((dt, idx) => {
                     if (!dt) return <div key={idx} />;
-                    const iso = dt.toISOString().split('T')[0];
-                    const isPast = iso <= today;
+                    // Use local date formatting to avoid timezone issues
+                    const year = dt.getFullYear();
+                    const month = String(dt.getMonth() + 1).padStart(2, '0');
+                    const day = String(dt.getDate()).padStart(2, '0');
+                    const iso = `${year}-${month}-${day}`;
+                    const isFuture = iso > today;
                     const isBooked = occupiedDates.has(iso);
                     const isSelected = date === iso;
+
+                    // Only show future dates - skip today and all past dates
+                    if (!isFuture) return <div key={idx} />;
 
                     return (
                       <button
                         key={idx}
-                        disabled={isPast || isBooked}
+                        disabled={isBooked}
                         onClick={(e) => { e.preventDefault(); setValue('date', iso); }}
-                        className={`h-10 w-full rounded-xl text-xs font-bold transition-all relative group/day
-                          ${isSelected ? 'bg-[#3a1224] text-[#C0A04C] shadow-2xl scale-110 z-10' : 
-                            isPast ? 'text-gray-200 cursor-not-allowed' : 
-                            isBooked ? 'bg-red-50 text-red-200 cursor-not-allowed' : 
-                            'text-[#3a1224] hover:bg-white hover:shadow-xl hover:-translate-y-1'}
-                        `}
+                        className={`h-7 sm:h-8 w-full rounded-lg text-[11px] sm:text-xs font-bold transition-all ${
+                          isSelected 
+                            ? 'bg-[#3a1224] text-white shadow-sm cursor-pointer' 
+                            : isBooked 
+                            ? 'bg-red-50 text-red-300 cursor-not-allowed' 
+                            : 'text-[#3a1224] hover:bg-white hover:shadow-sm cursor-pointer'
+                        }`}
                       >
                         {dt.getDate()}
-                        {isSelected && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#C0A04C] rounded-full" />}
                       </button>
                     );
                   })}
@@ -103,76 +167,81 @@ export const BookingWidget = ({
               </div>
             </div>
 
-            {/* Shift Selector */}
-            <div className="space-y-6">
-              <span className="text-[10px] font-black text-[#3a1224] uppercase tracking-[0.3em]">2. Select Shift</span>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { id: 'morning', label: 'Morning', icon: Sparkles },
-                  { id: 'day', label: 'Wholeday', icon: Thermometer },
-                  { id: 'evening', label: 'Evening', icon: Music }
-                ].map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={(e) => { e.preventDefault(); setValue('slot', s.id); }}
-                    className={`flex flex-col items-center py-5 rounded-xl border transition-all duration-500 ${shift === s.id ? 'bg-[#3a1224] border-[#3a1224] text-[#C0A04C] shadow-2xl -translate-y-1' : 'bg-white border-gray-100 text-[#3a1224]/40 hover:border-[#C0A04C]/30'}`}
-                  >
-                    <s.icon className={`w-5 h-5 mb-2 transition-all ${shift === s.id ? 'scale-110' : 'opacity-40'}`} />
-                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">{s.label}</span>
-                  </button>
-                ))}
+            {/* Shift Selector - Data Driven */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-[#3a1224] uppercase tracking-wide">Select Slot</span>
+                {slotsLoading && <span className="text-[10px] text-[#C0A04C] animate-pulse">Loading...</span>}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+                {slotOptions.map((s) => {
+                  const isAvailable = availableSlots.includes(s.id);
+                  const isSelected = shift === s.id;
+                  
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={(e) => { e.preventDefault(); isAvailable && setValue('slot', s.id); }}
+                      disabled={!isAvailable}
+                      className={`py-2 sm:py-4 px-1 sm:px-3 rounded-lg border transition-all text-[10px] sm:text-sm font-bold uppercase tracking-tight sm:tracking-wide truncate ${
+                        isSelected
+                          ? 'bg-[#3a1224] border-[#3a1224] text-white shadow-sm cursor-pointer'
+                          : isAvailable
+                          ? 'bg-white border-gray-100 text-[#3a1224] hover:border-[#C0A04C]/30 cursor-pointer'
+                          : 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* Guest Counter */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-[#3a1224] uppercase tracking-[0.3em]">3. Guests</span>
-                <span className="text-lg font-bold text-[#3a1224] font-display">{guests} <span className="text-[10px] text-[#3a1224]/40 uppercase">Pax</span></span>
+                <span className="text-xs sm:text-sm font-bold text-[#3a1224] uppercase tracking-wide">Guests</span>
+                <span className="text-base sm:text-lg font-bold text-[#3a1224]">{guests} <span className="text-xs text-gray-400">pax</span></span>
               </div>
-              <div className="relative pt-2">
+              <div className="pt-1">
                 <input 
                   type="range" 
                   min="50" 
-                  max={venueData.capacity || 1000} 
+                  max={venueData?.capacity || 1000} 
                   step="10"
                   {...register('guests')}
-                  className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-[#3a1224]" 
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#3a1224]" 
                 />
-                <div className="flex justify-between mt-4 text-[9px] font-black text-[#3a1224]/30 uppercase tracking-[0.2em]">
-                  <span>50 Min</span>
-                  <span>{venueData.capacity} Max</span>
+                <div className="flex justify-between mt-3 text-[9px] font-bold text-gray-400 uppercase">
+                  <span>50</span>
+                  <span>{venueData?.capacity || 1000}</span>
                 </div>
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit Button - Simplified */}
             <button 
               onClick={(e) => { e.preventDefault(); handleSubmit(submitBooking)(e); }}
-              className="group relative w-full overflow-hidden rounded-xl"
+              className="w-full py-3 sm:py-4 bg-[#3a1224] hover:bg-[#3a1224]/90 text-white border border-[#C0A04C]/30 rounded-lg transition-all flex items-center justify-center gap-3 group cursor-pointer"
             >
-              <div className="absolute inset-0 bg-[#3a1224] transition-transform duration-500 group-hover:scale-105" />
-              <div className="relative py-6 flex items-center justify-center gap-4 border border-[#C0A04C]/20">
-                <div className="flex flex-col items-start">
-                  <span className="text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.3em] leading-tight opacity-70">Check</span>
-                  <span className="text-md font-bold text-[#C0A04C] tracking-[0.1em] uppercase">See Availability</span>
-                </div>
-                <ArrowRight className="w-5 h-5 text-[#C0A04C] group-hover:translate-x-3 transition-transform duration-700" />
-              </div>
+              <span className="font-bold uppercase text-xs sm:text-sm tracking-wide">Check Availability</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </form>
 
-          <div className="mt-12 flex items-center justify-center gap-10 border-t border-gray-50 pt-10">
+          {/* Action Buttons */}
+          <div className="mt-8 sm:mt-10 flex items-center justify-around border-t border-gray-100 pt-6 sm:pt-8">
             {[
-              { icon: Phone, label: 'Call us' },
+              { icon: Phone, label: 'Call' },
               { icon: Download, label: 'Details' },
               { icon: Share2, label: 'Share' }
             ].map((item, i) => (
-              <button key={i} className="flex flex-col items-center gap-3 group" type="button">
-                <div className="w-12 h-12 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl flex items-center justify-center group-hover:bg-[#3a1224] transition-all duration-500 group-hover:shadow-lg">
-                  <item.icon className="w-4 h-4 text-[#3a1224] group-hover:text-[#C0A04C] transition-colors" />
+              <button key={i} className="flex flex-col items-center gap-2 sm:gap-3 group cursor-pointer" type="button">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gray-100 border border-gray-200 rounded-lg flex items-center justify-center group-hover:bg-[#3a1224] group-hover:border-[#3a1224] transition-all">
+                  <item.icon className="w-4 h-4 sm:w-5 sm:h-5 text-[#3a1224] group-hover:text-[#C0A04C] transition-colors" />
                 </div>
-                <span className="text-[9px] font-black text-[#3a1224]/30 uppercase tracking-[0.3em] group-hover:text-[#3a1224] transition-colors">{item.label}</span>
+                <span className="text-[8px] sm:text-xs font-bold text-gray-400 uppercase group-hover:text-[#3a1224] transition-colors">{item.label}</span>
               </button>
             ))}
           </div>

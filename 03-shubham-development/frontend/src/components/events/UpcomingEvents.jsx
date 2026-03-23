@@ -41,7 +41,7 @@ export default function UpcomingEvents() {
   }, []);
 
   return (
-    <div className="py-24 px-6 bg-[#FDFCFB]">
+    <div className="py-5 px-6 bg-[#FDFCFB]">
       <div className="max-w-8xl mx-auto">
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 mb-20">

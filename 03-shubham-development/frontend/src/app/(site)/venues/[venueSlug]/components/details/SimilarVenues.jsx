@@ -9,17 +9,17 @@ export const SimilarVenues = ({ similarVenues }) => {
   const router = useRouter();
 
   return (
-    <section className="mt-40 mb-20">
-      <div className="flex flex-col items-center text-center mb-16">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-[1px] bg-[#C0A04C]" />
-          <span className="text-[11px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Explore More</span>
-          <div className="w-12 h-[1px] bg-[#C0A04C]" />
+    <section className="mt-20 lg:mt-28 xl:mt-32 mb-10">
+      <div className="flex flex-col items-center text-center mb-16 lg:mb-20 xl:mb-24">
+        <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 flex-wrap justify-center">
+          <div className="w-6 sm:w-12 h-[1px] bg-[#C0A04C]" />
+          <span className="text-[10px] sm:text-[11px] font-black text-[#C0A04C] uppercase tracking-[0.3em] sm:tracking-[0.4em]">Explore More</span>
+          <div className="w-6 sm:w-12 h-[1px] bg-[#C0A04C]" />
         </div>
-        <h2 className="text-4xl font-display font-bold text-[#3a1224]">Similar Places</h2>
+        <h2 className="text-3xl sm:text-4xl font-display font-bold text-[#3a1224]">Similar Places</h2>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10 xl:gap-12">
         {similarVenues.length > 0 ? (
           similarVenues.map((venue, idx) => (
             <motion.div
