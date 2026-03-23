@@ -70,53 +70,124 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
   };
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Payment</h2>
+    <div className="space-y-6">
+      {/* Step Header */}
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-1 h-6 bg-[#C0A04C]"></div>
+        <div>
+          <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Step 4</p>
+          <h2 className="text-2xl font-display font-black text-[#3a1224]">Complete Your Payment</h2>
+          <p className="text-sm text-[#3a1224]/60 mt-1">Review your booking and choose a payment method</p>
+        </div>
+      </div>
 
-      {/* Payment method choice */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium mb-2">Payment Method</label>
-        <div className="space-y-2">
-          <label className="flex items-center">
+      {/* Order Review */}
+      <div className="bg-white/95 border border-[#3a1224]/5 rounded-3xl p-6 shadow-lg">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Event Details */}
+          <div className="space-y-3">
+            <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-4">Event Details</p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[#3a1224]/60">Event Date</span>
+              <span className="font-black text-[#3a1224]">{data?.eventDate || 'N/A'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[#3a1224]/60">Number of Guests</span>
+              <span className="font-black text-[#3a1224]">{data?.guests || 0}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[#3a1224]/60">Event Type</span>
+              <span className="font-black text-[#3a1224]">{data?.eventType || 'N/A'}</span>
+            </div>
+          </div>
+
+          {/* Booking Total */}
+          <div className="space-y-3">
+            <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-4">Cost Summary</p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[#3a1224]/60">Hall Booking</span>
+              <span className="font-black text-[#3a1224]">NPR {data?.hallPrice?.toLocaleString() || 0}</span>
+            </div>
+            {data?.menuTotal > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[#3a1224]/60">Menu Total</span>
+                <span className="font-black text-[#3a1224]">NPR {data?.menuTotal?.toLocaleString() || 0}</span>
+              </div>
+            )}
+            {data?.decorationTotal > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[#3a1224]/60">Decoration Total</span>
+                <span className="font-black text-[#3a1224]">NPR {data?.decorationTotal?.toLocaleString() || 0}</span>
+              </div>
+            )}
+            <div className="pt-3 border-t border-[#3a1224]/10 flex items-center justify-between">
+              <span className="font-black text-[#3a1224]">Total Amount</span>
+              <span className="text-2xl font-black text-[#C0A04C]">NPR {((data?.hallPrice || 0) + (data?.menuTotal || 0) + (data?.decorationTotal || 0)).toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment Method Selection */}
+      <div className="space-y-4">
+        <label className="block text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Payment Method</label>
+        <div className="space-y-3">
+          <label className="flex items-center p-4 border rounded-xl cursor-pointer transition-all duration-300 bg-white/95 border-[#3a1224]/5"
+            style={{
+              borderColor: paymentMethod === "ONLINE" ? '#C0A04C' : 'var(--default)',
+              backgroundColor: paymentMethod === "ONLINE" ? '#C0A04C' : '#ffffff'
+            }}>
             <input
               type="radio"
               value="ONLINE"
               checked={paymentMethod === "ONLINE"}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              className="mr-2"
+              className="w-5 h-5 text-[#C0A04C] border-[#3a1224]/10 rounded"
             />
-            Pay Online (Instant Confirmation)
+            <div className="ml-4">
+              <p className={`font-black ${paymentMethod === "ONLINE" ? 'text-[#3a1224]' : 'text-[#3a1224]'}`}>Pay Online</p>
+              <p className={`text-sm ${paymentMethod === "ONLINE" ? 'text-[#3a1224]/70' : 'text-[#3a1224]/60'}`}>Instant confirmation via Khalti or eSewa</p>
+            </div>
           </label>
-          <label className="flex items-center">
+          <label className="flex items-center p-4 border rounded-xl cursor-pointer transition-all duration-300 bg-white/95 border-[#3a1224]/5"
+            style={{
+              borderColor: paymentMethod === "CASH" ? '#C0A04C' : 'var(--default)',
+              backgroundColor: paymentMethod === "CASH" ? '#C0A04C' : '#ffffff'
+            }}>
             <input
               type="radio"
               value="CASH"
               checked={paymentMethod === "CASH"}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              className="mr-2"
+              className="w-5 h-5 text-[#C0A04C] border-[#3a1224]/10 rounded"
             />
-            Cash on Arrival (Admin Approval Required)
+            <div className="ml-4">
+              <p className={`font-black ${paymentMethod === "CASH" ? 'text-[#3a1224]' : 'text-[#3a1224]'}`}>Cash on Arrival</p>
+              <p className={`text-sm ${paymentMethod === "CASH" ? 'text-[#3a1224]/70' : 'text-[#3a1224]/60'}`}>Requires admin approval</p>
+            </div>
           </label>
         </div>
       </div>
 
       {/* Gateway selection (only if online) */}
       {paymentMethod === "ONLINE" && (
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">Select Gateway</label>
+        <div className="space-y-4">
+          <label className="block text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Select Payment Gateway</label>
           <div className="flex gap-4">
             <button
+              type="button"
               onClick={() => setGateway("KHALTI")}
-              className={`px-4 py-2 border rounded transition-colors ${
-                gateway === "KHALTI" ? "bg-[#66213f] text-white border-[#66213f]" : "bg-white hover:border-[#66213f]"
+              className={`flex-1 h-12 px-6 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all duration-300 cursor-pointer border ${
+                gateway === "KHALTI" ? "bg-[#3a1224] text-[#C0A04C] border-[#3a1224]" : "bg-white/95 text-[#3a1224] border-[#3a1224]/10 hover:border-[#3a1224]/20"
               }`}
             >
               Khalti
             </button>
             <button
+              type="button"
               onClick={() => setGateway("ESEWA")}
-              className={`px-4 py-2 border rounded transition-colors ${
-                gateway === "ESEWA" ? "bg-[#66213f] text-white border-[#66213f]" : "bg-white hover:border-[#66213f]"
+              className={`flex-1 h-12 px-6 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all duration-300 cursor-pointer border ${
+                gateway === "ESEWA" ? "bg-[#3a1224] text-[#C0A04C] border-[#3a1224]" : "bg-white/95 text-[#3a1224] border-[#3a1224]/10 hover:border-[#3a1224]/20"
               }`}
             >
               eSewa
@@ -126,18 +197,18 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
       )}
 
       {/* Action buttons */}
-      <div className="flex justify-between mt-6">
+      <div className="flex gap-4 pt-6">
         <button
           onClick={onPrev}
           disabled={isSubmitting}
-          className="px-6 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-60"
+          className="flex-1 h-12 px-6 border border-[#3a1224]/10 text-[#3a1224] font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-60"
         >
-          Back
+          ← Back
         </button>
         <button
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className="px-6 py-2 bg-[#66213f] text-white rounded hover:bg-[#4f1831] disabled:opacity-60"
+          className="flex-1 h-12 px-6 bg-[#3a1224] text-[#C0A04C] font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-[#4a172d] transition-colors shadow-lg cursor-pointer disabled:opacity-60"
         >
           {isSubmitting
             ? "Processing..."

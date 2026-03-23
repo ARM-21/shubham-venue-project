@@ -20,18 +20,16 @@ export default function OrganizerLayout({ children }) {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-[#8B0000] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[#fdfaf6]">
+        <div className="w-12 h-12 border-4 border-[#3a1224] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#fdfaf6]">
-      <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row min-h-screen">
-        <OrganizerNav user={user} />
-        <section className="flex-1 px-6 sm:px-10 py-12 lg:py-20 overflow-hidden">{children}</section>
-      </div>
+      <OrganizerNav user={user} />
+      <section className="flex-1 px-6 sm:px-8 pt-8 pb-20">{children}</section>
     </div>
   );
 }

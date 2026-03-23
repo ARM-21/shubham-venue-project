@@ -11,12 +11,17 @@ import Step2MenuSelection from './steps/Step2MenuSelection';
 import Step3Decorations from './steps/Step3Decorations';
 import BookingSummary from './BookingSummary';
 import Step4Payment from './steps/Step4Payment';
+import BookingSuccess from './BookingSuccess';
+import StepAvailabilityConfirmation from './steps/StepAvailabilityConfirmation';
+import StepContactInfo from './steps/StepContactInfo';
+import StepBookingReview from './StepBookingReview';
 import { useAuth } from 'contexts/AuthProvider';
 
 export default function BookingFlow({ hall, initialDate, initialSlot, initialGuests }) {
   const router = useRouter();
   const { user } = useAuth();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [bookingSuccess, setBookingSuccess] = useState(null);
   const [bookingData, setBookingData] = useState({
     hallId: hall._id,
     hallSlug: hall.slug,
@@ -25,13 +30,26 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     slot: initialSlot,
     guests: initialGuests,
     bookingPurpose: 'customer',
+    // Contact Information
+    fullName: user?.fullName || '',
+    email: user?.email || '',
+    phone: '',
+    phoneVerified: false,
+    deliveryAddress: '',
+    city: '',
+    specialInstructions: '',
+    contactPreference: 'email',
+    saveAsDefault: false,
+    // Event Details
     eventType: '',
     eventName: '',
     specialRequirements: '',
+    // Menu
     menuMode: 'package',
     selectedPackage: null,
     selectedMenu: [],
     menuTotal: 0,
+    // Decoration
     decorationScheme: null,
     addons: [],
     decorationTotal: 0,
@@ -47,14 +65,19 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
   const steps = useMemo(() => {
     if (bookingData.bookingPurpose === 'organizer') {
       return [
+        { key: 'availability', title: 'Confirm Availability', description: 'Check slot availability' },
+        { key: 'contact', title: 'Contact Information', description: 'Your contact details' },
         { key: 'details', title: 'Event Details', description: 'Basic information' },
         { key: 'payment', title: 'Payment', description: 'Review & confirm' },
       ];
     }
     return [
+      { key: 'availability', title: 'Confirm Availability', description: 'Check slot availability' },
+      { key: 'contact', title: 'Contact Information', description: 'Your contact details' },
       { key: 'details', title: 'Event Details', description: 'Basic information' },
       { key: 'menu', title: 'Menu Selection', description: 'Choose your menu' },
       { key: 'decor', title: 'Decorations', description: 'Select theme & addons' },
+      { key: 'review', title: 'Review Booking', description: 'Final review' },
       { key: 'payment', title: 'Payment', description: 'Review & confirm' },
     ];
   }, [bookingData.bookingPurpose]);
@@ -155,6 +178,13 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     }
   };
 
+  const handleEditStep = (stepKey) => {
+    const stepIndex = steps.findIndex(s => s.key === stepKey);
+    if (stepIndex !== -1) {
+      setCurrentStepIndex(stepIndex);
+    }
+  };
+
   const prevStep = () => {
     // If going back from Step 4, release reservation
     if (currentStepKey === 'payment' && reservationId) {
@@ -190,106 +220,146 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4">
-      {/* Show countdown only in Step 4 (thinking of using temporary reservation during payment) */}
-      {currentStepKey === 'payment' && isReserved && timeLeft && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 animate-pulse">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-sm text-yellow-800 font-medium">
-                Complete payment within:
-              </span>
-            </div>
-            <span className="text-2xl font-bold text-red-600">
-              {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-            </span>
-          </div>
-          <p className="text-xs text-yellow-700 mt-2">
-            Hall is reserved for you. Complete payment to confirm booking.
-          </p>
-        </div>
+    <div className="max-w-6xl mx-auto px-6 sm:px-8">
+      {/* Show Success Page */}
+      {bookingSuccess && (
+        <BookingSuccess bookingReference={bookingSuccess} />
       )}
 
-      {/* Progress Indicator */}
-      {isOrganizerEligible && currentStepIndex === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-          <p className="text-sm font-semibold text-gray-700 mb-3">Booking Type</p>
-          <div className="flex flex-col md:flex-row gap-3">
-            <button
-              type="button"
-              onClick={() => handlePurposeChange('customer')}
-              className={`flex-1 px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${
-                bookingData.bookingPurpose === 'customer'
-                  ? 'bg-[#66213f] text-white border-[#66213f]'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-[#66213f]'
-              }`}
-            >
-              Personal Booking
-            </button>
-            <button
-              type="button"
-              onClick={() => handlePurposeChange('organizer')}
-              className={`flex-1 px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${
-                bookingData.bookingPurpose === 'organizer'
-                  ? 'bg-[#66213f] text-white border-[#66213f]'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-[#66213f]'
-              }`}
-            >
-              Organizer Booking
-            </button>
+      {!bookingSuccess && (
+        <>
+          {/* Reservation Timer */}
+          {currentStepKey === 'payment' && isReserved && timeLeft && (
+            <div className="mb-8 p-6 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Time remaining</p>
+                  <p className="text-sm text-amber-700 font-medium">Complete payment to secure booking</p>
+                </div>
+              </div>
+              <div className="text-3xl font-display font-bold text-amber-600 tabular-nums">
+                {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+              </div>
+            </div>
+          )}
+
+          {/* Booking Type Selector */}
+          {isOrganizerEligible && currentStepIndex === 0 && (
+            <div className="mb-8 bg-white/95 rounded-3xl shadow-lg border border-[#3a1224]/5 p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-1 h-6 bg-[#C0A04C]" />
+                <span className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Booking Type</span>
+              </div>
+              <p className="text-lg font-display font-bold text-[#3a1224] mb-6">Select booking type</p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { value: 'customer', label: 'Personal Booking', desc: 'With menu & decoration' },
+                  { value: 'organizer', label: 'Organizer Event', desc: 'Direct event creation' }
+                ].map((type) => (
+                  <button
+                    key={type.value}
+                    onClick={() => handlePurposeChange(type.value)}
+                    className={`p-6 rounded-2xl border-2 transition-all text-left cursor-pointer ${
+                      bookingData.bookingPurpose === type.value
+                        ? 'bg-[#3a1224] border-[#3a1224] text-white'
+                        : 'bg-white border-[#3a1224]/10 hover:border-[#C0A04C]/30 text-[#3a1224]'
+                    }`}
+                  >
+                    <p className="font-black text-sm uppercase tracking-widest">{type.label}</p>
+                    <p className={`text-[11px] mt-2 ${bookingData.bookingPurpose === type.value ? 'text-white/70' : 'text-[#3a1224]/60'}`}>
+                      {type.desc}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step Indicator */}
+          <StepIndicator currentStep={currentStep} steps={steps} />
+
+          {/* Booking Summary Card */}
+          <BookingSummary
+            hall={hall}
+            bookingData={bookingData}
+            calculateTotal={calculateTotal}
+          />
+
+          {/* Step Content */}
+          <div className="bg-white/95 rounded-3xl shadow-lg border border-[#3a1224]/5 p-10 mb-8">
+            {currentStepKey === 'availability' && (
+              <StepAvailabilityConfirmation
+                hallId={hall._id}
+                selectedDate={bookingData.date}
+                selectedSlot={bookingData.slot}
+                guestCount={bookingData.guests}
+                onConfirm={nextStep}
+                onPrevious={prevStep}
+              />
+            )}
+            {currentStepKey === 'contact' && (
+              <StepContactInfo
+                onNext={(contactData) => {
+                  updateBookingData(contactData);
+                  nextStep();
+                }}
+                onPrevious={prevStep}
+              />
+            )}
+            {currentStepKey === 'details' && (
+              <Step1EventDetails
+                data={bookingData}
+                onUpdate={updateBookingData}
+                onNext={nextStep}
+                onPrev={prevStep}
+                bookingPurpose={bookingData.bookingPurpose}
+              />
+            )}
+            {currentStepKey === 'menu' && (
+              <Step2MenuSelection
+                data={bookingData}
+                onUpdate={updateBookingData}
+                onNext={nextStep}
+                onPrev={prevStep}
+              />
+            )}
+            {currentStepKey === 'decor' && (
+              <Step3Decorations
+                data={bookingData}
+                onUpdate={updateBookingData}
+                onNext={nextStep}
+                onPrev={prevStep}
+              />
+            )}
+            {currentStepKey === 'review' && (
+              <StepBookingReview
+                bookingData={bookingData}
+                selectedHall={hall}
+                onNext={nextStep}
+                onPrevious={prevStep}
+                onEditStep={handleEditStep}
+              />
+            )}
+            {currentStepKey === 'payment' && (
+              <Step4Payment
+                data={bookingData}
+                reservationId={reservationId}
+                onUpdate={updateBookingData}
+                onNext={(bookingRef) => {
+                  setBookingSuccess(bookingRef);
+                }}
+                onPrev={prevStep}
+              />
+            )}
           </div>
-          <p className="text-xs text-gray-500 mt-2">Organizer booking skips menu and decoration selection.</p>
-        </div>
-      ) : null}
-
-      <StepIndicator currentStep={currentStep} steps={steps} />
-
-      {/* Booking Summary Card */}
-
-      <BookingSummary
-        hall={hall}
-        bookingData={bookingData}
-        calculateTotal={calculateTotal}
-      />
-      {/* Step Content */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        {currentStepKey === 'details' && (
-          <Step1EventDetails
-            data={bookingData}
-            onUpdate={updateBookingData}
-            onNext={nextStep}
-            bookingPurpose={bookingData.bookingPurpose}
-          />
-        )}
-        {currentStepKey === 'menu' && (
-          <Step2MenuSelection
-            data={bookingData}
-            onUpdate={updateBookingData}
-            onNext={nextStep}
-            onPrev={prevStep}
-          />
-        )}
-        {currentStepKey === 'decor' && (
-          <Step3Decorations
-            data={bookingData}
-            onUpdate={updateBookingData}
-            onNext={nextStep}
-            onPrev={prevStep}
-          />
-        )}
-        {currentStepKey === 'payment' && (
-          <Step4Payment
-            data={bookingData}
-            reservationId={reservationId}
-            onUpdate={updateBookingData}
-            onNext={nextStep}
-            onPrev={prevStep}
-          />
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }
