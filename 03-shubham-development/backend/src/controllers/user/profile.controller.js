@@ -71,22 +71,34 @@ export async function updateUserProfile(req, res) {
     }
 
     // Validate input (support both camelCase and snake_case)
-    const { first_name, last_name, firstName, lastName, phone, city, preferredEventTypes, hasCompletedOnboarding } = req.body;
+    const { 
+      first_name, last_name, firstName, lastName, phone, city, preferredEventTypes, hasCompletedOnboarding,
+      // Organizer details (nested)
+      organizerDetails
+    } = req.body;
     
     const fname = first_name || firstName;
     const lname = last_name || lastName;
 
-    if (!fname || !lname) {
+    // Only require name if explicitly being updated (not just organizer details)
+    if ((fname || lname) && (!fname || !lname)) {
       return res.status(400).json({
         success: false,
-        message: 'First name and last name are required',
+        message: 'Both first name and last name are required when updating name',
       });
     }
 
-    if (fname.length < 2 || lname.length < 2) {
+    if (fname && fname.length < 2) {
       return res.status(400).json({
         success: false,
-        message: 'First name and last name must be at least 2 characters',
+        message: 'First name must be at least 2 characters',
+      });
+    }
+
+    if (lname && lname.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Last name must be at least 2 characters',
       });
     }
 
@@ -111,16 +123,65 @@ export async function updateUserProfile(req, res) {
       });
     }
 
+    // Get current user to check eligibility
+    const user = await User.findById(req.currentUser._id);
+    
+    // Validate organizer details if provided
+    if (organizerDetails) {
+      if (!user.isOrganizerEligible) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only eligible organizers can set organizer details',
+        });
+      }
+
+      // Validate organizer fields
+      if (organizerDetails.bankAccount && !/^[0-9]{8,17}$/.test(String(organizerDetails.bankAccount))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Bank account must be 8-17 digits',
+        });
+      }
+
+      if (organizerDetails.taxId && typeof organizerDetails.taxId !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'Tax ID must be a valid string',
+        });
+      }
+
+      if (organizerDetails.accountHolder && typeof organizerDetails.accountHolder !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'Account holder must be a valid string',
+        });
+      }
+    }
+
     // Build update data
     const updateData = {
-      first_name: fname,
-      last_name: lname,
-      firstName: fname,
-      lastName: lname,
-      phone,
+      // Only include name fields if provided
+      ...(fname && { first_name: fname, firstName: fname }),
+      ...(lname && { last_name: lname, lastName: lname }),
+      ...(phone && { phone }),
       ...(city && { city }),
       ...(preferredEventTypes && { preferredEventTypes }),
-      ...(typeof hasCompletedOnboarding === 'boolean' && { hasCompletedOnboarding })
+      ...(typeof hasCompletedOnboarding === 'boolean' && { hasCompletedOnboarding }),
+      // Organizer details (only if eligible)
+      ...(user.isOrganizerEligible && organizerDetails ? { 
+        organizerDetails: {
+          // Preserve existing values and merge with new ones
+          ...user.organizerDetails,
+          // Update with new values only if provided
+          ...(organizerDetails.taxId !== undefined && { taxId: organizerDetails.taxId ? String(organizerDetails.taxId).trim() : undefined }),
+          ...(organizerDetails.bankCode !== undefined && { bankCode: organizerDetails.bankCode ? String(organizerDetails.bankCode).trim() : undefined }),
+          ...(organizerDetails.bankAccount !== undefined && { bankAccount: organizerDetails.bankAccount ? String(organizerDetails.bankAccount).trim() : undefined }),
+          ...(organizerDetails.accountHolder !== undefined && { accountHolder: organizerDetails.accountHolder ? String(organizerDetails.accountHolder).trim() : undefined }),
+          ...(typeof organizerDetails.notificationsEmail === 'boolean' && { notificationsEmail: organizerDetails.notificationsEmail }),
+          ...(typeof organizerDetails.notificationsSms === 'boolean' && { notificationsSms: organizerDetails.notificationsSms }),
+          ...(typeof organizerDetails.notificationsEventUpdates === 'boolean' && { notificationsEventUpdates: organizerDetails.notificationsEventUpdates })
+        }
+      } : (!user.isOrganizerEligible ? { organizerDetails: undefined } : {}))
     };
 
     const updatedUser = await updateUserProfileService(userId, updateData);

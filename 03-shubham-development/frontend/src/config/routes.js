@@ -2,8 +2,8 @@ export const ROUTES = {
   HOME: '/',
   AUTH: {
     ROOT: '/auth',
-    LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
+    LOGIN: '/auth',
+    REGISTER: '/auth',
     ONBOARDING: '/auth/onboarding',
   },
   ADMIN: {
@@ -60,6 +60,7 @@ export const ROUTES = {
       RESERVE_BY_ID: (id) => `/api/v1/bookings/reserve/${id}`,
       MINE: '/api/v1/bookings/my',
       INVOICE: (id) => `/api/v1/bookings/${id}/invoice`,
+      CHECK_AVAILABILITY: (hallId) => `/api/v1/halls/${hallId}/availability`,
     },
     MENUS: {
       ROOT: '/api/v1/menus',

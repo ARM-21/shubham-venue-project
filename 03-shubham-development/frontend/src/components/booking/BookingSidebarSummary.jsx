@@ -9,7 +9,8 @@ export default function BookingSidebarSummary({
   isCompactView = false
 }) {
   const total = calculateTotal();
-  const pricePerHour = Number(hall?.pricePerHour) || 0;
+  // Try multiple field names for hall price
+  const pricePerHour = Number(hall?.pricePerHour) || Number(hall?.price) || Number(hall?.costPerHour) || 0;
   const multiplier = (bookingData?.slot === 'wholeday') ? 15 : 5;
   const hallPrice = pricePerHour * multiplier;
 
@@ -38,7 +39,9 @@ export default function BookingSidebarSummary({
         <div className="space-y-2 bg-[#fdfaf6] rounded-xl p-4">
           <div className="flex items-center gap-2 text-sm text-[#3a1224]/70">
             <Calendar className="w-4 h-4 text-[#C0A04C] flex-shrink-0" />
-            <span>{new Date(bookingData.date).toLocaleDateString()}</span>
+            <span>
+              {bookingData.date ? (typeof bookingData.date === 'string' && bookingData.date.match(/^\d{4}-\d{2}-\d{2}$/) ? new Date(bookingData.date + 'T00:00:00').toLocaleDateString() : bookingData.date) : 'N/A'}
+            </span>
           </div>
           <div className="flex items-center gap-2 text-sm text-[#3a1224]/70">
             <Clock className="w-4 h-4 text-[#C0A04C] flex-shrink-0" />
@@ -95,7 +98,7 @@ export default function BookingSidebarSummary({
   return (
     <div className="sticky top-24 bg-white rounded-3xl p-8 border-2 border-[#3a1224]/10 shadow-lg space-y-6">
       {/* Venue Image */}
-      <div className="rounded-2xl overflow-hidden h-40 bg-gradient-to-br from-[#C0A04C]/20 to-[#3a1224]/20 group relative overflow-hidden">
+      <div className="rounded-2xl overflow-hidden h-40 bg-gradient-to-br from-[#C0A04C]/20 to-[#3a1224]/20 group relative">
         <img
           src={hall.images?.[0] || '/assets/business-images/placeholder.jpg'}
           alt={hall.name}
@@ -119,7 +122,7 @@ export default function BookingSidebarSummary({
             <div>
               <p className="text-xs font-black text-[#3a1224]/50 uppercase">Date</p>
               <p className="text-sm font-semibold text-[#3a1224]">
-                {new Date(bookingData.date).toLocaleDateString()}
+                {bookingData.date ? (typeof bookingData.date === 'string' && bookingData.date.match(/^\d{4}-\d{2}-\d{2}$/) ? new Date(bookingData.date + 'T00:00:00').toLocaleDateString() : bookingData.date) : 'N/A'}
               </p>
             </div>
           </div>
@@ -130,7 +133,7 @@ export default function BookingSidebarSummary({
             <div>
               <p className="text-xs font-black text-[#3a1224]/50 uppercase">Slot</p>
               <p className="text-sm font-semibold text-[#3a1224]">
-                {bookingData.slot === 'wholeday' ? '24h' : bookingData.slot}
+                {bookingData.slot === 'wholeday' ? '24h' : bookingData.slot || 'N/A'}
               </p>
             </div>
           </div>
@@ -141,7 +144,7 @@ export default function BookingSidebarSummary({
               </div>
               <div>
                 <p className="text-xs font-black text-[#3a1224]/50 uppercase">Guests</p>
-                <p className="text-sm font-semibold text-[#3a1224]">{bookingData.guests} Person{bookingData.guests !== 1 ? 's' : ''}</p>
+                <p className="text-sm font-semibold text-[#3a1224]">{bookingData.guests || 'N/A'} Person{bookingData.guests !== 1 ? 's' : ''}</p>
               </div>
             </div>
           </div>

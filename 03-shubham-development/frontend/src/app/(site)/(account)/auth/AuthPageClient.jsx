@@ -68,7 +68,7 @@ export default function AuthPageClient({ redirect }) {
   return (
     <div className="min-h-screen bg-[#fdfaf6] relative selection:bg-[#C0A04C]/30 overflow-hidden">
       {/* Dark Gradient Header background */}
-      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/95 to-[#fdfaf6] pointer-events-none z-0" />
+      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/95 to-[black] pointer-events-none z-0" />
 
       <main className="max-w-7xl mx-auto px-6 sm:px-8 pt-40 pb-12 relative z-10">
         <header className="mb-20">
@@ -131,9 +131,9 @@ export default function AuthPageClient({ redirect }) {
             </div>
 
             <div className="my-10 flex items-center gap-6">
-              <div className="flex-grow h-[1px] bg-[#3a1224]/10"></div>
-              <span className="text-[#3a1224]/30 text-[10px] uppercase tracking-[0.3em] font-black whitespace-nowrap">Quick Access</span>
-              <div className="flex-grow h-[1px] bg-[#3a1224]/10"></div>
+              <div className="flex-grow h-[1px] bg-[#3a1224]/30"></div>
+              <span className="text-[#3a1224]/30 text-[10px] tracking-[0.2em] font-black whitespace-nowrap uppercase">or</span>
+              <div className="flex-grow h-[1px] bg-[#3a1224]/30"></div>
             </div>
 
             <div className="mb-8">
@@ -159,35 +159,6 @@ export default function AuthPageClient({ redirect }) {
                 />
               </div>
             </div>
-          </div>
-
-          <div className="text-center mt-6 px-6">
-            <p className="text-[#3a1224]/60 text-sm font-medium mb-2">
-              {mode === "login" ? (
-                <>New to Shubham? </>
-              ) : (
-                <>By joining, you agree to our{" "}
-                <a href="#" className="text-[#C0A04C] font-bold hover:underline">Terms</a>
-                {" "}and{" "}
-                <a href="#" className="text-[#C0A04C] font-bold hover:underline">Privacy</a></>
-              )}
-            </p>
-            {mode === "login" && (
-              <button 
-                onClick={() => setMode("register")} 
-                className="text-[#C0A04C] font-bold hover:text-[#3a1224] transition duration-300"
-              >
-                Create an account
-              </button>
-            )}
-            {mode === "register" && (
-              <button 
-                onClick={() => setMode("login")} 
-                className="text-[#C0A04C] font-bold hover:text-[#3a1224] transition duration-300"
-              >
-                Already have an account?
-              </button>
-            )}
           </div>
         </div>
       </div>

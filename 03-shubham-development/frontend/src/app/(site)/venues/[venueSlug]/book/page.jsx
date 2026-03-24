@@ -41,8 +41,8 @@ export default async function BookingPage({ params, searchParams }) {
         <div className="absolute bottom-0 left-[-10%] w-[40%] h-[40%] bg-[#3a1224]/5 blur-[120px] rounded-full" />
       </div>
 
-      {/* Content wrapper with padding */}
-      <div className="relative z-10 py-12 lg:py-16">
+      {/* Content wrapper with padding - account for fixed navbar */}
+      <div className="relative z-10 pt pb-32">
         <BookingFlow 
           hall={hall}
           initialDate={date}

@@ -69,7 +69,7 @@ export default function BookingSuccess({ booking, hallDetails }) {
           </div>
           
           <h1 className="text-4xl font-display font-black text-[#3a1224] mb-3">
-            Booking Confirmed! 🎉
+            Booking Confirmed
           </h1>
           <p className="text-lg text-[#3a1224]/60">
             Your event is confirmed and locked in

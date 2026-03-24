@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import axiosInstance from 'lib/axios';
 import toast from 'react-hot-toast';
-import { AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, ArrowLeft, ArrowRight } from 'lucide-react';
 import { ROUTES } from 'config/routes';
 
 export default function StepAvailabilityConfirmation({ 
@@ -26,13 +26,15 @@ export default function StepAvailabilityConfirmation({
   const checkAvailability = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.post(ROUTES.API.BOOKINGS.CHECK_AVAILABILITY, {
-        hallId,
-        date,
-        slot,
-        guests,
-        reservationId,
-      });
+      const response = await axiosInstance.post(
+        ROUTES.API.BOOKINGS.CHECK_AVAILABILITY(hallId),
+        {
+          date,
+          slot,
+          guests,
+          reservationId,
+        }
+      );
 
       setAvailability(response.data);
     } catch (error) {
@@ -99,7 +101,7 @@ export default function StepAvailabilityConfirmation({
           </div>
           <div className="flex-1">
             <h3 className={`text-xl font-black ${isAvailable ? 'text-green-900' : 'text-red-900'}`}>
-              {isAvailable ? '✓ Slot Available!' : '✗ Slot Unavailable'}
+              {isAvailable ? 'Slot Available' : 'Slot Unavailable'}
             </h3>
             <p className={`text-sm mt-2 ${isAvailable ? 'text-green-800' : 'text-red-800'}`}>
               {isAvailable 
@@ -133,9 +135,19 @@ export default function StepAvailabilityConfirmation({
             </div>
             <div className="flex items-center justify-between pb-4 border-b border-[#3a1224]/10">
               <span className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Status</span>
-              <span className={`font-black text-lg ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                {isAvailable ? '✓ Available' : '✗ Booked'}
-              </span>
+              <div className="flex items-center gap-2">
+                {isAvailable ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span className="font-black text-green-600">Available</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="w-4 h-4 text-red-600" />
+                    <span className="font-black text-red-600">Booked</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -178,17 +190,23 @@ export default function StepAvailabilityConfirmation({
         <button
           type="button"
           onClick={onChangeSelection}
-          className="flex-1 h-12 px-6 border border-[#3a1224]/10 text-[#3a1224] font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+          className="flex-1 h-12 px-6 border border-[#3a1224]/10 text-[#3a1224] font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center gap-2"
         >
-          ← Change Selection
+          <ArrowLeft className="w-4 h-4" />
+          Change Selection
         </button>
         <button
           type="button"
           onClick={handleConfirm}
           disabled={!isAvailable || confirming}
-          className="flex-1 h-12 px-6 bg-[#3a1224] text-[#C0A04C] font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-[#4a172d] transition-colors shadow-lg cursor-pointer disabled:opacity-60"
+          className="flex-1 h-12 px-6 bg-[#3a1224] text-[#C0A04C] font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-[#4a172d] transition-colors shadow-lg cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
         >
-          {confirming ? 'Confirming...' : 'Confirm & Continue →'}
+          {confirming ? 'Confirming...' : (
+            <>
+              Confirm & Continue
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
         </button>
       </div>
     </div>

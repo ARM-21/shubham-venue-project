@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   CalendarCheck, 
   ClipboardList, 
@@ -15,14 +16,21 @@ import {
   AlertCircle,
   XCircle,
   Calendar,
-  Zap
+  Zap,
+  Users,
+  TrendingUp,
+  Ticket
 } from "lucide-react";
-import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
 import { useAuth } from "contexts/AuthProvider";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { Ticket } from "lucide-react";
+import BreadcrumbNav from "components/organizer/BreadcrumbNav";
+import { submitOrganizerRequestMutator } from "@api/organizer/organizer-request-submit-mutator";
+import { useQueryOrganizerStatus } from "@queries/organizer/status";
+import { useQueryOrganizerEvents } from "@queries/organizer/events";
+import { useQueryOrganizerBookings } from "@queries/organizer/bookings";
+import { useQueryOrganizerAnalytics } from "@queries/organizer/analytics";
 
 function formatDate(value) {
   try {
@@ -69,66 +77,50 @@ const statusConfig = {
 export default function OrganizerHubPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const [status, setStatus] = useState(null);
-  const [statusLoading, setStatusLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [note, setNote] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [events, setEvents] = useState([]);
-  const [eligibleBookings, setEligibleBookings] = useState([]);
-  const [dashboardLoading, setDashboardLoading] = useState(false);
+
+  // React Query Hooks
+  const { data: statusData, isLoading: statusLoading } = useQueryOrganizerStatus({
+    enabled: !!user,
+  });
+
+  const { data: eventsData, isLoading: eventsLoading } = useQueryOrganizerEvents({
+    enabled: !!statusData?.isOrganizerEligible,
+  });
+
+  const { data: bookingsData, isLoading: bookingsLoading } = useQueryOrganizerBookings({
+    params: { eligibleForEvent: true },
+    enabled: !!statusData?.isOrganizerEligible,
+  });
+
+  const { data: analyticsData, isLoading: analyticsLoading } = useQueryOrganizerAnalytics({
+    enabled: !!statusData?.isOrganizerEligible,
+  });
+
+  // Mutation - Written directly in page
+  const submitRequestMutation = useMutation({
+    mutationFn: submitOrganizerRequestMutator,
+    onSuccess: (data) => {
+      toast.success("Application submitted successfully!");
+      setNote("");
+      queryClient.invalidateQueries({ queryKey: ["organizer-status"] });
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || "Failed to submit application");
+    },
+  });
+
+  // Extract data from query results
+  const status = statusData;
+  const events = eventsData?.events || [];
+  const eligibleBookings = bookingsData?.bookings || [];
+  const analytics = analyticsData;
+  const statusLoading_computed = statusLoading;
+  const dashboardLoading = eventsLoading || bookingsLoading || analyticsLoading;
 
   const statusValue = String(status?.organizerStatus || (user?.isOrganizerEligible ? "approved" : user?.organizerStatus || "none")).toLowerCase();
   const isApproved = status?.isOrganizerEligible || statusValue === "approved" || user?.isOrganizerEligible;
-
-  useEffect(() => {
-    let ignore = false;
-    async function fetchStatus() {
-      try {
-        setStatusLoading(true);
-        const res = await axiosInstance.get(ROUTES.API.ORGANIZER_REQUESTS.ME);
-        if (!ignore) setStatus(res.data || null);
-      } catch (err) {
-        if (!ignore) setStatus(null);
-      } finally {
-        if (!ignore) setStatusLoading(false);
-      }
-    }
-
-    if (user) fetchStatus();
-
-    return () => {
-      ignore = true;
-    };
-  }, [user]);
-
-  useEffect(() => {
-    let ignore = false;
-    async function fetchDashboard() {
-      try {
-        setDashboardLoading(true);
-        const [eventsRes, bookingsRes] = await Promise.all([
-          axiosInstance.get(ROUTES.API.ORGANIZER.EVENTS),
-          axiosInstance.get(ROUTES.API.ORGANIZER.BOOKINGS, { params: { eligibleForEvent: true } }),
-        ]);
-        if (!ignore) {
-          setEvents(eventsRes.data?.events || []);
-          setEligibleBookings(bookingsRes.data?.bookings || []);
-        }
-      } catch (err) {
-        if (!ignore) {
-          toast.error(err?.response?.data?.message || "Failed to load organizer dashboard");
-        }
-      } finally {
-        if (!ignore) setDashboardLoading(false);
-      }
-    }
-
-    if (isApproved) fetchDashboard();
-
-    return () => {
-      ignore = true;
-    };
-  }, [isApproved]);
 
   const stats = useMemo(() => {
     const total = events.length;
@@ -138,18 +130,8 @@ export default function OrganizerHubPage() {
   }, [events, eligibleBookings]);
 
   async function submitRequest() {
-    if (submitting) return;
-    setSubmitting(true);
-    try {
-      const payload = { note: note.trim() };
-      const res = await axiosInstance.post(ROUTES.API.ORGANIZER_REQUESTS.ROOT, payload);
-      setStatus(res.data || null);
-      toast.success("Application submitted successfully");
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Application failed");
-    } finally {
-      setSubmitting(false);
-    }
+    if (submitRequestMutation.isPending) return;
+    submitRequestMutation.mutate({ note: note.trim() });
   }
 
   const recentEvents = events.slice(0, 3);
@@ -159,20 +141,26 @@ export default function OrganizerHubPage() {
     <div className="h-full flex flex-col overflow-hidden bg-[#fdfaf6]">
       <main className="flex-1 flex flex-col p-4 sm:p-6 lg:px-8 lg:py-4 max-w-[1200px] mx-auto w-full overflow-y-auto lg:overflow-hidden no-scrollbar">
         
-        {/* Header - Minimal Inline */}
-        <header className="flex items-center justify-between mb-4 shrink-0 px-1">
+        {/* Breadcrumb */}
+        <div className="mb-6 px-1">
+          <BreadcrumbNav />
+        </div>
+
+        {/* Header - Enhanced */}
+        <header className="flex items-center justify-between mb-6 shrink-0 px-1">
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-[#3a1224] tracking-tight">
-              Organizer Hub
+            <h1 className="text-3xl lg:text-4xl font-display font-bold text-[#3a1224] mb-2">
+              Organizer <span className="text-[#C0A04C] italic font-serif">Hub</span>
             </h1>
+            <p className="text-[#3a1224]/60 text-sm font-light">Manage your events and track performance</p>
           </div>
           
           {isApproved && (
             <button
               onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_NEW)}
-              className="h-9 px-4 bg-[#3a1224] text-white rounded-lg font-bold text-[10px] uppercase tracking-wider hover:shadow-md transition-all flex items-center gap-2 active:scale-95"
+              className="h-11 px-6 bg-[#3a1224] text-white rounded-xl font-bold text-[9px] uppercase tracking-wider hover:shadow-lg transition-all flex items-center gap-2 active:scale-95"
             >
-              <Plus className="w-3.5 h-3.5 text-[#C0A04C]" /> <span className="hidden sm:inline">New Event</span><span className="sm:hidden">New</span>
+              <Plus className="w-4 h-4 text-[#C0A04C]" /> <span className="hidden sm:inline">Create Event</span><span className="sm:hidden">New</span>
             </button>
           )}
         </header>
@@ -219,29 +207,61 @@ export default function OrganizerHubPage() {
           {/* Main Panel */}
           <div className="order-2 lg:order-1 lg:col-span-8 flex flex-col min-h-0">
             {isApproved ? (
-              <div className="flex flex-col h-full gap-4">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+              <div className="flex flex-col h-full gap-6">
+                {/* Enhanced Stat Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 shrink-0">
                   {[
-                    { label: "Bookings", val: stats.eligibleBookings },
-                    { label: "Total", val: stats.total },
-                    { label: "Live", val: stats.published },
-                    { label: "Draft", val: stats.draft }
-                  ].map((stat, i) => (
-                    <div key={i} className="bg-white rounded-xl p-3 border border-[#3a1224]/5 shadow-sm">
-                       <p className="text-[8px] font-black text-[#3a1224]/20 uppercase tracking-widest">{stat.label}</p>
-                       <p className="text-lg font-bold text-[#3a1224]">{dashboardLoading ? "..." : stat.val}</p>
-                    </div>
-                  ))}
+                    { label: "Total Events", val: stats.total, icon: Calendar, color: "#3a1224" },
+                    { label: "Total Attendees", val: analytics?.stats?.totalAttendees || 0, icon: Users, color: "#C0A04C" },
+                    { label: "Check-in Rate", val: `${analytics?.stats?.checkInRate || 0}%`, icon: CheckCircle2, color: "#10b981" },
+                    { label: "Total Revenue", val: `$${(analytics?.stats?.totalRevenue || 0).toLocaleString()}`, icon: TrendingUp, color: "#f59e0b" }
+                  ].map((stat, i) => {
+                    const Icon = stat.icon;
+                    return (
+                      <motion.div 
+                        key={i}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="bg-white rounded-2xl p-5 border border-[#3a1224]/5 shadow-sm hover:shadow-lg hover:border-[#C0A04C]/20 transition-all"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <p className="text-[8px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3">{stat.label}</p>
+                            <p className="text-2xl font-bold text-[#3a1224]">{dashboardLoading ? "..." : stat.val}</p>
+                          </div>
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C0A04C]/20 to-[#C0A04C]/10 flex items-center justify-center">
+                            <Icon size={18} style={{ color: stat.color }} />
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
 
-                <section className="flex-1 bg-white rounded-2xl border border-[#3a1224]/5 p-5 shadow-sm flex flex-col min-h-0">
-                   <div className="flex items-center justify-between mb-4 shrink-0">
-                      <h3 className="text-sm font-bold text-[#3a1224] uppercase tracking-widest">Productions</h3>
+                {/* Quick Link to Analytics */}
+                {!dashboardLoading && (
+                  <motion.button
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="w-full h-12 bg-gradient-to-r from-[#3a1224] to-[#4a172d] text-white rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 hover:shadow-lg transition-all"
+                    onClick={() => router.push("/organizer-hub/analytics")}
+                  >
+                    <TrendingUp size={16} /> View Detailed Analytics
+                  </motion.button>
+                )}
+
+                <section className="flex-1 bg-white rounded-2xl border border-[#3a1224]/5 p-6 shadow-sm flex flex-col min-h-0">
+                   <div className="flex items-center justify-between mb-6 shrink-0">
+                      <div>
+                        <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2">Recent</p>
+                        <h3 className="text-xl font-display font-bold text-[#3a1224]">Your Events</h3>
+                      </div>
                       <button 
                         onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENTS)}
-                        className="text-[9px] font-bold text-[#3a1224]/40 uppercase"
+                        className="h-9 px-4 bg-[#C0A04C]/10 text-[#C0A04C] rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-[#C0A04C]/20 transition-all flex items-center gap-2"
                       >
-                         View All
+                         View All <ArrowRight size={14} />
                       </button>
                    </div>
                    <div className="flex-1 lg:overflow-y-auto no-scrollbar">

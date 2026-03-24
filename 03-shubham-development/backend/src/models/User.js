@@ -41,6 +41,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
+    address: {
+      type: String,
+      trim: true
+    },
     role: {
       type: String,
       enum: ['customer', 'admin'],
@@ -101,6 +105,37 @@ const userSchema = new mongoose.Schema(
     lastName: {
       type: String,
       trim: true
+    },
+    // Organizer Details (only if isOrganizerEligible is true)
+    organizerDetails: {
+      taxId: {
+        type: String,
+        trim: true
+      },
+      bankCode: {
+        type: String,
+        trim: true
+      },
+      bankAccount: {
+        type: String,
+        trim: true
+      },
+      accountHolder: {
+        type: String,
+        trim: true
+      },
+      notificationsEmail: {
+        type: Boolean,
+        default: true
+      },
+      notificationsSms: {
+        type: Boolean,
+        default: false
+      },
+      notificationsEventUpdates: {
+        type: Boolean,
+        default: true
+      }
     }
   },
   {
@@ -112,6 +147,12 @@ userSchema.pre("save", async function (next) {
   if (this.isModified('password')) {
     this.password = await bcrypt.hash(this.password, 12)
   }
+  
+  // Only initialize organizerDetails if user is organizer eligible
+  if (!this.isOrganizerEligible) {
+    this.organizerDetails = undefined;
+  }
+  
   next()
 })
 

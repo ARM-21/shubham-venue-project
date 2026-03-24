@@ -12,16 +12,32 @@ import {
   Ticket,
   Zap,
   Fingerprint,
-  Plus
+  Plus,
+  Copy,
+  Download,
+  Trash2,
+  CheckSquare,
+  Square
 } from "lucide-react";
-import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
 import { useAuth } from "contexts/AuthProvider";
 import toast from "react-hot-toast";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import axiosInstance from "lib/axios";
+import BreadcrumbNav from "components/organizer/BreadcrumbNav";
+import EventSearchFilter from "components/organizer/EventSearchFilter";
+import BulkActionsToolbar from "components/organizer/BulkActionsToolbar";
+import EmptyState from "components/organizer/EmptyState";
+import { HelpToast } from "components/organizer/Tooltip";
+import { exportEvents } from "lib/organizerUtils";
+import { eventDuplicateMutator } from "@api/organizer/event-duplicate-mutator";
+import { eventDeleteMutator } from "@api/organizer/event-delete-mutator";
+import { useQueryOrganizerStatus } from "@queries/organizer/status";
+import { useQueryOrganizerEvents } from "@queries/organizer/events";
 
 function formatDate(value) {
   try {
@@ -52,49 +68,156 @@ function statusTone(status) {
 export default function OrganizerEventsPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const [filteredEvents, setFilteredEvents] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
-  const [status, setStatus] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selected, setSelected] = useState(new Set());
+  const [showFirstTimeHelpToast, setShowFirstTimeHelpToast] = useState(false);
 
-  useEffect(() => {
-    let ignore = false;
-    async function fetchStatus() {
-      try {
-        const res = await axiosInstance.get(ROUTES.API.ORGANIZER_REQUESTS.ME);
-        if (!ignore) setStatus(res.data || null);
-      } catch (err) {
-        if (!ignore) setStatus(null);
+  // React Query Hooks
+  const { data: statusData, isLoading: statusLoading } = useQueryOrganizerStatus({
+    enabled: !!user,
+  });
+
+  const { data: eventsData, isLoading: eventsLoading, refetch: refetchEvents } = useQueryOrganizerEvents({
+    params: statusFilter !== "all" ? { status: statusFilter } : undefined,
+    enabled: !!statusData?.isOrganizerEligible,
+  });
+
+  // Mutations - Written directly in page
+  const duplicateEventMutation = useMutation({
+    mutationFn: eventDuplicateMutator,
+    onSuccess: () => {
+      toast.success("Event duplicated successfully!");
+      clearSelection();
+      queryClient.invalidateQueries({ queryKey: ["organizer-events"] });
+      refetchEvents();
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || "Failed to duplicate event");
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids) => {
+      if (!Array.isArray(ids) || ids.length === 0) {
+        throw new Error("Event IDs array required");
       }
+      return Promise.all(ids.map(id => eventDeleteMutator(id)));
+    },
+    onSuccess: () => {
+      toast.success("Event(s) deleted successfully!");
+      clearSelection();
+      queryClient.invalidateQueries({ queryKey: ["organizer-events"] });
+      refetchEvents();
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || "Failed to delete event(s)");
+    },
+  });
+
+  // Extract data from query results
+  const events = eventsData?.events || [];
+  const status = statusData;
+  const loading = statusLoading || eventsLoading;
+
+  // Filter and search logic
+  useEffect(() => {
+    let filtered = events;
+
+    // Apply status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(e => e.status?.toUpperCase() === statusFilter.toUpperCase());
     }
-    if (user) fetchStatus();
-    return () => { ignore = true; };
-  }, [user]);
+
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(e => 
+        e.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.type?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    setFilteredEvents(filtered);
+  }, [events, statusFilter, searchQuery]);
 
   const statusValue = String(status?.organizerStatus || (user?.isOrganizerEligible ? "approved" : user?.organizerStatus || "none")).toLowerCase();
   const isApproved = status?.isOrganizerEligible || statusValue === "approved" || user?.isOrganizerEligible;
 
-  useEffect(() => {
-    let ignore = false;
-    async function fetchEvents() {
-      try {
-        setLoading(true);
-        const params = statusFilter !== "all" ? { status: statusFilter } : undefined;
-        const res = await axiosInstance.get(ROUTES.API.ORGANIZER.EVENTS, { params });
-        if (!ignore) setEvents(res.data?.events || []);
-      } catch (err) {
-        if (!ignore) toast.error(err?.response?.data?.message || "Failed to load events");
-      } finally {
-        if (!ignore) setLoading(false);
-      }
+  // Bulk action handlers
+  const toggleSelect = (eventId) => {
+    const newSelected = new Set(selected);
+    if (newSelected.has(eventId)) {
+      newSelected.delete(eventId);
+    } else {
+      newSelected.add(eventId);
+    }
+    setSelected(newSelected);
+  };
+
+  const selectAll = () => {
+    setSelected(new Set(filteredEvents.map(e => e._id)));
+  };
+
+  const clearSelection = () => {
+    setSelected(new Set());
+  };
+
+  const handleDuplicate = async () => {
+    const selectedArray = Array.from(selected);
+    if (selectedArray.length !== 1) {
+      toast.error("Select exactly one event to duplicate");
+      return;
     }
 
-    if (isApproved) fetchEvents();
+    const eventToDuplicate = events.find(e => e._id === selectedArray[0]);
+    if (!eventToDuplicate) {
+      toast.error("Event not found");
+      return;
+    }
 
-    return () => {
-      ignore = true;
-    };
-  }, [statusFilter, isApproved]);
+    duplicateEventMutation.mutate(selectedArray[0]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selected.size === 0) {
+      toast.error("Select at least one event");
+      return;
+    }
+
+    if (!confirm(`Delete ${selected.size} event(s)? This cannot be undone.`)) {
+      return;
+    }
+
+    bulkDeleteMutation.mutate(Array.from(selected));
+  };
+
+  const handleExport = () => {
+    const selectedArray = Array.from(selected);
+    const eventsToExport = selectedArray.length > 0 
+      ? events.filter(e => selected.has(e._id))
+      : filteredEvents;
+
+    if (eventsToExport.length === 0) {
+      toast.error("No events to export");
+      return;
+    }
+
+    exportEvents(eventsToExport);
+    toast.success(`Exported ${eventsToExport.length} event(s)`);
+  };
+
+  // Show first-time help toast
+  useEffect(() => {
+    if (!eventsLoading && events.length === 0) {
+      const hasSeenHelp = localStorage.getItem('organizer-events-help-shown');
+      if (!hasSeenHelp) {
+        setShowFirstTimeHelpToast(true);
+        localStorage.setItem('organizer-events-help-shown', 'true');
+      }
+    }
+  }, [events.length, eventsLoading]);
 
   if (!isApproved) {
     return (
@@ -124,117 +247,201 @@ export default function OrganizerEventsPage() {
   }
 
   return (
-    <div className="max-w-[1200px] mx-auto space-y-12">
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8 py-6 sm:py-8">
+      {/* Help Toast for First-Time Users */}
+      {showFirstTimeHelpToast && events.length === 0 && (
+        <HelpToast
+          title="Welcome to Your Event Dashboard!"
+          message="Start by creating your first event. Use search & filters to manage your portfolio, and bulk actions to export or duplicate events."
+          onDismiss={() => setShowFirstTimeHelpToast(false)}
+          autoClose={8000}
+        />
+      )}
+      {/* Breadcrumb */}
+      <div className="mb-4 sm:mb-6 lg:mb-8">
+        <BreadcrumbNav />
+      </div>
+
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+      <div className="flex flex-col gap-4 sm:gap-6">
         <div>
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-[1px] bg-[#C0A04C]/40" />
-            <span className="text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Portfolio</span>
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-6">
+            <div className="w-8 sm:w-12 h-[1px] bg-[#C0A04C]/40" />
+            <span className="text-[8px] sm:text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Portfolio</span>
           </div>
-          <h1 className="text-5xl lg:text-6xl font-black text-[#3a1224] tracking-tight">
-            My <span className="text-[#C0A04C]">Events</span>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-bold text-[#3a1224] mb-2 sm:mb-3">
+            My <span className="text-[#C0A04C] italic font-serif">Events</span>
           </h1>
-          <p className="mt-6 text-[#3a1224]/50 text-base font-medium max-w-lg leading-relaxed">
-            A centralized hub for tracking your professional listings and attendee engagement metrics.
+          <p className="text-[#3a1224]/60 text-[13px] sm:text-base font-light max-w-lg">
+            Manage, duplicate, and export your event listings with advanced tools.
           </p>
         </div>
         
         <button
           onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_NEW)}
-          className="group flex items-center gap-4 px-10 py-5 bg-[#3a1224] text-white rounded-[2rem] text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-[#3a1224]/10"
+          className="group flex items-center justify-center sm:justify-start gap-2 sm:gap-4 px-4 sm:px-8 py-3 sm:py-5 bg-[#3a1224] text-white rounded-lg sm:rounded-2xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest hover:shadow-lg transition-all w-full sm:w-auto"
         >
-          <Plus className="w-4 h-4 text-[#C0A04C] group-hover:rotate-90 transition-transform duration-500" />
-          Create New Event
+          <Plus className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[#C0A04C]" />
+          Create Event
         </button>
       </div>
 
-      {/* Controller Bar */}
-      <div className="flex flex-wrap items-center gap-3">
-         {['all', 'DRAFT', 'PUBLISHED', 'CANCELLED'].map((filter) => (
-           <button
-             key={filter}
-             onClick={() => setStatusFilter(filter)}
-             className={`px-8 py-3 rounded-[1.5rem] border text-[10px] font-black uppercase tracking-widest transition-all ${
-               statusFilter === filter 
-                 ? "bg-[#C0A04C] border-[#C0A04C] text-[#3a1224] shadow-lg shadow-[#C0A04C]/20" 
-                 : "bg-white border-[#3a1224]/5 text-[#3a1224]/40 hover:border-[#3a1224]/10 hover:text-[#3a1224]/60"
-             }`}
-           >
-             {filter}
-           </button>
-         ))}
+      {/* Search & Filter */}
+      <div className="bg-white rounded-lg sm:rounded-2xl border border-[#3a1224]/5 p-4 sm:p-6 shadow-sm">
+        <EventSearchFilter
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter}
+          onClear={() => {
+            setSearchQuery("");
+            setStatusFilter("all");
+          }}
+          hasActiveFilters={searchQuery !== "" || statusFilter !== "all"}
+        />
+      </div>
+
+      {/* Results Count & Export */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+        <p className="text-[8px] sm:text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">
+          {filteredEvents.length} Event{filteredEvents.length !== 1 ? 's' : ''} Found
+        </p>
+        <button
+          onClick={handleExport}
+          disabled={filteredEvents.length === 0}
+          className="h-8 sm:h-9 px-3 sm:px-4 bg-[#C0A04C]/10 hover:bg-[#C0A04C]/20 text-[#C0A04C] rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center sm:justify-start gap-1 sm:gap-2"
+        >
+          <Download size={12} className="sm:w-3.5" /> <span className="hidden sm:inline">Export All</span><span className="sm:hidden">Export</span>
+        </button>
       </div>
 
       {/* Grid List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-[3rem] p-10 border border-[#3a1224]/5 animate-pulse">
-               <div className="w-12 h-12 bg-[#3a1224]/5 rounded-2xl mb-8" />
+            <div key={i} className="bg-white rounded-2xl p-8 border border-[#3a1224]/5 animate-pulse">
+               <div className="w-12 h-12 bg-[#3a1224]/5 rounded-xl mb-6" />
                <div className="h-4 w-3/4 bg-[#3a1224]/5 rounded-full mb-4" />
                <div className="h-4 w-1/2 bg-[#3a1224]/5 rounded-full" />
             </div>
           ))
-        ) : events.length === 0 ? (
-          <div className="md:col-span-3 py-32 text-center bg-white rounded-[4rem] border border-dashed border-[#3a1224]/10">
-             <Calendar className="w-12 h-12 text-[#3a1224]/10 mx-auto mb-6" />
-             <p className="text-[#3a1224]/40 text-sm font-bold uppercase tracking-widest">No matching events found</p>
+        ) : filteredEvents.length === 0 ? (
+          <div className="sm:col-span-2 lg:col-span-3">
+            <EmptyState
+              type={searchQuery !== "" || statusFilter !== "all" ? "NO_RESULTS" : "NO_EVENTS"}
+              onCtaClick={() => {
+                if (searchQuery !== "" || statusFilter !== "all") {
+                  setSearchQuery("");
+                  setStatusFilter("all");
+                } else {
+                  router.push(ROUTES.SITE.ORGANIZER_EVENT_NEW);
+                }
+              }}
+              ctaText={searchQuery !== "" || statusFilter !== "all" ? "Clear Filters" : "Create Your First Event"}
+            />
           </div>
         ) : (
-          events.map((event) => (
+          filteredEvents.map((event) => {
+            const isSelected = selected.has(event._id);
+            return (
             <motion.div
               key={event._id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_DETAIL(event._id))}
-              className="group bg-white rounded-[3rem] border border-[#3a1224]/5 overflow-hidden hover:shadow-2xl hover:shadow-[#3a1224]/5 transition-all duration-700 cursor-pointer flex flex-col h-full"
+              className={`group bg-white rounded-lg sm:rounded-2xl border transition-all duration-300 overflow-hidden flex flex-col h-full ${
+                isSelected 
+                  ? 'border-[#C0A04C] shadow-lg shadow-[#C0A04C]/20 bg-[#C0A04C]/5' 
+                  : 'border-[#3a1224]/5 hover:shadow-lg hover:border-[#C0A04C]/20 hover:bg-white/90'
+              }`}
             >
-               {/* Identity Section */}
-               <div className="p-10 flex-1">
-                  <div className="flex items-center justify-between mb-8">
-                     <div className={`px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${statusTone(event.status)}`}>
-                        {event.status}
-                     </div>
-                     <Zap className="w-4 h-4 text-[#C0A04C]/20 group-hover:text-[#C0A04C] transition-colors duration-500" />
+               {/* Checkbox & Quick Actions */}
+               <div className="absolute top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 flex items-center justify-between z-10">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSelect(event._id);
+                    }}
+                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-white border border-[#3a1224]/10 flex items-center justify-center hover:bg-[#C0A04C]/10 transition-all"
+                  >
+                    {isSelected ? (
+                      <CheckSquare size={16} className="sm:w-4.5 text-[#C0A04C]" />
+                    ) : (
+                      <Square size={16} className="sm:w-4.5 text-[#3a1224]/20" />
+                    )}
+                  </button>
+
+                  {/* Quick Actions Menu */}
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelected(new Set([event._id]));
+                        handleDuplicate();
+                      }}
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 flex items-center justify-center transition-all"
+                      title="Duplicate event"
+                    >
+                      <Copy size={13} className="sm:w-3.5" />
+                    </button>
+                  </div>
+               </div>
+
+               {/* Content */}
+               <div className="p-5 sm:p-8 pt-12 sm:pt-14 flex-1">
+                  <div className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg border text-[7px] sm:text-[8px] font-black uppercase tracking-widest w-fit mb-3 sm:mb-4 ${statusTone(event.status)}`}>
+                     {event.status}
                   </div>
                   
-                  <h3 className="text-2xl font-black text-[#3a1224] mb-3 leading-tight group-hover:text-[#C0A04C] transition-colors duration-500">
+                  <h3 className="text-lg sm:text-xl font-black text-[#3a1224] mb-1 sm:mb-2 leading-tight group-hover:text-[#C0A04C] transition-colors line-clamp-2">
                     {event.name}
                   </h3>
-                  <p className="text-[#3a1224]/40 text-[10px] font-bold uppercase tracking-[0.2em] mb-10">
+                  <p className="text-[#3a1224]/40 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest mb-4 sm:mb-6">
                     {event.type || "Special Event"}
                   </p>
 
-                  <div className="space-y-4">
-                     <div className="flex items-center gap-4">
-                        <Calendar className="w-4 h-4 text-[#C0A04C]/40" />
-                        <span className="text-xs font-bold text-[#3a1224]/60">{formatDate(event.startDateTime || event.bookingId?.date)}</span>
+                  <div className="space-y-2 sm:space-y-3">
+                     <div className="flex items-center gap-2 sm:gap-3">
+                        <Calendar size={12} className="sm:w-3.5 text-[#C0A04C]/40" />
+                        <span className="text-[10px] sm:text-[11px] font-medium text-[#3a1224]/60">{formatDate(event.startDateTime || event.bookingId?.date)}</span>
                      </div>
-                     <div className="flex items-center gap-4">
-                        <Users className="w-4 h-4 text-[#C0A04C]/40" />
-                        <span className="text-xs font-bold text-[#3a1224]/60">{event.bookingId?.guests || 0} Capacity</span>
+                     <div className="flex items-center gap-2 sm:gap-3">
+                        <Users size={12} className="sm:w-3.5 text-[#C0A04C]/40" />
+                        <span className="text-[10px] sm:text-[11px] font-medium text-[#3a1224]/60">{event.bookingId?.guests || 0} Guests</span>
                      </div>
                   </div>
                </div>
 
-               {/* Stats Summary */}
-               <div className="bg-[#3a1224] p-10 flex items-center justify-between">
-                  <div className="flex items-center gap-4 text-white">
-                     <Ticket className="w-5 h-5 text-[#C0A04C]" />
-                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Visibility</span>
-                        <span className="text-xs font-bold uppercase tracking-wider">{event.isPublic ? "Public" : "Private"}</span>
-                     </div>
+               {/* Footer - Click to open */}
+               <div 
+                 onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_DETAIL(event._id))}
+                 className="bg-[#3a1224] p-4 sm:p-6 flex items-center justify-between cursor-pointer hover:bg-[#4a172d] transition-colors"
+               >
+                  <div className="flex items-center gap-2 text-white">
+                     <Ticket size={13} className="sm:w-3.5 text-[#C0A04C]" />
+                     <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest">{event.isPublic ? "Public" : "Private"}</span>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/20 group-hover:bg-[#C0A04C] group-hover:text-[#3a1224] transition-all duration-500">
-                     <ChevronRight className="w-5 h-5" />
-                  </div>
+                  <ChevronRight size={14} className="sm:w-4 text-[#C0A04C] group-hover:translate-x-1 transition-transform" />
                </div>
             </motion.div>
-          ))
+            );
+          })
         )}
       </div>
+
+      {/* Bulk Actions Toolbar */}
+      <AnimatePresence>
+        {selected.size > 0 && (
+          <BulkActionsToolbar
+            selectedCount={selected.size}
+            totalCount={filteredEvents.length}
+            onSelectAll={selectAll}
+            onClear={clearSelection}
+            onExport={handleExport}
+            onDuplicate={handleDuplicate}
+            onDelete={handleBulkDelete}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

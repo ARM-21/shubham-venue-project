@@ -90,7 +90,6 @@ export async function checkHallAvailability({ hallId, date, slot, guests }) {
   if (Number(guests) > hall.capacity) return { available: false, reason: "EXCEEDS_CAPACITY" };
 
   const conflictSlots = getConflictSlots(slot);
-  console.log(conflictSlots,hallId, date, slot)
 
   const blocking = await Booking.findOne({
     hallId,
@@ -100,7 +99,6 @@ export async function checkHallAvailability({ hallId, date, slot, guests }) {
   })
     .select("status slot")
     .lean();
-  console.log(blocking)
   if (blocking) {
     return {
       available: false,
