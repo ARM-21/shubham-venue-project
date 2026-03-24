@@ -129,7 +129,7 @@ export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapa
             <div className="absolute bottom-0 left-[-10%] w-[40%] h-[40%] bg-[#3a1224]/5 blur-[120px] rounded-full" />
         </div>
         
-        <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/90 to-[#fdfaf6] pointer-events-none z-0" />
+        <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/90 to-[#423f3b] pointer-events-none z-0" />
 
         <main className="w-full max-w-full overflow-x-hidden"><div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 pt-40 pb-32 relative z-10">
             <header className="mb-20 text-center lg:text-left">

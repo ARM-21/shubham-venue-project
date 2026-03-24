@@ -397,8 +397,8 @@ export default function OrganizerHubPage() {
                 </div>
               </>
             ) : (
-              {/* Informational View for non-approved users */}
               <div className="h-full min-h-[500px] flex flex-col items-center justify-center bg-white rounded-[3rem] shadow-sm border border-[#3a1224]/5 p-12 text-center">
+                 {/* Informational View for non-approved users */}
                  <div className="w-32 h-32 bg-[#3a1224]/5 rounded-full flex items-center justify-center mb-10 relative">
                     <LayoutDashboard className="w-12 h-12 text-[#3a1224]/20" />
                     <div className="absolute top-0 right-0 w-10 h-10 bg-[#C0A04C] rounded-2xl flex items-center justify-center border-4 border-white shadow-lg rotate-12">
