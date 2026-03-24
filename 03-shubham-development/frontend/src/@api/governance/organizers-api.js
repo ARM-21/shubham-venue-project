@@ -1,0 +1,50 @@
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
+
+// Get all organizers with filters and pagination
+export const fetchOrganizers = async (filters = {}) => {
+  const { status, page = 1, limit = 20, search } = filters;
+  
+  const params = new URLSearchParams({
+    page,
+    limit,
+  });
+  if (status) params.append('status', status);
+  if (search) params.append('search', search);
+  
+  const res = await axiosInstance.get(
+    `${ROUTES.API.ADMIN.GOVERNANCE.ORGANIZERS}?${params}`,
+    { withCredentials: true }
+  );
+  return res.data;
+};
+
+// Get organizer details
+export const fetchOrganizerDetail = async (organizerId) => {
+  if (!organizerId) throw new Error("Organizer ID required");
+  const res = await axiosInstance.get(
+    ROUTES.API.ADMIN.GOVERNANCE.ORGANIZER(organizerId),
+    { withCredentials: true }
+  );
+  return res.data;
+};
+
+// Get organizer reputation/metrics
+export const fetchOrganizerReputation = async (organizerId) => {
+  if (!organizerId) throw new Error("Organizer ID required");
+  const res = await axiosInstance.get(
+    ROUTES.API.ADMIN.GOVERNANCE.ORGANIZER_REPUTATION(organizerId),
+    { withCredentials: true }
+  );
+  return res.data;
+};
+
+// Get organizer audit trail
+export const fetchOrganizerAuditTrail = async (organizerId) => {
+  if (!organizerId) throw new Error("Organizer ID required");
+  const res = await axiosInstance.get(
+    ROUTES.API.ADMIN.GOVERNANCE.ORGANIZER_AUDIT_TRAIL(organizerId),
+    { withCredentials: true }
+  );
+  return res.data;
+};

@@ -1,10 +1,13 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import axiosInstance from 'lib/axios';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { MapPin, Navigation, Sparkles, Check, Thermometer, Music, Zap, Users, Coffee, Truck } from 'lucide-react';
 import { ROUTES } from 'config/routes';
+import axiosInstance from 'lib/axios';
+import { useQueryHallDetailPublic } from '@queries/customer/hall-detail-public';
+import { useQueryMenusPublic } from '@queries/customer/menus-public';
+import { useQueryAvailability } from '@queries/customer/availability';
 
 // Extracted Sub-components
 import { VenueHero } from './components/details/VenueHero';
@@ -19,13 +22,7 @@ import { ReviewList } from './components/reviews/ReviewList';
 
 export default function Venue() {
   const { venueSlug } = useParams();
-  const [venueData, setVenueData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [menuPackages, setMenuPackages] = useState([]);
-  const [menusLoading, setMenusLoading] = useState(false);
-  const [similarVenues, setSimilarVenues] = useState([]);
   const [displayMonth, setDisplayMonth] = useState(new Date());
   const [occupiedDates, setOccupiedDates] = useState(new Set());
 
@@ -42,7 +39,46 @@ export default function Venue() {
   const searchParams = useSearchParams();
   const currencyFormatter = new Intl.NumberFormat("en-NP", { style: "currency", currency: "NPR", maximumFractionDigits: 0 });
   const today = new Date().toISOString().split('T')[0];
-  const images = (venueData?.images?.length) ? venueData.images : ['/assets/business-images/placeholder.jpg'];
+
+  // Fetch venue detail
+  const { data: venueDetail = {}, isLoading, error } = useQueryHallDetailPublic(venueSlug);
+  const venueData = venueDetail?.hall || null;
+  const images = useMemo(() => (venueData?.images?.length ? venueData.images : ['/assets/business-images/placeholder.jpg']), [venueData]);
+
+  // Fetch menus
+  const { data: menusData = [] } = useQueryMenusPublic();
+  const menuPackages = useMemo(() => {
+    if (!venueData) return [];
+    let menus = Array.isArray(menusData) ? menusData : [];
+    const filtered = menus.filter(m => 
+      m.venueSlug === venueSlug || (m.halls?.includes(venueData._id)) || (venueData.menus?.includes(m._id || m.slug))
+    );
+    return filtered.length ? filtered : menus.slice(0, 3);
+  }, [menusData, venueSlug, venueData]);
+
+  // Fetch availability for similar venues
+  const { data: availabilityData = {} } = useQueryAvailability({
+    date,
+    slot: shift === 'day' ? 'wholeday' : shift,
+    guests: guests || 1,
+    city: venueData?.location?.city,
+  }, {
+    enabled: !!date && !!venueData?.location?.city,
+  });
+
+  const similarVenues = useMemo(() => {
+    if (!venueData) return [];
+    let list = [];
+    if (availabilityData?.halls) {
+      list = availabilityData.halls
+        .filter(h => String(h._id) !== String(venueData._id) && h.available !== false)
+        .slice(0, 3);
+    } else if (venueData?.location?.city) {
+      // Fallback: use all venues from same city (would require another query)
+      list = [];
+    }
+    return list;
+  }, [availabilityData, venueData]);
 
   // Load search params from URL if coming from search-availability page
   useEffect(() => {
@@ -58,81 +94,6 @@ export default function Venue() {
       setValue('slot', mapped);
     }
   }, [searchParams, setValue]);
-
-  useEffect(() => {
-    if (!venueSlug) return;
-    async function fetchVenue() {
-      try {
-        const response = await axiosInstance.get(`${ROUTES.API.HALLS.BY_SLUG(encodeURIComponent(venueSlug))}`);
-        setVenueData(response.data.hall);
-      } catch (err) {
-        setError('Failed to load venue data.');
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchVenue();
-  }, [venueSlug]);
-
-  useEffect(() => {
-    if (!venueData) return;
-    async function fetchMenus() {
-      setMenusLoading(true);
-      try {
-        const res = await axiosInstance.get(ROUTES.API.MENUS.ROOT);
-        const payload = res.data?.data ?? res.data;
-        let menus = Array.isArray(payload) ? payload : (payload.menus || []);
-        const filtered = menus.filter(m => 
-          m.venueSlug === venueSlug || (m.halls?.includes(venueData._id)) || (venueData.menus?.includes(m._id || m.slug))
-        );
-        setMenuPackages(filtered.length ? filtered : menus.slice(0, 3));
-      } catch (err) { console.error('Error fetching menus', err); } finally { setMenusLoading(false); }
-    }
-    fetchMenus();
-  }, [venueData, venueSlug]);
-
-  useEffect(() => {
-    if (!venueData?.location?.city) return;
-    async function fetchSimilar() {
-      try {
-        const city = venueData.location.city;
-        let list = [];
-        if (date) {
-          const serverSlot = shift === 'day' ? 'wholeday' : shift;
-          const resp = await axiosInstance.get(ROUTES.API.HALLS.AVAILABILITY, { params: { date, slot: serverSlot, guests: guests || 1, city } });
-          list = (resp.data?.halls ?? resp.data ?? []).filter(h => String(h._id) !== String(venueData._id) && h.available !== false).slice(0, 3);
-        } else {
-          const resp = await axiosInstance.get(ROUTES.API.HALLS.ROOT, { params: { city } });
-          list = (resp.data?.halls ?? resp.data ?? []).filter(h => String(h._id) !== String(venueData._id) && h.isActive).slice(0, 3);
-        }
-        setSimilarVenues(list);
-      } catch (err) { console.error('fetch similar venues', err); }
-    }
-    fetchSimilar();
-  }, [venueData, date, shift, guests]);
-
-  useEffect(() => {
-    if (!venueData?._id) return;
-    async function fetchOccupied() {
-      try {
-        const days = generateCalendarDays(displayMonth).filter(Boolean);
-        const isoDays = days.map(dt => {
-          const year = dt.getFullYear();
-          const month = String(dt.getMonth() + 1).padStart(2, '0');
-          const day = String(dt.getDate()).padStart(2, '0');
-          return `${year}-${month}-${day}`;
-        });
-        const results = await Promise.all(isoDays.map(async iso => {
-          try {
-            const res = await axiosInstance.post(ROUTES.API.HALLS.BY_ID_AVAILABILITY(venueData._id), { date: iso, slot: 'wholeday', guests: Number(guests) || 1 });
-            return { date: iso, available: !!res.data?.available };
-          } catch { return { date: iso, available: true }; }
-        }));
-        setOccupiedDates(new Set(results.filter(r => !r.available).map(r => r.date)));
-      } catch (err) { console.error('Error fetching occupied dates', err); }
-    }
-    fetchOccupied();
-  }, [displayMonth, venueData, guests]);
 
   const generateCalendarDays = (monthDate) => {
     const year = monthDate.getFullYear();
@@ -174,8 +135,8 @@ export default function Venue() {
     return Check;
   };
 
-  if (error) return <div className="flex items-center justify-center min-h-screen"><div className="text-lg text-red-600 bg-red-50 p-6 rounded-2xl border border-red-100">{error}</div></div>;
-  if (loading) return (
+  if (error) return <div className="flex items-center justify-center min-h-screen"><div className="text-lg text-red-600 bg-red-50 p-6 rounded-2xl border border-red-100">Failed to load venue</div></div>;
+  if (isLoading) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#3a1224]">
       <div className="relative w-24 h-24">
         <div className="absolute inset-0 border-4 border-[#C0A04C]/20 rounded-full"></div>

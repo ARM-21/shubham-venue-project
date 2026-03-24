@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
+import { useQueryEventsPublic } from '@queries/customer/events-public';
 
 const PAGE_SIZE = 9;
 const PLACEHOLDER_IMAGE = "/assets/business-images/placeholder.jpg";
@@ -25,39 +25,18 @@ function formatDateTime(value) {
 
 export default function EventsPage() {
   const router = useRouter();
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchEvents = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await axiosInstance.get(ROUTES.API.EVENTS.PUBLIC, {
-        params: {
-          page,
-          limit: PAGE_SIZE,
-          q: searchTerm || undefined,
-        },
-      });
-      const payload = res.data || {};
-      setEvents(payload.events || []);
-      setPages(payload.pages || 1);
-      setError(null);
-    } catch (err) {
-      setError(err?.response?.data?.message || "Failed to load events");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, searchTerm]);
+  const { data: eventsData, isLoading, error } = useQueryEventsPublic({
+    page,
+    limit: PAGE_SIZE,
+    q: searchTerm || undefined,
+  });
 
-  useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
-
+  const events = eventsData?.events || [];
+  const pages = eventsData?.pages || 1;
   const canPrev = page > 1;
   const canNext = page < pages;
 
@@ -112,10 +91,10 @@ export default function EventsPage() {
       {/* Events Grid Section */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 py-20">
         {error ? (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl text-sm mb-6 font-semibold">{error}</div>
+          <div className="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl text-sm mb-6 font-semibold">{error?.message || "Failed to load events"}</div>
         ) : null}
 
-        {loading ? (
+        {isLoading ? (
           <div className="text-center py-16">
             <div className="inline-block w-12 h-12 border-4 border-[#C0A04C] border-t-transparent rounded-full animate-spin"></div>
             <p className="mt-6 text-[#3a1224]/60 text-sm font-semibold">Discovering amazing events...</p>

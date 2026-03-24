@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import axiosInstance from 'lib/axios';
 import { useRouter } from 'next/navigation';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from 'contexts/AuthProvider';
 import { ROUTES } from 'config/routes';
+import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, 
@@ -17,19 +18,124 @@ import {
   ShieldCheck, 
   X 
 } from 'lucide-react';
+import { useQueryProfileMy } from '@queries/customer/profile-my';
 
 export default function ProfilePage() {
-  const { user: authUser, loading, logout, setUser } = useAuth();
+  const { user: authUser, loading: authLoading, logout, setUser } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const [user, setLocalUser] = useState(null);
   const [editing, setEditing] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
-  const [status, setStatus] = useState({ loading: false, message: null, error: null });
 
-  // Profile form with react-hook-form
+  // Fetch profile using react-query
+  const { data: profileData, isLoading: profileLoading, error: profileError } = useQueryProfileMy();
+  const user = profileData?.user || profileData || authUser;
+
+  // Profile mutation
+  const { mutate: mutateUpdateProfile, isPending: isUpdatingProfile } = useMutation({
+    mutationFn: async (data) => {
+      const res = await fetch(ROUTES.API.PROFILE.UPDATE, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: data.first_name.trim(),
+          last_name: data.last_name.trim(),
+          phone: data.phone?.trim() || null
+        }),
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to update profile');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      const newUser = data.user;
+      queryClient.invalidateQueries({ queryKey: ['profile-my'] });
+      setUser?.(newUser);
+      setEditing(false);
+      toast.success('Profile updated successfully!');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to update profile');
+    }
+  });
+
+  // Password mutation
+  const { mutate: mutateUpdatePassword, isPending: isUpdatingPassword } = useMutation({
+    mutationFn: async (data) => {
+      const res = await fetch(ROUTES.API.PROFILE.PASSWORD, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword
+        }),
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Password change failed');
+      return res.json();
+    },
+    onSuccess: () => {
+      resetPassword();
+      setShowPasswordModal(false);
+      toast.success('Password changed successfully!');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Password change failed');
+    }
+  });
+
+  // Avatar upload URL mutation
+  const { mutate: mutateGetAvatarUrl, isPending: isGettingUrl } = useMutation({
+    mutationFn: async (file) => {
+      const res = await fetch(ROUTES.API.PROFILE.AVATAR_UPLOAD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileExtension: file.name.substring(file.name.lastIndexOf('.')),
+          contentType: file.type
+        }),
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to get upload URL');
+      return res.json();
+    },
+    onSuccess: (data, file) => {
+      uploadToS3(data.data, file);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to get upload URL');
+    }
+  });
+
+  // Avatar confirm mutation
+  const { mutate: mutateConfirmAvatar, isPending: isConfirmingAvatar } = useMutation({
+    mutationFn: async (payload) => {
+      const res = await fetch(ROUTES.API.PROFILE.AVATAR_CONFIRM, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to confirm avatar');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      const newUser = data.user;
+      queryClient.invalidateQueries({ queryKey: ['profile-my'] });
+      setUser?.(newUser);
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      toast.success('Avatar uploaded successfully!');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Avatar upload failed');
+    }
+  });
+
+  // Form hooks
   const {
     register: registerProfile,
     handleSubmit: handleSubmitProfile,
@@ -38,13 +144,12 @@ export default function ProfilePage() {
     setValue: setProfileValue
   } = useForm({
     defaultValues: {
-      first_name: '',
-      last_name: '',
-      phone: ''
+      first_name: user?.first_name || '',
+      last_name: user?.last_name || '',
+      phone: user?.phone || ''
     }
   });
 
-  // Password form with react-hook-form
   const {
     register: registerPassword,
     handleSubmit: handleSubmitPassword,
@@ -61,163 +166,85 @@ export default function ProfilePage() {
 
   const newPassword = watch('newPassword');
 
-  useEffect(() => {
-    if (!loading && !authUser) router.replace(ROUTES.AUTH.ROOT);
-  }, [loading, authUser, router]);
-
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const res = await axiosInstance.get(ROUTES.API.PROFILE.ME);
-        const userData = res.data.user ?? res.data;
-        setLocalUser(userData);
-
-        // Populate form with existing data
-        setProfileValue('first_name', userData?.first_name || '');
-        setProfileValue('last_name', userData?.last_name || '');
-        setProfileValue('phone', userData?.phone || '');
-      } catch (err) {
-        console.error('Failed to fetch profile:', err);
-        setLocalUser(authUser || null);
-      }
+  // Update form values when user data changes
+  React.useEffect(() => {
+    if (user) {
+      setProfileValue('first_name', user?.first_name || '');
+      setProfileValue('last_name', user?.last_name || '');
+      setProfileValue('phone', user?.phone || '');
     }
-    if (authUser) fetchProfile();
-  }, [authUser, setProfileValue]);
+  }, [user, setProfileValue]);
 
-  useEffect(() => {
-    if (status.message) {
-      const timer = setTimeout(() => {
-        setStatus(prev => ({ ...prev, message: null }));
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [status.message]);
-
-  // Save profile with react-hook-form
-  async function saveProfile(data) {
-    setStatus({ loading: true, message: null, error: null });
+  // Helper functions
+  const uploadToS3 = useCallback(async (uploadData, file) => {
     try {
-      const res = await axiosInstance.put(ROUTES.API.PROFILE.UPDATE, {
-        first_name: data.first_name.trim(),
-        last_name: data.last_name.trim(),
-        phone: data.phone?.trim() || null
-      });
-      const newUser = res.data.user;
-      setLocalUser(newUser);
-      setUser?.(newUser);
-      setEditing(false);
-      setStatus({ loading: false, message: 'Profile updated successfully!', error: null });
-    } catch (err) {
-      setStatus({
-        loading: false,
-        message: null,
-        error: err.response?.data?.message || 'Failed to update profile'
-      });
-    }
-  }
-
-  // Upload avatar
-  // ProfilePage.jsx - Updated uploadAvatar function
-
-  async function uploadAvatar() {
-    if (!avatarFile) return;
-    setStatus({ loading: true, message: null, error: null });
-
-    try {
-      // Get presigned URL from backend
-      const fileExtension = avatarFile.name.substring(avatarFile.name.lastIndexOf('.'));
-      const urlResponse = await axiosInstance.post(ROUTES.API.PROFILE.AVATAR_UPLOAD_URL, {
-        fileExtension: fileExtension,
-        contentType: avatarFile.type,
-      });
-
-      const { uploadUrl, publicUrl, key } = urlResponse.data.data;
-
-      // Upload directly to S3 using presigned URL
-      await fetch(uploadUrl, {
+      const { uploadUrl, publicUrl, key } = uploadData;
+      
+      const response = await fetch(uploadUrl, {
         method: 'PUT',
-        headers: {
-          'Content-Type': avatarFile.type,
-        },
-        body: avatarFile,
+        headers: { 'Content-Type': file.type },
+        body: file,
       });
-
-      // Confirm upload with backend
-      const confirmResponse = await axiosInstance.post(ROUTES.API.PROFILE.AVATAR_CONFIRM, {
-        s3Key: key,
-        publicUrl: publicUrl,
-      });
-
-      const newUser = confirmResponse.data.user;
-      setLocalUser(newUser);
-      setUser?.(newUser);
-      setAvatarFile(null);
-      setAvatarPreview(null);
-      setStatus({ loading: false, message: 'Avatar uploaded successfully!', error: null });
-    } catch (err) {
-      console.error('Upload error:', err);
-      setStatus({
-        loading: false,
-        message: null,
-        error: err.response?.data?.message || 'Avatar upload failed',
-      });
+      
+      if (!response.ok) throw new Error('S3 upload failed');
+      
+      mutateConfirmAvatar({ s3Key: key, publicUrl });
+    } catch (error) {
+      toast.error('Failed to upload to storage');
     }
-  }
+  }, [mutateConfirmAvatar]);
 
-
-  function handleAvatarChange(e) {
+  const handleAvatarChange = useCallback((e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setStatus({ loading: false, message: null, error: 'Image must be less than 5MB' });
-        return;
-      }
-      if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
-        setStatus({ loading: false, message: null, error: 'Only JPG, PNG, GIF, and WEBP images are allowed' });
-        return;
-      }
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setAvatarPreview(reader.result);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
     }
-  }
 
-  // Change password with react-hook-form
-  async function changePassword(data) {
-    setStatus({ loading: true, message: null, error: null });
-    try {
-      await axiosInstance.patch(ROUTES.API.PROFILE.PASSWORD, {
-        currentPassword: data.currentPassword,
-        newPassword: data.newPassword
-      });
-      resetPassword();
-      setShowPasswordModal(false);
-      setStatus({ loading: false, message: 'Password changed successfully!', error: null });
-    } catch (err) {
-      setStatus({
-        loading: false,
-        message: null,
-        error: err.response?.data?.message || 'Password change failed'
-      });
+    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
+      toast.error('Only JPG, PNG, GIF, and WEBP images are allowed');
+      return;
     }
-  }
 
-  async function handleLogout() {
-    await logout();
-    router.push(ROUTES.HOME);
-  }
+    setAvatarFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setAvatarPreview(reader.result);
+    reader.readAsDataURL(file);
+  }, []);
 
-  function handleCancelEdit() {
+  const handleCancelEdit = useCallback(() => {
     setEditing(false);
     resetProfile({
       first_name: displayUser?.first_name || '',
       last_name: displayUser?.last_name || '',
       phone: displayUser?.phone || ''
     });
-  }
+  }, [displayUser?.first_name, displayUser?.last_name, displayUser?.phone, resetProfile]);
 
-  if (loading) {
+  const handleLogout = useCallback(async () => {
+    await logout();
+    router.push(ROUTES.AUTH.LOGIN);
+  }, [logout, router]);
+
+  // Derived values
+  const displayUser = user || authUser;
+  const isLoading = authLoading || profileLoading;
+  
+  const isOAuthUser = useMemo(() => displayUser?.provider === 'google', [displayUser?.provider]);
+  
+  const fullName = useMemo(
+    () => `${displayUser?.first_name || ''} ${displayUser?.last_name || ''}`.trim() || 'User',
+    [displayUser?.first_name, displayUser?.last_name]
+  );
+  
+  const initials = useMemo(
+    () => `${displayUser?.first_name?.[0] || ''}${displayUser?.last_name?.[0] || ''}`.toUpperCase() || 'U',
+    [displayUser?.first_name, displayUser?.last_name]
+  );
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-[#fdfaf6] flex items-center justify-center">
         <div className="text-center">
@@ -229,11 +256,6 @@ export default function ProfilePage() {
   }
 
   if (!authUser) return null;
-
-  const displayUser = user || authUser;
-  const isOAuthUser = displayUser?.provider === 'google';
-  const fullName = `${displayUser?.first_name || ''} ${displayUser?.last_name || ''}`.trim() || 'User';
-  const initials = `${displayUser?.first_name?.[0] || ''}${displayUser?.last_name?.[0] || ''}`.toUpperCase() || 'U';
 
   return (
     <div className="min-h-screen bg-[#fdfaf6] relative selection:bg-[#C0A04C]/30 overflow-hidden">
@@ -254,41 +276,6 @@ export default function ProfilePage() {
             Manage your personal information, secure your account, and update your preferences.
           </p>
         </header>
-
-        {/* Status Messages */}
-        <AnimatePresence>
-          {status.message && (
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="mb-8 p-5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-4 shadow-sm"
-            >
-              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <span className="text-emerald-900 font-bold text-sm">{status.message}</span>
-            </motion.div>
-          )}
-
-          {status.error && (
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="mb-8 p-5 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-4 shadow-sm"
-            >
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <span className="text-red-900 font-bold text-sm">{status.error}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -398,7 +385,7 @@ export default function ProfilePage() {
                     ))}
                   </div>
                 ) : (
-                  <form onSubmit={handleSubmitProfile(saveProfile)} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <form onSubmit={handleSubmitProfile((data) => mutateUpdateProfile(data))} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {[
                       { name: 'first_name', label: 'First Name', placeholder: 'First Name' },
                       { name: 'last_name', label: 'Last Name', placeholder: 'Last Name' },
@@ -422,10 +409,10 @@ export default function ProfilePage() {
                     <div className="col-span-full flex gap-4 pt-6">
                       <button
                         type="submit"
-                        disabled={status.loading}
+                        disabled={isUpdatingProfile}
                         className="h-12 px-8 bg-[#3a1224] text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg disabled:opacity-50 cursor-pointer"
                       >
-                        {status.loading ? 'Saving...' : 'Save Changes'}
+                        {isUpdatingProfile ? 'Saving...' : 'Save Changes'}
                       </button>
                       <button
                         type="button"
@@ -463,11 +450,11 @@ export default function ProfilePage() {
 
                 {avatarFile && (
                   <button 
-                    onClick={uploadAvatar} 
-                    disabled={status.loading}
+                    onClick={() => mutateGetAvatarUrl(avatarFile)} 
+                    disabled={isGettingUrl || isConfirmingAvatar}
                     className="w-full h-12 bg-[#C0A04C] text-[#3a1224] rounded-xl mt-4 font-black text-[9px] uppercase tracking-widest shadow-lg disabled:opacity-50 cursor-pointer"
                   >
-                    {status.loading ? 'Uploading...' : 'Upload'}
+                    {isGettingUrl || isConfirmingAvatar ? 'Uploading...' : 'Upload'}
                   </button>
                 )}
               </div>
@@ -517,26 +504,14 @@ export default function ProfilePage() {
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-display font-bold text-[#3a1224]">Update Password</h3>
                 <button 
-                  onClick={() => { setShowPasswordModal(false); resetPassword(); setStatus({ loading: false, message: null, error: null }); }} 
+                  onClick={() => { setShowPasswordModal(false); resetPassword(); }} 
                   className="p-2 rounded-lg hover:bg-gray-100 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Error Message */}
-              {status.error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0 mt-0.5">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <span className="text-red-700 text-[9px] font-black uppercase tracking-widest">{status.error}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmitPassword(changePassword)} className="space-y-4">
+              <form onSubmit={handleSubmitPassword((data) => mutateUpdatePassword(data))} className="space-y-4">
                 <div>
                   <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2 block">Current Password</label>
                   <input 
@@ -576,10 +551,10 @@ export default function ProfilePage() {
                 
                 <button 
                   type="submit" 
-                  disabled={status.loading} 
+                  disabled={isUpdatingPassword} 
                   className="w-full h-12 bg-[#3a1224] text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg mt-6 disabled:opacity-50 cursor-pointer"
                 >
-                  {status.loading ? 'Updating...' : 'Update Password'}
+                  {isUpdatingPassword ? 'Updating...' : 'Update Password'}
                 </button>
               </form>
             </motion.div>

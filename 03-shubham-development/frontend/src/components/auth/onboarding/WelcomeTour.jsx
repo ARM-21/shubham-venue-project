@@ -48,7 +48,7 @@ export default function WelcomeTour({ onComplete }) {
   const progress = ((currentSlide + 1) / benefitList.length) * 100;
 
   return (
-    <div className="min-h-screen bg-[#fdfaf6] relative selection:bg-[#C0A04C]/30 overflow-hidden flex items-center justify-center">
+    <div className="h-full w-full bg-[#fdfaf6] relative selection:bg-[#C0A04C]/30 overflow-y-auto flex items-center justify-center">
       {/* Gradient Background */}
       <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/80 to-[#fdfaf6] pointer-events-none z-0" />
       

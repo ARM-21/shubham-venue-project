@@ -1,13 +1,13 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import axiosInstance from "lib/axios";
 import MenuSkeleton from "components/menu/menus-page/MenuSkeleton";
 import FilterSkeleton from "components/menu/menus-page/FilterSkeleton";
 import SearchFilter from "components/menu/menus-page/SearchFilter";
 import MenuStats from "components/menu/menus-page/MenuStats";
 import { ROUTES } from "config/routes";
+import { useQueryMenusPublic } from '@queries/customer/menus-public';
 
 
 const STATIC_MENU_IMAGES = {
@@ -18,47 +18,21 @@ const STATIC_MENU_IMAGES = {
 };
 
 export default function MenuListPage() {
-    const [isLoading, setIsLoading] = useState(true);
-    const [menus, setMenus] = useState([]);
-    const [filteredMenus, setFilteredMenus] = useState([]);
-    const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
     const [sortBy, setSortBy] = useState("name");
 
-    useEffect(() => {
-        const fetchMenus = async () => {
-            setIsLoading(true);
-            try {
-                const res = await axiosInstance.get(ROUTES.API.MENUS.ROOT);
-                const data = res.data;
-                console.debug("Fetched menus data:", data);
-                setMenus(data);
-                setFilteredMenus(data);
+    const { data: menusData = [], isLoading } = useQueryMenusPublic();
+    const menus = Array.isArray(menusData) ? menusData : [];
 
-                // Extract unique categories
-                const uniqueCategories = ["all", ...new Set(data.map(menu => menu.category).filter(Boolean))];
-                setCategories(uniqueCategories);
-            } catch (err) {
-                console.error("Failed to load menus:", err);
-                setMenus([]);
-                setFilteredMenus([]);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchMenus();
-    }, []);
+    // Extract unique categories
+    const categories = useMemo(() => {
+        return ["all", ...new Set(menus.map(menu => menu.category).filter(Boolean))];
+    }, [menus]);
 
     // Filter and sort menus
-    useEffect(() => {
+    const filteredMenus = useMemo(() => {
         let result = [...menus];
-
-        // // Apply category filter
-        // if (selectedCategory !== "all") {
-        //     result = result.filter(menu => menu.category === selectedCategory);
-        // }
 
         // Apply search filter
         if (searchTerm.trim() !== "") {
@@ -85,8 +59,8 @@ export default function MenuListPage() {
             }
         });
 
-        setFilteredMenus(result);
-    }, [menus, selectedCategory, searchTerm, sortBy]);
+        return result;
+    }, [menus, searchTerm, sortBy]);
 
 
 

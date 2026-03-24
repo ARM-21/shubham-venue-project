@@ -77,7 +77,7 @@ export default function ProfileCompletion({ userEmail, onComplete }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#fdfaf6] relative selection:bg-[#C0A04C]/30 overflow-hidden">
+    <div className="h-full w-full bg-[#fdfaf6] relative selection:bg-[#C0A04C]/30 overflow-y-auto">
       {/* Gradient Background */}
       <div className="absolute top-0 left-0 w-full h-[700px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/80 to-[#fdfaf6] pointer-events-none z-0" />
       

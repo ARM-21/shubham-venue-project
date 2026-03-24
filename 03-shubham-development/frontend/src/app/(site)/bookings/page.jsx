@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import axiosInstance from "lib/axios";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { ROUTES } from "config/routes";
@@ -19,6 +18,7 @@ import {
   ArrowRight,
   Filter
 } from "lucide-react";
+import { useQueryBookingsMy } from '@queries/customer/bookings-my';
 
 const STATUS_CONFIG = {
   PENDING: { 
@@ -67,45 +67,30 @@ function StatusBadge({ status }) {
 
 export default function BookingsPage() {
   const router = useRouter();
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
+
+  // Fetch bookings using react-query
+  const { data: bookingsData, isLoading, refetch } = useQueryBookingsMy(
+    { status: statusFilter || undefined, limit: 10, page: 1 }
+  );
+  
+  const items = bookingsData?.items || [];
 
   const filtered = useMemo(() => {
     if (!statusFilter) return items;
     return items.filter((b) => b.status === statusFilter);
   }, [items, statusFilter]);
 
-  const fetchBookings = async () => {
-    try {
-      setLoading(true);
-      const res = await axiosInstance.get(ROUTES.API.BOOKINGS.MINE, {
-        params: {
-          status: statusFilter || undefined,
-          limit: 10,
-          page: 1,
-        },
-      });
-      setItems(res.data?.items || []);
-    } catch (err) {
-      const msg = err?.response?.data?.message || "Failed to load bookings";
-      toast.error(msg);
-      if (err?.response?.status === 401) {
-        router.push(ROUTES.AUTH.LOGIN);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchBookings();
-  }, [statusFilter]);
-
   const handleDownloadInvoice = async (bookingId) => {
     try {
-      const res = await axiosInstance.get(ROUTES.API.BOOKINGS.INVOICE(bookingId), { responseType: "blob" });
-      const blob = new Blob([res.data], { type: "application/pdf" });
+      const res = await fetch(ROUTES.API.BOOKINGS.INVOICE(bookingId), {
+        method: 'GET',
+        credentials: 'include',
+      });
+      
+      if (!res.ok) throw new Error('Failed to download invoice');
+      
+      const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -114,8 +99,9 @@ export default function BookingsPage() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      toast.success('Invoice downloaded');
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to download invoice");
+      toast.error('Failed to download invoice');
     }
   };
 
@@ -166,17 +152,17 @@ export default function BookingsPage() {
               </div>
 
               <button
-                onClick={fetchBookings}
+                onClick={() => refetch()}
                 className="h-12 w-12 flex items-center justify-center bg-white/90 border border-[#3a1224]/10 rounded-xl text-[#3a1224] hover:border-[#C0A04C]/30 hover:bg-white transition-all cursor-pointer"
                 title="Refresh"
               >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
         </header>
 
-        {loading ? (
+        {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[1, 2, 3].map((n) => (
               <div key={n} className="h-96 bg-white/80 animate-pulse rounded-3xl border border-[#3a1224]/5" />

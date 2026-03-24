@@ -19,6 +19,16 @@ export const ROUTES = {
     NOTIFICATIONS: '/admin/notifications',
     REPORTS: '/admin/reports',
     SETTINGS: '/admin/settings',
+    GOVERNANCE: {
+      ROOT: '/admin/governance',
+      OVERVIEW: '/admin/governance',
+      FLAGS: '/admin/governance/flags',
+      FLAG_DETAIL: (id) => `/admin/governance/flags/${id}`,
+      ORGANIZERS: '/admin/governance/organizers',
+      ORGANIZER_DETAIL: (id) => `/admin/governance/organizers/${id}`,
+      ORGANIZER_EVENTS: '/admin/governance/organizer-events',
+      AUDIT_LOGS: '/admin/governance/audit-logs',
+    },
   },
   SITE: {
     BOOKINGS: '/bookings',
@@ -139,6 +149,29 @@ export const ROUTES = {
       NOTIFICATIONS: '/api/v1/admin/notifications',
       NOTIFICATION_READ: (id) => `/api/v1/admin/notifications/${id}/read`,
       NOTIFICATIONS_READ_ALL: '/api/v1/admin/notifications/read-all',
+      GOVERNANCE: {
+        // Flags
+        FLAGS: '/api/v1/admin/governance/flags',
+        FLAG: (id) => `/api/v1/admin/governance/flags/${id}`,
+        FLAGS_DASHBOARD: '/api/v1/admin/governance/flags/dashboard',
+        FLAG_RESOLVE: (id) => `/api/v1/admin/governance/flags/${id}/resolve`,
+        // Organizers
+        ORGANIZERS: '/api/v1/admin/governance/organizers',
+        ORGANIZER: (id) => `/api/v1/admin/governance/organizers/${id}`,
+        ORGANIZER_REPUTATION: (id) => `/api/v1/admin/governance/organizers/${id}/reputation`,
+        ORGANIZER_AUDIT_TRAIL: (id) => `/api/v1/admin/governance/organizers/${id}/audit-trail`,
+        // Organizer Events
+        ORGANIZER_EVENTS: '/api/v1/admin/governance/organizer-events',
+        ORGANIZER_EVENT: (id) => `/api/v1/admin/governance/organizer-events/${id}`,
+        ORGANIZER_EVENT_REVIEW: (id) => `/api/v1/admin/governance/organizer-events/${id}/review`,
+        ORGANIZER_EVENT_APPROVE: (id) => `/api/v1/admin/governance/organizer-events/${id}/approve`,
+        ORGANIZER_EVENT_REJECT: (id) => `/api/v1/admin/governance/organizer-events/${id}/reject`,
+        ORGANIZER_EVENT_SUSPEND: (id) => `/api/v1/admin/governance/organizer-events/${id}/suspend`,
+        // Audit Logs
+        AUDIT_LOGS: '/api/v1/admin/governance/audit-logs',
+        // Stats
+        SUSPENSION_STATS: '/api/v1/admin/governance/stats/suspensions',
+      },
     },
   },
 };

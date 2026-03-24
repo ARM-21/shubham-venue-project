@@ -136,7 +136,67 @@ const userSchema = new mongoose.Schema(
         type: Boolean,
         default: true
       }
-    }
+    },
+
+    // Trust & Reputation System
+    trustMetrics: {
+      eventsCreated: {
+        type: Number,
+        default: 0,
+      },
+      eventsApproved: {
+        type: Number,
+        default: 0,
+      },
+      currentFlags: {
+        type: Number,
+        default: 0,
+      },
+      resolvedFlags: {
+        type: Number,
+        default: 0,
+      },
+      suspensionCount: {
+        type: Number,
+        default: 0,
+      },
+      averageRating: {
+        type: Number,
+        default: 5,
+        min: 1,
+        max: 5,
+      },
+      trustScore: {
+        type: Number,
+        default: 3, // 1-5 scale, starts at 3 (neutral)
+        min: 1,
+        max: 5,
+      },
+      requiresApproval: {
+        type: Boolean,
+        default: false,
+      },
+      lastUpdatedAt: Date,
+    },
+
+    // Suspension & Enforcement
+    suspensionStatus: {
+      type: String,
+      enum: ["none", "temporary", "permanent"],
+      default: "none",
+    },
+    suspendedAt: Date,
+    suspensionReason: String,
+    suspensionEndDate: Date,
+    suspensionHistory: [
+      {
+        suspendedAt: Date,
+        suspendedUntil: Date,
+        reason: String,
+        liftedAt: Date,
+        liftedBy: mongoose.Schema.Types.ObjectId,
+      },
+    ],
   },
   {
     timestamps: true
