@@ -488,7 +488,7 @@ export default function OrganizerSettings() {
                             className="w-4 h-4 sm:w-5 sm:h-5 rounded accent-[#C0A04C] cursor-pointer mt-0.5 sm:mt-0 shrink-0"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[8xs] sm:text-[9px] font-black text-[#3a1224] uppercase tracking-widest">{notif.label}</p>
+                            <p className="text-[8xs] sm:text-[9px] font-black uppercase tracking-widest">{notif.label}</p>
                             <p className="text-[10px] sm:text-[11px] text-[#3a1224]/60">{notif.desc}</p>
                           </div>
                         </label>
