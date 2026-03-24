@@ -291,6 +291,18 @@ export default function Navbar() {
                 <Sparkles size={20} />
                 Plan Your Event
               </Link>
+
+              {/* Mobile Auth Actions */}
+              {!user ? (
+                <Link
+                  href={ROUTES.AUTH.ROOT}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 p-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold border border-white/10 transition-all"
+                >
+                  <LogIn size={20} />
+                  Sign In
+                </Link>
+              ) : null}
             </div>
           </motion.div>
         )}

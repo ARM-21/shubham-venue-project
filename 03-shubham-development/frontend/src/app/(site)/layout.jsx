@@ -6,7 +6,7 @@ export default function SiteLayout({ children }) {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* Premium Top Bar Concierge */}
-      <div className="w-full bg-[#3a1224] text-white/80 py-2.5 border-b border-white/10 relative z-[110] overflow-x-hidden">
+      <div className="w-full bg-[#3a1224] text-white/80 py-2.5 border-b border-white/10 relative z-50 overflow-x-hidden">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 flex justify-between items-center gap-2 sm:gap-4 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em]">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2 hover:text-[#C0A04C] transition-colors cursor-default">
