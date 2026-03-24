@@ -12,7 +12,8 @@ export default function StepBookingReview({
   onEditStep 
 }) {
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const pricePerHour = Number(hall?.pricePerHour) || 0;
+  // Try multiple field names for hall price
+  const pricePerHour = Number(hall?.pricePerHour) || Number(hall?.price) || Number(hall?.costPerHour) || 0;
   const multiplier = (bookingData?.slot === 'wholeday') ? 15 : 5;
   const hallPrice = pricePerHour * multiplier;
   const total = calculateTotal();
@@ -58,7 +59,9 @@ export default function StepBookingReview({
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-[#3a1224]/60">Date</span>
-              <span className="font-black text-[#3a1224]">{bookingData.date}</span>
+              <span className="font-black text-[#3a1224]">
+                {bookingData.date ? (typeof bookingData.date === 'string' && bookingData.date.match(/^\d{4}-\d{2}-\d{2}$/) ? new Date(bookingData.date + 'T00:00:00').toLocaleDateString() : bookingData.date) : 'N/A'}
+              </span>
             </div>
           </div>
           <div className="space-y-3">

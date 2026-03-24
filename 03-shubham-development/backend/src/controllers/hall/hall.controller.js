@@ -22,8 +22,6 @@ export const getHallBySlugHandler = async (req, res, next) => {
 
 export const checkHallAvailabilityHandler = async (req, res, next) => {
   try {
-
-    console.log(req.body.date, req.body.slot, req.body.guests)
     const data = await checkHallAvailability({
       hallId: req.params.hallId,
       date: req.body?.date,

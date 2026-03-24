@@ -1,8 +1,23 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
 import Navbar from "components/navbar/Navbar.jsx";
 import Footer from "components/footer/Footer.jsx";
 import { Sparkles, MapPin, Phone } from "lucide-react";
 
 export default function SiteLayout({ children }) {
+  const pathname = usePathname();
+
+  // Pages where footer should NOT appear (minimal/critical flows)
+  const noFooterPages = [
+    '/search-availability',
+    '/payment/verify',
+    '/tickets',
+  ];
+
+  // Check if current page should hide footer
+  const shouldHideFooter = noFooterPages.some(page => pathname.startsWith(page));
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* Premium Top Bar Concierge */}
@@ -32,7 +47,8 @@ export default function SiteLayout({ children }) {
       
       <main className="flex-1">{children}</main>
       
-      <Footer />
+      {/* Footer only on primary pages */}
+      {!shouldHideFooter && <Footer />}
     </div>
   );
 }

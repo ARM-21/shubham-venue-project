@@ -149,7 +149,7 @@ export default function TicketsPage() {
       <style>{animationStyle}</style>
       
       {/* Dark Gradient Header background */}
-      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/95 to-[#83796c] pointer-events-none z-0" />
+      <div className="absolute top-0 left-0 w-full h-[600px] md:h-[500px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/95 to-[#322f2a] pointer-events-none z-0" />
 
       <main className="max-w-7xl mx-auto px-6 sm:px-8 pt-40 pb-32 relative z-10">
         <header className="mb-16">
@@ -169,7 +169,7 @@ export default function TicketsPage() {
             
             <div className="flex flex-wrap items-center gap-4">
               <div className="relative group">
-                <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#C0A04C]" />
+                <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1d1c1b]" />
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}

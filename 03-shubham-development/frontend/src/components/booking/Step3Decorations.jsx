@@ -1,4 +1,4 @@
-// components/booking/steps/Step3Decorations.jsx
+// components/booking/Step3Decorations.jsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import axiosInstance from 'lib/axios';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
+import { FormTextField, FormTextarea, PrimaryButton, SecondaryButton, ActionButtonGroup } from './FormInputs';
 
 export default function Step3Decorations({ data, onUpdate, onNext, onPrev }) {
   const [decorationSchemes, setDecorationSchemes] = useState([]);
@@ -123,72 +124,54 @@ export default function Step3Decorations({ data, onUpdate, onNext, onPrev }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Step Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-1 h-6 bg-[#C0A04C]"></div>
-        <div>
-          <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Step 3</p>
-          <h2 className="text-2xl font-display font-black text-[#3a1224]">Select Decorations & Add-ons</h2>
-          <p className="text-sm text-[#3a1224]/60 mt-1">Enhance your event with our decoration options</p>
-        </div>
-      </div>
-
       {/* No Decoration Option */}
       <div
         onClick={handleNoDecoration}
-        className={`
-          border rounded-3xl p-6 cursor-pointer transition-all duration-300 shadow-lg
-          ${noDecoration
-            ? 'border-[#C0A04C]/30 bg-white ring-2 ring-[#C0A04C]/20'
-            : 'border-[#3a1224]/5 bg-white/95 hover:border-[#3a1224]/10'
-          }
-        `}
+        className={`border rounded-lg p-6 cursor-pointer transition-all ${
+          noDecoration
+            ? 'border-[#C0A04C] bg-[#C0A04C]/5'
+            : 'border-slate-200 bg-white hover:border-slate-300'
+        }`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className={`
-              w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0
-              ${noDecoration ? 'border-[#C0A04C] bg-[#C0A04C]' : 'border-[#3a1224]/10'}
-            `}>
+            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+              noDecoration ? 'border-[#C0A04C] bg-[#C0A04C]' : 'border-slate-300'
+            }`}>
               {noDecoration && (
-                <svg className="w-4 h-4 text-[#3a1224]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
               )}
             </div>
             <div>
-              <h4 className="font-black text-[#3a1224]">No Decoration Needed</h4>
-              <p className="text-sm text-[#3a1224]/60">I'll handle decorations myself</p>
+              <h4 className="font-semibold text-slate-900">No Decoration Needed</h4>
+              <p className="text-sm text-slate-600">I'll handle decorations myself</p>
             </div>
           </div>
-          <span className="text-xl font-black text-[#C0A04C]">NPR 0</span>
+          <span className="text-lg font-bold text-[#C0A04C]">NPR 0</span>
         </div>
       </div>
 
       {/* Decoration Schemes */}
       {!noDecoration && (
         <>
-          <div className="space-y-4 pt-6 border-t border-[#3a1224]/10">
-            <div className="flex items-center gap-3">
-              <div className="w-1 h-6 bg-[#C0A04C]"></div>
-              <h3 className="text-lg font-display font-black text-[#3a1224]">Choose a Decoration Theme</h3>
-            </div>
+          <div className="space-y-4 pt-6 border-t border-slate-200">
+            <h3 className="text-sm font-semibold text-slate-900">Choose a Decoration Theme</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {decorationSchemes.map((scheme) => (
                 <div
                   key={scheme._id}
                   onClick={() => handleSchemeSelect(scheme)}
-                  className={`
-                    border rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 shadow-lg
-                    ${selectedScheme?._id === scheme._id
-                      ? 'border-[#C0A04C]/30 ring-2 ring-[#C0A04C]/20'
-                      : 'border-[#3a1224]/5 hover:border-[#3a1224]/10'
-                    }
-                  `}
+                  className={`border rounded-lg overflow-hidden cursor-pointer transition-all ${
+                    selectedScheme?._id === scheme._id
+                      ? 'border-[#C0A04C] ring-2 ring-[#C0A04C]/10'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
                 >
                   {/* Scheme Image */}
                   {scheme.imageUrl && (
-                    <div className="relative h-48 bg-gray-100">
+                    <div className="relative h-48 bg-slate-100">
                       <Image
                         src={scheme.imageUrl}
                         alt={scheme.name}
@@ -196,7 +179,7 @@ export default function Step3Decorations({ data, onUpdate, onNext, onPrev }) {
                         className="object-cover"
                       />
                       {selectedScheme?._id === scheme._id && (
-                        <div className="absolute top-4 right-4 bg-[#C0A04C] text-[#3a1224] rounded-full p-2 shadow-lg">
+                        <div className="absolute top-4 right-4 bg-[#C0A04C] text-white rounded-full p-2 shadow-lg">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                           </svg>
@@ -207,15 +190,15 @@ export default function Step3Decorations({ data, onUpdate, onNext, onPrev }) {
 
                   {/* Scheme Details */}
                   <div className="p-5">
-                    <h4 className="font-black text-[#3a1224] mb-2">{scheme.name}</h4>
-                    <p className="text-sm text-[#3a1224]/60 mb-3">{scheme.description}</p>
+                    <h4 className="font-semibold text-slate-900 mb-2">{scheme.name}</h4>
+                    <p className="text-sm text-slate-600 mb-3">{scheme.description}</p>
 
                     {/* Features */}
                     {scheme.features && scheme.features.length > 0 && (
                       <ul className="space-y-1 mb-4">
                         {scheme.features.slice(0, 3).map((feature, index) => (
-                          <li key={index} className="text-xs text-[#3a1224]/60 flex items-start">
-                            <span className="text-[#C0A04C] mr-2 font-black">✓</span>
+                          <li key={index} className="text-xs text-slate-600 flex items-start">
+                            <span className="text-[#C0A04C] mr-2 font-semibold">✓</span>
                             {feature}
                           </li>
                         ))}
@@ -223,10 +206,10 @@ export default function Step3Decorations({ data, onUpdate, onNext, onPrev }) {
                     )}
 
                     {/* Price */}
-                    <div className="pt-4 border-t border-[#3a1224]/10">
+                    <div className="pt-4 border-t border-slate-200">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Package Price</span>
-                        <span className="text-xl font-black text-[#C0A04C]">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Package Price</span>
+                        <span className="text-lg font-bold text-[#C0A04C]">
                           NPR {scheme.price.toLocaleString()}
                         </span>
                       </div>
@@ -238,13 +221,10 @@ export default function Step3Decorations({ data, onUpdate, onNext, onPrev }) {
           </div>
 
           {/* Add-ons Section */}
-          <div className="space-y-4 pt-6 border-t border-[#3a1224]/10">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-1 h-6 bg-[#C0A04C]"></div>
-              <div>
-                <h3 className="text-lg font-display font-black text-[#3a1224]">Additional Add-ons</h3>
-                <p className="text-sm text-[#3a1224]/60 mt-1">Enhance your decoration with these optional extras</p>
-              </div>
+          <div className="space-y-4 pt-6 border-t border-slate-200">
+            <div className="mb-3">
+              <h3 className="text-sm font-semibold text-slate-900">Additional Add-ons</h3>
+              <p className="text-sm text-slate-600 mt-1">Enhance your decoration with these optional extras</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -255,28 +235,26 @@ export default function Step3Decorations({ data, onUpdate, onNext, onPrev }) {
                   <div
                     key={addon._id}
                     onClick={() => handleAddonToggle(addon)}
-                    className={`
-                      border rounded-xl p-5 cursor-pointer transition-all duration-300
-                      ${isSelected
-                        ? 'border-[#C0A04C]/30 bg-[#C0A04C]/5 ring-2 ring-[#C0A04C]/20'
-                        : 'border-[#3a1224]/5 bg-white/95 hover:border-[#3a1224]/10'
-                      }
-                    `}
+                    className={`border rounded-lg p-5 cursor-pointer transition-all ${
+                      isSelected
+                        ? 'border-[#C0A04C] bg-[#C0A04C]/5'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
                   >
                     <div className="flex items-start gap-3">
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => {}}
-                        className="mt-1 w-5 h-5 text-[#C0A04C] bg-white border-[#3a1224]/10 rounded focus:ring-[#C0A04C]/20"
+                        className="mt-1 w-5 h-5 text-[#C0A04C] border-slate-300 rounded focus:ring-[#C0A04C]/20"
                       />
                       <div className="flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <h5 className="font-black text-[#3a1224]">{addon.name}</h5>
-                            <p className="text-sm text-[#3a1224]/60 mt-1">{addon.description}</p>
+                            <h5 className="font-semibold text-slate-900">{addon.name}</h5>
+                            <p className="text-sm text-slate-600 mt-1">{addon.description}</p>
                           </div>
-                          <span className="text-lg font-black text-[#C0A04C] flex-shrink-0">
+                          <span className="text-lg font-bold text-[#C0A04C] flex-shrink-0">
                             NPR {addon.price.toLocaleString()}
                           </span>
                         </div>
@@ -289,74 +267,60 @@ export default function Step3Decorations({ data, onUpdate, onNext, onPrev }) {
           </div>
 
           {/* Custom Preferences */}
-          <div className="space-y-4 pt-6 border-t border-[#3a1224]/10">
-            <div className="flex items-center gap-3">
-              <div className="w-1 h-6 bg-[#C0A04C]"></div>
-              <h3 className="text-lg font-display font-black text-[#3a1224]">Customization Preferences</h3>
-            </div>
+          <div className="space-y-4 pt-6 border-t border-slate-200">
+            <h3 className="text-sm font-semibold text-slate-900">Customization Preferences</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3">
-                  Color Preference (Optional)
-                </label>
-                <input
-                  type="text"
-                  {...register('colorPreference')}
-                  placeholder="e.g., Gold and White, Pink and Purple"
-                  className="w-full px-5 py-3 bg-gray-50 border border-[#3a1224]/10 rounded-xl focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20 placeholder-[#3a1224]/20 font-black text-[#3a1224] text-sm"
-                />
-              </div>
+              <FormTextField
+                label="Color Preference"
+                placeholder="e.g., Gold and White, Pink and Purple"
+                {...register('colorPreference')}
+              />
 
               <div>
-                <label className="block text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3">
-                  Upload Inspiration Images (Optional)
+                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                  Upload Inspiration Images
                 </label>
                 <input
                   type="file"
                   multiple
                   accept="image/*"
-                  className="w-full px-5 py-3 bg-gray-50 border border-[#3a1224]/10 rounded-xl focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20 text-sm"
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20"
                 />
-                <p className="text-xs text-[#3a1224]/40 mt-2">Upload up to 5 images</p>
+                <p className="text-xs text-slate-500 mt-2">Upload up to 5 images</p>
               </div>
             </div>
 
-            <div>
-              <label className="block text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3">
-                Additional Theme Notes (Optional)
-              </label>
-              <textarea
-                {...register('themeNotes')}
-                rows={3}
-                placeholder="Any specific decoration requests, special requirements, or ideas..."
-                className="w-full px-5 py-3 bg-gray-50 border border-[#3a1224]/10 rounded-xl focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20 placeholder-[#3a1224]/20 font-black text-[#3a1224] text-sm"
-              />
-            </div>
+            <FormTextarea
+              label="Additional Theme Notes"
+              placeholder="Any specific decoration requests, special requirements, or ideas..."
+              rows={3}
+              {...register('themeNotes')}
+            />
           </div>
         </>
       )}
 
       {/* Total Summary */}
-      <div className="bg-gradient-to-br from-[#3a1224] to-[#4a172d] rounded-3xl p-6 shadow-lg">
+      <div className="bg-gradient-to-br from-[#3a1224] to-[#4a172d] rounded-lg p-6 shadow-sm">
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-[9px] font-black text-[#C0A04C] uppercase tracking-widest">Decoration Scheme</span>
-            <span className="font-black text-[#C0A04C]">
+            <span className="text-xs font-semibold text-[#C0A04C] uppercase tracking-widest">Decoration Scheme</span>
+            <span className="font-bold text-[#C0A04C]">
               NPR {getSchemeTotal().toLocaleString()}
             </span>
           </div>
           {selectedAddons.length > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-[9px] font-black text-[#C0A04C] uppercase tracking-widest">Add-ons ({selectedAddons.length})</span>
-              <span className="font-black text-[#C0A04C]">
+              <span className="text-xs font-semibold text-[#C0A04C] uppercase tracking-widest">Add-ons ({selectedAddons.length})</span>
+              <span className="font-bold text-[#C0A04C]">
                 NPR {getAddonsTotal().toLocaleString()}
               </span>
             </div>
           )}
           <div className="pt-3 border-t border-[#C0A04C]/20 flex items-center justify-between">
             <div>
-              <p className="text-[9px] font-black text-[#C0A04C] uppercase tracking-widest">Decoration Total</p>
+              <p className="text-xs font-semibold text-[#C0A04C] uppercase tracking-widest">Decoration Total</p>
               {!noDecoration && (
                 <p className="text-xs text-[#C0A04C]/70 mt-2">
                   {selectedScheme ? selectedScheme.name : 'No scheme selected'}
@@ -364,7 +328,7 @@ export default function Step3Decorations({ data, onUpdate, onNext, onPrev }) {
                 </p>
               )}
             </div>
-            <p className="text-4xl font-black text-[#C0A04C]">
+            <p className="text-4xl font-bold text-[#C0A04C]">
               NPR {getDecorationTotal().toLocaleString()}
             </p>
           </div>
@@ -372,21 +336,12 @@ export default function Step3Decorations({ data, onUpdate, onNext, onPrev }) {
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex gap-4 pt-6">
-        <button
-          type="button"
-          onClick={onPrev}
-          className="flex-1 h-12 px-6 border border-[#3a1224]/10 text-[#3a1224] font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          ← Back to Menu
-        </button>
-        <button
-          type="submit"
-          className="flex-1 h-12 px-6 bg-[#3a1224] text-[#C0A04C] font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-[#4a172d] transition-colors shadow-lg cursor-pointer"
-        >
+      <ActionButtonGroup>
+        <SecondaryButton onClick={onPrev}>← Back to Menu</SecondaryButton>
+        <PrimaryButton type="submit">
           Continue to Payment →
-        </button>
-      </div>
+        </PrimaryButton>
+      </ActionButtonGroup>
     </form>
   );
 }

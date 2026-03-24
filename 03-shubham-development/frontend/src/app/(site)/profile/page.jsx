@@ -187,7 +187,7 @@ export default function ProfilePage() {
   async function changePassword(data) {
     setStatus({ loading: true, message: null, error: null });
     try {
-      await axiosInstance.put(ROUTES.API.PROFILE.PASSWORD, {
+      await axiosInstance.patch(ROUTES.API.PROFILE.PASSWORD, {
         currentPassword: data.currentPassword,
         newPassword: data.newPassword
       });
@@ -238,7 +238,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#fdfaf6] relative selection:bg-[#C0A04C]/30 overflow-hidden">
       {/* Dark Gradient Header Background */}
-      <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/80 to-transparent pointer-events-none z-0" />
+      <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/80 to-[#322f2a] pointer-events-none z-0" />
 
       <main className="max-w-7xl mx-auto px-6 sm:px-8 pt-40 pb-32 relative z-10">
         {/* Header */}
@@ -517,25 +517,61 @@ export default function ProfilePage() {
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-display font-bold text-[#3a1224]">Update Password</h3>
                 <button 
-                  onClick={() => { setShowPasswordModal(false); resetPassword(); }} 
+                  onClick={() => { setShowPasswordModal(false); resetPassword(); setStatus({ loading: false, message: null, error: null }); }} 
                   className="p-2 rounded-lg hover:bg-gray-100 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
+              {/* Error Message */}
+              {status.error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span className="text-red-700 text-[9px] font-black uppercase tracking-widest">{status.error}</span>
+                </div>
+              )}
+
               <form onSubmit={handleSubmitPassword(changePassword)} className="space-y-4">
                 <div>
                   <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2 block">Current Password</label>
-                  <input type="password" {...registerPassword('currentPassword', { required: 'Required' })} placeholder="••••••••" className="w-full h-12 px-4 bg-gray-50 border border-[#3a1224]/10 rounded-xl focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20" />
+                  <input 
+                    type="password" 
+                    {...registerPassword('currentPassword', { required: 'Required' })} 
+                    placeholder="••••••••" 
+                    className={`w-full h-12 px-4 bg-gray-50 border rounded-xl focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20 transition-all ${
+                      passwordErrors.currentPassword ? 'border-red-300 bg-red-50' : 'border-[#3a1224]/10'
+                    }`}
+                  />
+                  {passwordErrors.currentPassword && <p className="text-red-500 text-[8px] font-black mt-1">{passwordErrors.currentPassword.message}</p>}
                 </div>
                 <div>
                   <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2 block">New Password</label>
-                  <input type="password" {...registerPassword('newPassword', { required: 'Required', minLength: { value: 8, message: 'Min 8 characters' } })} placeholder="••••••••" className="w-full h-12 px-4 bg-gray-50 border border-[#3a1224]/10 rounded-xl focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20" />
+                  <input 
+                    type="password" 
+                    {...registerPassword('newPassword', { required: 'Required', minLength: { value: 8, message: 'Min 8 characters' } })} 
+                    placeholder="••••••••" 
+                    className={`w-full h-12 px-4 bg-gray-50 border rounded-xl focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20 transition-all ${
+                      passwordErrors.newPassword ? 'border-red-300 bg-red-50' : 'border-[#3a1224]/10'
+                    }`}
+                  />
+                  {passwordErrors.newPassword && <p className="text-red-500 text-[8px] font-black mt-1">{passwordErrors.newPassword.message}</p>}
                 </div>
                 <div>
                   <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2 block">Confirm Password</label>
-                  <input type="password" {...registerPassword('confirmPassword', { validate: v => v === newPassword || 'Passwords must match' })} placeholder="••••••••" className="w-full h-12 px-4 bg-gray-50 border border-[#3a1224]/10 rounded-xl focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20" />
+                  <input 
+                    type="password" 
+                    {...registerPassword('confirmPassword', { validate: v => v === newPassword || 'Passwords must match' })} 
+                    placeholder="••••••••" 
+                    className={`w-full h-12 px-4 bg-gray-50 border rounded-xl focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20 transition-all ${
+                      passwordErrors.confirmPassword ? 'border-red-300 bg-red-50' : 'border-[#3a1224]/10'
+                    }`}
+                  />
+                  {passwordErrors.confirmPassword && <p className="text-red-500 text-[8px] font-black mt-1">{passwordErrors.confirmPassword.message}</p>}
                 </div>
                 
                 <button 

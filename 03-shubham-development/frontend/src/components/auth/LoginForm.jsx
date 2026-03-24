@@ -47,7 +47,7 @@ export default function LoginForm({ onSwitch }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="group">
-        <label className="block text-[11px] font-bold text-[#3a1224]/40 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Email Address</label>
+        <label className="block text-[11px] font-bold text-[#3a1224]/70 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Email Address</label>
         <div className="relative">
           <input
             type="email"
@@ -59,7 +59,7 @@ export default function LoginForm({ onSwitch }) {
               } 
             })}
             className="w-full bg-[#3a1224]/3 border border-[#3a1224]/10 text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm font-medium"
-            placeholder="e.g. alex@example.com"
+            placeholder="e.g. test@example.com"
           />
         </div>
         {errors.email && (
@@ -69,8 +69,8 @@ export default function LoginForm({ onSwitch }) {
 
       <div className="group">
         <div className="flex items-center justify-between mb-3 ml-1">
-          <label className="block text-[11px] font-bold text-[#3a1224]/40 uppercase tracking-widest group-focus-within:text-[#C0A04C] transition-colors">Password</label>
-          <a href="#" className="text-[10px] text-[#C0A04C]/60 hover:text-[#C0A04C] transition-colors duration-200 uppercase tracking-widest font-bold">
+          <label className="block text-[11px] font-bold text-[#3a1224]/80 uppercase tracking-widest group-focus-within:text-[#C0A04C] transition-colors">Password</label>
+          <a href="#" className="text-[10px] text-[#C0A04C]/60 hover:text-[#C0A04C] underline transition-colors duration-200 uppercase tracking-widest font-bold">
             Forgot?
           </a>
         </div>
@@ -112,7 +112,7 @@ export default function LoginForm({ onSwitch }) {
         <button 
           type="button" 
           onClick={() => onSwitch && onSwitch()} 
-          className="text-[#C0A04C] text-[11px] font-bold hover:text-[#3a1224] transition-colors cursor-pointer ml-1 uppercase tracking-wider"
+          className="text-[#C0A04C] text-[11px] underline font-bold hover:text-[#3a1224] transition-colors cursor-pointer ml-1 uppercase tracking-wider"
         >
           Create Account
         </button>

@@ -1,6 +1,6 @@
 import { Toaster } from "react-hot-toast";
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import "./globals.css";
+import "./global.css";
 import { AuthProvider } from "contexts/AuthProvider.jsx";
 import QueryProvider from "providers/QueryProvider.jsx";
 

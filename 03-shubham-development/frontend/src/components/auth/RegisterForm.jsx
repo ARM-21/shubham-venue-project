@@ -126,7 +126,7 @@ export default function RegisterForm({ onSwitch }) {
     <>
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="group">
-        <label className="block text-[11px] font-bold text-[#3a1224]/40 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Email Address</label>
+        <label className="block text-[11px] font-bold text-[#3a1224]/70 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Email Address</label>
         <div className="relative">
           <input
             type="email"
@@ -138,7 +138,7 @@ export default function RegisterForm({ onSwitch }) {
               } 
             })}
             className="w-full bg-[#3a1224]/3 border border-[#3a1224]/10 text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm font-medium"
-            placeholder="e.g. alex@example.com"
+            placeholder="e.g. test@example.com"
           />
         </div>
         {errors.email && (
@@ -148,7 +148,7 @@ export default function RegisterForm({ onSwitch }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="group">
-          <label className="block text-[11px] font-bold text-[#3a1224]/40 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Password</label>
+          <label className="block text-[11px] font-bold text-[#3a1224]/70 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Password</label>
           <div className="relative">
             <input
               type="password"
@@ -169,7 +169,7 @@ export default function RegisterForm({ onSwitch }) {
         </div>
 
         <div className="group">
-          <label className="block text-[11px] font-bold text-[#3a1224]/40 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Confirm</label>
+          <label className="block text-[11px] font-bold text-[#3a1224]/70 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Confirm</label>
           <div className="relative">
             <input
               type="password"

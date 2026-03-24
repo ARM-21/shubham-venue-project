@@ -11,7 +11,9 @@ import {
   ShieldCheck,
   ArrowLeft,
   Menu,
-  X
+  X,
+  Settings,
+  BarChart3
 } from "lucide-react";
 import { ROUTES } from "config/routes";
 import axiosInstance from "lib/axios";
@@ -20,6 +22,7 @@ import toast from "react-hot-toast";
 const navItems = [
   { label: "Dashboard", href: ROUTES.SITE.ORGANIZER, icon: LayoutGrid },
   { label: "My Events", href: ROUTES.SITE.ORGANIZER_EVENTS, icon: CalendarCheck },
+  { label: "Analytics", href: "/organizer-hub/analytics", icon: BarChart3 },
   { label: "Create Event", href: ROUTES.SITE.ORGANIZER_EVENT_NEW, icon: PlusCircle },
 ];
 
@@ -84,7 +87,13 @@ export default function OrganizerNav({ user }) {
           <nav className="hidden lg:flex items-center gap-2">
             {navItems.map((item) => {
               const isExact = pathname === item.href;
-              const isSubPath = pathname?.startsWith(item.href + "/") && item.href !== ROUTES.SITE.ORGANIZER;
+              let isSubPath = pathname?.startsWith(item.href + "/") && item.href !== ROUTES.SITE.ORGANIZER;
+              
+              // Exclude /new route from "My Events" subpath matching
+              if (item.label === "My Events" && pathname?.includes("/events/new")) {
+                isSubPath = false;
+              }
+              
               const active = isExact || isSubPath;
               const Icon = item.icon;
               
@@ -136,6 +145,15 @@ export default function OrganizerNav({ user }) {
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
 
+            {/* Settings Button */}
+            <Link
+              href="/organizer-hub/settings"
+              className="h-10 w-10 flex items-center justify-center rounded-lg border border-[#3a1224]/10 hover:bg-[#C0A04C]/10 text-[#3a1224] transition-all cursor-pointer"
+              title="Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </Link>
+
             {/* Exit Button */}
             <Link
               href={ROUTES.SITE.PROFILE}
@@ -153,7 +171,13 @@ export default function OrganizerNav({ user }) {
             <nav className="max-w-7xl mx-auto px-6 sm:px-8 py-4 space-y-2">
               {navItems.map((item) => {
                 const isExact = pathname === item.href;
-                const isSubPath = pathname?.startsWith(item.href + "/") && item.href !== ROUTES.SITE.ORGANIZER;
+                let isSubPath = pathname?.startsWith(item.href + "/") && item.href !== ROUTES.SITE.ORGANIZER;
+                
+                // Exclude /new route from "My Events" subpath matching
+                if (item.label === "My Events" && pathname?.includes("/events/new")) {
+                  isSubPath = false;
+                }
+                
                 const active = isExact || isSubPath;
                 const Icon = item.icon;
                 const disabled = !isApproved && item.href !== ROUTES.SITE.ORGANIZER;

@@ -12,7 +12,7 @@ export async function getUserProfileService(userId) {
   return user;
 }
 
-// Update profile fields (name, phone, city, event types, onboarding status)
+// Update profile fields (name, phone, city, event types, onboarding status, organizer details)
 export async function updateUserProfileService(userId, data) {
   try {
     const allowed = {};
@@ -26,11 +26,17 @@ export async function updateUserProfileService(userId, data) {
     // Contact & Profile fields
     if (data.phone) allowed.phone = data.phone;
     if (data.city) allowed.city = data.city;
+    if (data.address) allowed.address = data.address;
     
     // Onboarding fields
     if (data.preferredEventTypes) allowed.preferredEventTypes = data.preferredEventTypes;
     if (typeof data.hasCompletedOnboarding === 'boolean') {
       allowed.hasCompletedOnboarding = data.hasCompletedOnboarding;
+    }
+    
+    // Organizer details
+    if (data.organizerDetails !== undefined) {
+      allowed.organizerDetails = data.organizerDetails;
     }
     
     const user = await User.findByIdAndUpdate(
