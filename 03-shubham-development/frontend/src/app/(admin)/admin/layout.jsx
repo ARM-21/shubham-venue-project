@@ -14,12 +14,33 @@ function buildNavItems(pathname) {
     { key: "halls", label: "Halls", href: ROUTES.ADMIN.HALLS },
     { key: "users", label: "Users", href: ROUTES.ADMIN.USERS },
     { key: "reports", label: "Reports", href: ROUTES.ADMIN.REPORTS },
+    {
+      key: "governance",
+      label: "Governance",
+      href: ROUTES.ADMIN.GOVERNANCE.ROOT,
+      submenu: [
+        { key: "governance-overview", label: "Overview", href: ROUTES.ADMIN.GOVERNANCE.OVERVIEW },
+        { key: "governance-flags", label: "Flags", href: ROUTES.ADMIN.GOVERNANCE.FLAGS },
+        { key: "governance-organizers", label: "Organizers", href: ROUTES.ADMIN.GOVERNANCE.ORGANIZERS },
+        { key: "governance-events", label: "Events Review", href: ROUTES.ADMIN.GOVERNANCE.ORGANIZER_EVENTS },
+        { key: "governance-audit", label: "Audit Logs", href: ROUTES.ADMIN.GOVERNANCE.AUDIT_LOGS },
+      ],
+    },
     { key: "settings", label: "Settings", href: ROUTES.ADMIN.SETTINGS },
   ];
 
   return base.map((item) => {
     const isActive = pathname === item.href;
-    return { ...item, active: isActive };
+    const submenu = item.submenu?.map((sub) => ({
+      ...sub,
+      active: pathname === sub.href,
+    }));
+
+    return {
+      ...item,
+      active: isActive || (item.submenu?.some((sub) => pathname === sub.href) ?? false),
+      submenu,
+    };
   });
 }
 

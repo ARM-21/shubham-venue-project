@@ -40,7 +40,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#fdfaf6] to-[#f5f1ec]">
+    <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-[#fdfaf6] to-[#f5f1ec]">
       <OnboardingFlow userEmail={user?.email} userId={user?._id} />
     </div>
   );

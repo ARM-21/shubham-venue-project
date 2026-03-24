@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import axiosInstance from 'lib/axios';
 import Image from 'next/image';
 import { ROUTES } from 'config/routes';
+import toast from 'react-hot-toast';
 import { 
   Users, 
   Ruler, 
@@ -16,11 +16,10 @@ import {
   Clock,
   Circle
 } from 'lucide-react';
+import { useQueryHallsPublic } from '@queries/customer/halls-public';
+import { useQueryAvailability } from '@queries/customer/availability';
 
 export default function VenuesPage() {
-  const [halls, setHalls] = useState([]);
-  const [filteredHalls, setFilteredHalls] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('price-desc');
   const [filters, setFilters] = useState({
     date: '',
@@ -30,9 +29,25 @@ export default function VenuesPage() {
   });
   
   const router = useRouter();
-  const priceDebounce = useRef(null);
-
   const today = new Date().toISOString().split('T')[0];
+
+  // Query hooks for fetching data
+  const { data: hallsData, isLoading: hallsLoading, error: hallsError } = useQueryHallsPublic();
+  const hallsList = hallsData?.halls || hallsData || [];
+
+  // Availability query - only fetch when date and timeSlot are set
+  const availabilityParams = filters.date && filters.timeSlot 
+    ? { 
+        date: filters.date, 
+        slot: mapClientSlotToServer(filters.timeSlot), 
+        guests: parseCapacityToGuests(filters.capacity) || 1 
+      }
+    : null;
+
+  const { data: availabilityData, isLoading: availabilityLoading } = useQueryAvailability(
+    availabilityParams,
+    { enabled: !!availabilityParams }
+  );
 
   // Animation styles
   const animationStyle = `
@@ -51,23 +66,6 @@ export default function VenuesPage() {
     }
   `;
 
-  useEffect(() => {
-    async function fetchHalls() {
-      try {
-        setLoading(true);
-        const response = await axiosInstance.get(ROUTES.API.HALLS.ROOT);
-        const list = response.data.halls || response.data || [];
-        setHalls(list);
-        setFilteredHalls(list);
-      } catch (error) {
-        console.error('Error fetching venues:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchHalls();
-  }, []);
-
   function parseCapacityToGuests(capStr) {
     if (!capStr || capStr === 'Any Capacity') return null;
     const m = capStr.match(/(\d+)/);
@@ -81,61 +79,84 @@ export default function VenuesPage() {
     return 'evening';
   }
 
-  const applyFilters = async () => {
-    setLoading(true);
-    try {
-      const guestsFromCap = parseCapacityToGuests(filters.capacity) || 1;
-      let list = [...halls];
+  // Apply filters and sorting to halls
+  const applyFilters = (halls) => {
+    let list = [...halls];
 
-      if (filters.date && filters.timeSlot) {
-        const serverSlot = mapClientSlotToServer(filters.timeSlot);
-        try {
-          const resp = await axiosInstance.get(ROUTES.API.HALLS.AVAILABILITY, {
-            params: { date: filters.date, slot: serverSlot, guests: guestsFromCap },
-          });
-          const returned = resp.data?.halls ?? resp.data ?? [];
-          list = returned.filter(h => h.available !== false);
-        } catch (err) {
-          console.warn('Availability API error', err);
-        }
-      }
-
-      // Capacity filter
-      if (filters.capacity !== 'Any Capacity') {
-        const min = parseCapacityToGuests(filters.capacity) || 0;
-        if (filters.capacity.includes('-')) {
-          const parts = filters.capacity.match(/(\d+)\s*-\s*(\d+)/);
-          if (parts) {
-            const lo = Number(parts[1]), hi = Number(parts[2]);
-            list = list.filter(h => h.capacity >= lo && h.capacity <= hi);
-          }
-        } else {
-          list = list.filter(h => h.capacity >= min);
-        }
-      }
-
-      // Price filter
-      list = list.filter(h => (h.pricePerHour ?? 0) <= filters.price);
-
-      // Sorting
-      list.sort((a,b) => {
-        if (sortBy === 'price-asc') return (a.pricePerHour||0) - (b.pricePerHour||0);
-        if (sortBy === 'price-desc') return (b.pricePerHour||0) - (a.pricePerHour||0);
-        if (sortBy === 'capacity-desc') return (b.capacity||0) - (a.capacity||0);
-        return 0;
-      });
-
-      setFilteredHalls(list);
-    } finally {
-      setLoading(false);
+    // If availability data is available, filter by it
+    if (availabilityData?.halls) {
+      const availableIds = new Set(availabilityData.halls.map(h => h._id));
+      list = list.filter(h => availableIds.has(h._id));
     }
+
+    // Capacity filter
+    if (filters.capacity !== 'Any Capacity') {
+      const min = parseCapacityToGuests(filters.capacity) || 0;
+      if (filters.capacity.includes('-')) {
+        const parts = filters.capacity.match(/(\d+)\s*-\s*(\d+)/);
+        if (parts) {
+          const lo = Number(parts[1]), hi = Number(parts[2]);
+          list = list.filter(h => h.capacity >= lo && h.capacity <= hi);
+        }
+      } else {
+        list = list.filter(h => h.capacity >= min);
+      }
+    }
+
+    // Price filter
+    list = list.filter(h => (h.pricePerHour ?? 0) <= filters.price);
+
+    // Sorting
+    list.sort((a, b) => {
+      if (sortBy === 'price-asc') return (a.pricePerHour || 0) - (b.pricePerHour || 0);
+      if (sortBy === 'price-desc') return (b.pricePerHour || 0) - (a.pricePerHour || 0);
+      if (sortBy === 'capacity-desc') return (b.capacity || 0) - (a.capacity || 0);
+      return 0;
+    });
+
+    return list;
   };
 
-  useEffect(() => {
-    if (halls.length > 0) applyFilters();
-  }, [sortBy, filters.date, filters.timeSlot, filters.capacity, halls]);
+  // Memoized filtered halls
+  const processedHalls = useMemo(() => {
+    return applyFilters(hallsList);
+  }, [hallsList, filters, sortBy, availabilityData]);
 
-  if (loading && halls.length === 0) {
+  // Memoized event handlers to prevent unnecessary re-renders
+  const handleDateChange = useCallback((e) => {
+    setFilters(f => ({...f, date: e.target.value}));
+  }, []);
+
+  const handleTimeSlotChange = useCallback((e) => {
+    setFilters(f => ({...f, timeSlot: e.target.value}));
+  }, []);
+
+  const handleCapacityChange = useCallback((e) => {
+    setFilters(f => ({...f, capacity: e.target.value}));
+  }, []);
+
+  const handlePriceChange = useCallback((e) => {
+    const val = Number(e.target.value);
+    setFilters(f => ({...f, price: val}));
+  }, []);
+
+  const handleSortChange = useCallback((optionId) => {
+    setSortBy(optionId);
+  }, []);
+
+  const handleResetFilters = useCallback(() => {
+    setFilters({date:'', timeSlot:'', capacity:'Any Capacity', price:500000});
+    setSortBy('price-desc');
+    toast.success('Filters reset');
+  }, []);
+
+  const handleVenueClick = useCallback((hallSlug) => {
+    router.push(ROUTES.SITE.VENUES(hallSlug));
+  }, [router]);
+
+  const isLoading = hallsLoading || availabilityLoading;
+
+  if (isLoading && hallsList.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#3a1224]">
         <div className="w-12 h-12 border-4 border-[#C0A04C] border-t-transparent rounded-full animate-spin"></div>
@@ -174,7 +195,7 @@ export default function VenuesPage() {
                   type="date" 
                   min={today}
                   value={filters.date}
-                  onChange={(e) => setFilters(f => ({...f, date: e.target.value}))}
+                  onChange={handleDateChange}
                   className="w-full bg-transparent text-white text-[10px] sm:text-[11px] font-black uppercase outline-none ml-3 sm:ml-4 placeholder-white/50 cursor-pointer"
                   placeholder="Select Date"
                 />
@@ -183,7 +204,7 @@ export default function VenuesPage() {
                 <Clock className="text-[#C0A04C] flex-shrink-0" size={20} />
                 <select 
                   value={filters.timeSlot}
-                  onChange={(e) => setFilters(f => ({...f, timeSlot: e.target.value}))}
+                  onChange={handleTimeSlotChange}
                   className="w-full bg-transparent text-white text-[10px] sm:text-[11px] font-black uppercase outline-none appearance-none ml-3 sm:ml-4 cursor-pointer"
                 >
                   <option value="" className="bg-[#3a1224] text-white">Any Time Slot</option>
@@ -197,7 +218,7 @@ export default function VenuesPage() {
                 <Users className="text-[#C0A04C] flex-shrink-0" size={20} />
                 <select 
                   value={filters.capacity}
-                  onChange={(e) => setFilters(f => ({...f, capacity: e.target.value}))}
+                  onChange={handleCapacityChange}
                   className="w-full bg-transparent text-white text-[10px] sm:text-[11px] font-black uppercase outline-none appearance-none ml-3 sm:ml-4 cursor-pointer"
                 >
                   <option className="bg-[#3a1224] text-white">Any Capacity</option>
@@ -208,7 +229,12 @@ export default function VenuesPage() {
                 </select>
               </div>
               <button 
-                onClick={applyFilters}
+                onClick={() => {
+                  if (!filters.date || !filters.timeSlot) {
+                    toast.error('Please select date and time slot');
+                    return;
+                  }
+                }}
                 className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-[#C0A04C] to-[#C0A04C]/95 text-[#3a1224] rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] hover:shadow-lg hover:shadow-[#C0A04C]/30 transition-all flex items-center justify-center gap-2 sm:gap-3 flex-shrink-0 cursor-pointer"
               >
                 <Search size={16} /> <span className="hidden sm:inline">Search</span>
@@ -225,10 +251,7 @@ export default function VenuesPage() {
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-[12px] font-black text-[#3a1224] uppercase tracking-[0.3em]">Refine Collection</h3>
               <button 
-                onClick={() => {
-                  setFilters({date:'', timeSlot:'', capacity:'Any Capacity', price:500000});
-                  setSortBy('price-desc');
-                }}
+                onClick={handleResetFilters}
                 className="text-[9px] font-bold text-[#C0A04C] uppercase tracking-widest border-b border-[#C0A04C] hover:text-[#3a1224] transition-colors cursor-pointer"
               >
                 Reset All
@@ -247,12 +270,7 @@ export default function VenuesPage() {
                 max="500000" 
                 step="5000"
                 value={filters.price}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  setFilters(f => ({...f, price: val}));
-                  if(priceDebounce.current) clearTimeout(priceDebounce.current);
-                  priceDebounce.current = setTimeout(applyFilters, 300);
-                }}
+                onChange={handlePriceChange}
                 className="w-full h-2 bg-gradient-to-r from-gray-200 to-[#C0A04C]/30 rounded-lg appearance-none cursor-pointer accent-[#C0A04C] hover:cursor-pointer"
               />
             </div>
@@ -268,7 +286,7 @@ export default function VenuesPage() {
                 ].map((option) => (
                   <button
                     key={option.id}
-                    onClick={() => setSortBy(option.id)}
+                    onClick={() => handleSortChange(option.id)}
                     className={`flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
                       sortBy === option.id 
                         ? 'bg-gradient-to-r from-[#3a1224] to-[#3a1224]/80 text-white shadow-lg shadow-[#3a1224]/20' 
@@ -288,12 +306,12 @@ export default function VenuesPage() {
         <section className="lg:w-3/4">
           <div className="flex items-center justify-between mb-12">
             <h2 className="text-[11px] font-black text-[#3a1224] uppercase tracking-[0.4em]">
-              {filteredHalls.length} Elite <span className="text-[#C0A04C]">Venues</span>
+              {processedHalls.length} Elite <span className="text-[#C0A04C]">Venues</span>
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {filteredHalls.map((hall, idx) => (
+            {processedHalls.map((hall, idx) => (
               <div 
                 key={hall._id}
                 className="group relative opacity-0 animate-fadeIn"
@@ -356,7 +374,7 @@ export default function VenuesPage() {
                         <p className="text-2xl font-display font-bold text-[#3a1224]">NPR {hall.pricePerHour?.toLocaleString()}</p>
                       </div>
                       <button 
-                        onClick={() => router.push(ROUTES.SITE.VENUES(hall.slug))}
+                        onClick={() => handleVenueClick(hall.slug)}
                         className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#3a1224] to-[#3a1224]/80 text-white flex items-center justify-center hover:shadow-lg hover:shadow-[#C0A04C]/30 hover:scale-110 transition-all duration-500 cursor-pointer"
                       >
                         <ArrowRight size={20} />
@@ -368,7 +386,7 @@ export default function VenuesPage() {
             ))}
           </div>
 
-          {filteredHalls.length === 0 && (
+          {processedHalls.length === 0 && (
             <div className="text-center py-48 border-2 border-dashed border-[#3a1224]/20 rounded-[3rem] bg-white/50">
               <Search size={48} className="text-[#3a1224]/20 mx-auto mb-6" />
               <h3 className="text-2xl font-black text-[#3a1224] uppercase tracking-widest mb-2">No Matches Found</h3>

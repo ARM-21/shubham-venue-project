@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
 import { useAuth } from "contexts/AuthProvider";
+import { useQueryEventDetailPublic } from '@queries/customer/event-detail-public';
 import { EventHero } from "./components/EventHero";
 import { EventDetails } from "./components/EventDetails";
 import { TicketsSection } from "./components/TicketsSection";
@@ -34,15 +35,40 @@ export default function EventDetailPage() {
   const { user } = useAuth();
   const eventId = params?.eventId;
 
-  const [event, setEvent] = useState(null);
-  const [ticketTypes, setTicketTypes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [accessCode, setAccessCode] = useState("");
   const [needsAccessCode, setNeedsAccessCode] = useState(false);
   const [submitting, setSubmitting] = useState(null);
   const [gatewayTicketId, setGatewayTicketId] = useState(null);
   const [selectedPaymentGateway, setSelectedPaymentGateway] = useState(null);
+  const [ticketTypes, setTicketTypes] = useState([]);
+
+  // Query for event details - handles basic fetch
+  const { data: eventData, isLoading, error, refetch } = useQueryEventDetailPublic(eventId, {
+    enabled: !!eventId && !needsAccessCode,
+  });
+
+  const event = eventData?.event || null;
+
+  // Special handling for access-code protected events
+  useEffect(() => {
+    if (error?.response?.status === 403) {
+      setNeedsAccessCode(true);
+    }
+  }, [error]);
+
+  const fetchEventWithAccessCode = useCallback(async (code) => {
+    if (!eventId || !code) return;
+    try {
+      const res = await axiosInstance.get(ROUTES.API.EVENTS.DETAIL(eventId), {
+        params: { accessCode: code.trim() },
+      });
+      const payload = res.data || {};
+      setTicketTypes(payload.ticketTypes || []);
+      setNeedsAccessCode(false);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Invalid access code");
+    }
+  }, [eventId]);
 
   const redirectToEsewa = (paymentUrl, payload) => {
     const form = document.createElement("form");
@@ -60,34 +86,6 @@ export default function EventDetailPage() {
     document.body.appendChild(form);
     form.submit();
   };
-
-  const fetchEvent = useCallback(async (code) => {
-    if (!eventId) return;
-    try {
-      setLoading(true);
-      const res = await axiosInstance.get(ROUTES.API.EVENTS.DETAIL(eventId), {
-        params: code ? { accessCode: code } : undefined,
-      });
-      const payload = res.data || {};
-      setEvent(payload.event || null);
-      setTicketTypes(payload.ticketTypes || []);
-      setNeedsAccessCode(false);
-      setError(null);
-    } catch (err) {
-      if (err?.response?.status === 403) {
-        setNeedsAccessCode(true);
-        setError("This event is private. Enter the access code.");
-      } else {
-        setError(err?.response?.data?.message || "Failed to load event");
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [eventId]);
-
-  useEffect(() => {
-    fetchEvent();
-  }, [fetchEvent]);
 
   const handleBuyTicket = async (ticketTypeId, gateway) => {
     if (!user) {
@@ -115,7 +113,7 @@ export default function EventDetailPage() {
 
       if (res.data?.mode === "free") {
         toast.success("Ticket issued");
-        await fetchEvent(accessCode.trim());
+        await refetch();
         return;
       }
 
@@ -137,7 +135,7 @@ export default function EventDetailPage() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#3a1224]">
         <div className="w-12 h-12 border-4 border-[#C0A04C] border-t-transparent rounded-full animate-spin"></div>

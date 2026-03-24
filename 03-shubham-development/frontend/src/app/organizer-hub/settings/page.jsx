@@ -124,7 +124,7 @@ export default function OrganizerSettings() {
 
   const handleLogout = async () => {
     await logout();
-    router.push(ROUTES.HOME);
+    router.push(ROUTES.AUTH.LOGIN);
   };
 
   // Get organizer eligibility status

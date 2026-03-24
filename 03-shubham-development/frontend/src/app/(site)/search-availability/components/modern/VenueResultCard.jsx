@@ -3,7 +3,7 @@ import React from 'react';
 import { Users, Castle, CalendarCheck, Clock, Check, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const VenueResultCard = ({ venue, isSelected, onSelect, date, slot, guests, SLOT_LABELS }) => {
+const VenueResultCardComponent = ({ venue, isSelected, onSelect, date, slot, guests, SLOT_LABELS }) => {
   const isAvailable = venue.available !== false;
   
   return (
@@ -64,3 +64,5 @@ export const VenueResultCard = ({ venue, isSelected, onSelect, date, slot, guest
     </motion.div>
   );
 };
+
+export const VenueResultCard = React.memo(VenueResultCardComponent);

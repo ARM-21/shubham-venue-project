@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import axiosInstance from 'lib/axios';
 import { ROUTES } from 'config/routes';
@@ -112,7 +112,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     return () => clearInterval(timer);
   }, [timeLeft, currentStepKey, router, hall.slug]);
 
-  const createReservation = async () => {
+  const createReservation = useCallback(async () => {
     try {
       toast.loading('Reserving hall...');
       const res = await axiosInstance.post(ROUTES.API.BOOKINGS.RESERVE, {
@@ -137,11 +137,11 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
       }
       throw error;
     }
-  };
+  }, [hall._id, initialDate, initialSlot, initialGuests, bookingData.bookingPurpose, router, hall.slug]);
 
-  const updateBookingData = (newData) => {
+  const updateBookingData = useCallback((newData) => {
     setBookingData((prev) => ({ ...prev, ...newData }));
-  };
+  }, []);
 
   const handlePurposeChange = (purpose) => {
     if (purpose === bookingData.bookingPurpose) return;
@@ -151,7 +151,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     }));
   };
 
-  const nextStep = async () => {
+  const nextStep = useCallback(async () => {
     const nextIndex = currentStepIndex + 1;
     const nextKey = steps[nextIndex]?.key;
     if (!nextKey) return;
@@ -165,30 +165,18 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     } else {
       setCurrentStepIndex(nextIndex);
     }
-  };
+  }, [currentStepIndex, steps]);
 
-  const prevStep = () => {
+  const prevStep = useCallback(() => {
     if (currentStepKey === 'payment' && reservationId) {
       releaseReservation();
     }
     if (currentStepIndex > 0) {
       setCurrentStepIndex(currentStepIndex - 1);
     }
-  };
+  }, [currentStepKey, reservationId, currentStepIndex]);
 
-  const releaseReservation = async () => {
-    if (!reservationId) return;
-    try {
-      await axiosInstance.delete(ROUTES.API.BOOKINGS.RESERVE_BY_ID(reservationId));
-      setReservationId(null);
-      setTimeLeft(null);
-      setIsReserved(false);
-    } catch (error) {
-      console.error('Failed to release reservation:', error);
-    }
-  };
-
-  const calculateTotal = () => {
+  const calculateTotal = useCallback(() => {
     const pricePerHour = Number(hall?.pricePerHour) || 0;
     const multiplier = (bookingData?.slot === 'wholeday') ? 15 : 5;
     const hallPrice = pricePerHour * multiplier;
@@ -196,7 +184,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     const decorationTotal = bookingData.bookingPurpose === 'organizer' ? 0 : (Number(bookingData?.decorationTotal) || 0);
     const total = hallPrice + menuTotal + decorationTotal;
     return Number.isFinite(total) ? total : 0;
-  };
+  }, [hall?.pricePerHour, bookingData?.slot, bookingData?.bookingPurpose, bookingData?.menuTotal, bookingData?.decorationTotal]);
 
   if (bookingSuccess) {
     return <BookingSuccess bookingReference={bookingSuccess} />;

@@ -1,44 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
+import { useQueryEventsPublic } from '@queries/customer/events-public';
 import { Calendar, MapPin, ArrowRight, Ticket } from "lucide-react";
 
 export default function UpcomingEvents() {
   const router = useRouter();
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    let ignore = false;
-    async function fetchEvents() {
-      try {
-        setLoading(true);
-        const res = await axiosInstance.get(ROUTES.API.EVENTS.PUBLIC, {
-          params: { limit: 4 },
-        });
-        if (!ignore) {
-          setEvents(res.data?.events || []);
-          setError(null);
-        }
-      } catch (err) {
-        if (!ignore) {
-          setError("Failed to load upcoming events");
-        }
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    }
-
-    fetchEvents();
-    return () => {
-      ignore = true;
-    };
-  }, []);
+  const { data: eventsData = {}, isLoading, error } = useQueryEventsPublic({ limit: 4 });
+  
+  const events = eventsData?.events || [];
 
   return (
     <div className="py-5 px-6 bg-[#FDFCFB]">
@@ -67,11 +39,11 @@ export default function UpcomingEvents() {
 
         {error ? (
           <div className="bg-red-50 p-8 rounded-[2rem] text-red-600 text-center font-black uppercase text-[10px] tracking-widest">
-            {error}
+            Failed to load events
           </div>
         ) : null}
 
-        {loading ? (
+        {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="bg-gray-50 h-[500px] rounded-[2.5rem] animate-pulse" />

@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
 import { QRCodeCanvas } from "qrcode.react";
+import { useQueryTicketsMy } from '@queries/customer/tickets-my';
 import { 
   Ticket, 
   Calendar, 
@@ -86,38 +86,18 @@ function StatusBadge({ status }) {
 
 export default function TicketsPage() {
   const router = useRouter();
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
+
+  const { data: ticketsData = { tickets: [] }, isLoading, refetch } = useQueryTicketsMy({
+    status: statusFilter || undefined,
+  });
+
+  const tickets = Array.isArray(ticketsData?.tickets) ? ticketsData.tickets : [];
 
   const filtered = useMemo(() => {
     if (!statusFilter) return tickets;
     return tickets.filter((t) => t.status === statusFilter);
   }, [tickets, statusFilter]);
-
-  const fetchTickets = async () => {
-    try {
-      setLoading(true);
-      const res = await axiosInstance.get(ROUTES.API.TICKETS.MINE, {
-        params: {
-          status: statusFilter || undefined,
-          limit: 10,
-          page: 1,
-        },
-      });
-      setTickets(res.data?.tickets || []);
-    } catch (err) {
-      const msg = err?.response?.data?.message || "Failed to load tickets";
-      toast.error(msg);
-      if (err?.response?.status === 401) router.push(ROUTES.AUTH.LOGIN);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTickets();
-  }, [statusFilter]);
 
   const handleCopyCode = async (code) => {
     try {
@@ -186,18 +166,18 @@ export default function TicketsPage() {
               </div>
 
               <button
-                onClick={fetchTickets}
-                disabled={loading}
+                onClick={() => refetch()}
+                disabled={isLoading}
                 className="p-4 bg-white/10 border border-white/20 rounded-2xl text-[#C0A04C] hover:bg-white/15 disabled:opacity-50 transition-all backdrop-blur-sm"
                 title="Refresh Tickets"
               >
-                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
         </header>
 
-        {loading ? (
+        {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {[1, 2, 3, 4].map((n) => (
               <div key={n} className="h-[380px] bg-white/40 animate-pulse rounded-3xl border border-[#3a1224]/5" />

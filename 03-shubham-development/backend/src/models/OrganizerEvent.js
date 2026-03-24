@@ -84,9 +84,48 @@ const organizerEventSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["DRAFT", "PUBLISHED", "CANCELLED"],
+      enum: ["DRAFT", "PENDING_REVIEW", "PUBLISHED", "CANCELLED", "SUSPENDED"],
       default: "DRAFT",
       index: true,
+    },
+
+    // Admin approval fields (for trust score < 3)
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    approvalNotes: String,
+    rejectionReason: String,
+
+    // Flagging & Suspension
+    flags: [
+      {
+        flagId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Flag",
+        },
+        flaggedAt: Date,
+        flaggedBy: mongoose.Schema.Types.ObjectId,
+        reason: String,
+        severity: String,
+        status: { type: String, enum: ["open", "resolved", "dismissed"] },
+        resolvedAt: Date,
+      },
+    ],
+    isFlagged: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    suspendedAt: Date,
+    suspensionReason: String,
+    suspensionEndDate: Date, // for temporary suspensions
+
+    // Publishing metadata
+    publishedAt: Date,
+    publishedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
   },
   { timestamps: true }

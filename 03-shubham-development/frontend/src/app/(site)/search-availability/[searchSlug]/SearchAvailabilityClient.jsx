@@ -1,41 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import CheckAvailability from "components/check-availability/CheckAvailability.jsx";
-import axiosInstance from "lib/axios";
+import { useQueryHallDetailPublic } from '@queries/customer/hall-detail-public';
 
 export default function SearchAvailabilityClient({ hallSlug }) {
-  const [hall, setHall] = useState(null);
-  const [error, setError] = useState(null);
+  const { data: hallDetail = {}, isLoading, error } = useQueryHallDetailPublic(hallSlug);
+  
+  const hall = hallDetail?.hall;
 
-  useEffect(() => {
-    if (!hallSlug) {
-      setError("Missing hall identifier");
-      return;
-    }
-
-    let isMounted = true;
-
-    const fetchHall = async () => {
-      try {
-        const res = await axiosInstance.get(`/api/v1/halls/${hallSlug}`);
-        if (!isMounted) return;
-        setHall(res.data.hall);
-      } catch (e) {
-        if (!isMounted) return;
-        setError(e?.response?.data?.message || "Failed to load hall");
-      }
-    };
-
-    fetchHall();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [hallSlug]);
-
-  if (error) return <p>{error}</p>;
-  if (!hall) return <p>Loading hall...</p>;
+  if (error) return <p>Failed to load hall</p>;
+  if (isLoading) return <p>Loading hall...</p>;
+  if (!hall) return <p>Hall not found</p>;
 
   return (
     <CheckAvailability

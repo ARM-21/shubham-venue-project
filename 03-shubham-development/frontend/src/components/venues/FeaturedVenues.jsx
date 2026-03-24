@@ -2,35 +2,15 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import axiosInstance from 'lib/axios';
-import { useEffect, useState } from 'react';
-import Skeleton from './skeleton-loading/Skeleton';
 import { ROUTES } from 'config/routes';
+import Skeleton from './skeleton-loading/Skeleton';
+import { useQueryHallsPublic } from '@queries/customer/halls-public';
 
 export default function FeaturedVenues() {
   const router = useRouter();
-  const [featuredVenues, setFeaturedVenues] = useState([]);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchFeaturedVenues() {
-      try {
-        setLoading(true);
-        const response = await axiosInstance.get(ROUTES.API.HALLS.ROOT);
-        setFeaturedVenues(response.data.halls || []);
-        console.log('Featured Venues:', response.data);
-      } catch (error) {
-        console.error('Error fetching featured venues:', error);
-        setError('Failed to load featured venues.');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchFeaturedVenues();
-  }, []);
-
+  const { data: hallsData = {}, isLoading, error } = useQueryHallsPublic();
+  
+  const featuredVenues = hallsData?.halls || [];
 
   return (
     <div className="px-6 py-5">
@@ -61,11 +41,11 @@ export default function FeaturedVenues() {
 
         {error && (
           <div className="bg-red-50 border border-red-100 p-6 rounded-2xl text-red-600 text-center mb-8 font-medium">
-            {error}
+            Failed to load venues
           </div>
         )}
 
-        {loading ? (
+        {isLoading ? (
           <Skeleton />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

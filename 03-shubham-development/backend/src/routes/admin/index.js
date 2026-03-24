@@ -8,6 +8,7 @@ import hallAdminRoutes from "./hall/hall.routes.js";
 import menuAdminRoutes from "./menus/menu.routes.js";
 import settingsRoutes from "./settings.routes.js";
 import notificationRoutes from "./notifications.routes.js";
+import governanceRoutes from "./governance.routes.js";
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ router.use("/menus", menuAdminRoutes);
 router.use("/settings", settingsRoutes);
 router.use("/reports", reportsAdminRoutes);
 router.use("/notifications", notificationRoutes);
+router.use("/governance", governanceRoutes);
 router.use("/", overviewAdminRoutes);
 
 export default router;
