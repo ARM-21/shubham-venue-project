@@ -214,6 +214,8 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
   }, []);
 
+    const displayUser = user || authUser;
+  const isLoading = authLoading || profileLoading;
   const handleCancelEdit = useCallback(() => {
     setEditing(false);
     resetProfile({
@@ -229,8 +231,7 @@ export default function ProfilePage() {
   }, [logout, router]);
 
   // Derived values
-  const displayUser = user || authUser;
-  const isLoading = authLoading || profileLoading;
+
   
   const isOAuthUser = useMemo(() => displayUser?.provider === 'google', [displayUser?.provider]);
   

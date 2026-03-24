@@ -12,15 +12,21 @@ export const metadata = {
   },
   description: 'Event Hall Booking and Management System',
 }
+
 export default function RootLayout({ children }) {
+  const googleClientId = process.env.NEXT_PUBLIC_API_GOOGLE_CLIENT_ID || '';
+
   return (
     <html lang="en">
       <body className="min-h-screen bg-gray-50">
         <QueryProvider>
           <AuthProvider>
-            <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_API_GOOGLE_CLIENT_ID}>
-              {children}
-            </GoogleOAuthProvider>
+            {googleClientId && (
+              <GoogleOAuthProvider clientId={googleClientId}>
+                {children}
+              </GoogleOAuthProvider>
+            )}
+            {!googleClientId && children}
           </AuthProvider>
           <Toaster
             position="top-center"
