@@ -28,7 +28,7 @@ export default function LoginForm({ onSwitch }) {
       const loggedInUser = res?.data?.user ?? res?.data ?? null;
 
       // Check if user needs to complete onboarding
-      if (!loggedInUser?.hasCompletedOnboarding) {
+      if (loggedInUser && loggedInUser?.hasCompletedOnboarding !== true) {
         router.push(ROUTES.AUTH.ONBOARDING);
       } else if (redirectUrl) {
         router.push(redirectUrl);
@@ -78,11 +78,11 @@ export default function LoginForm({ onSwitch }) {
           <input
             type="password"
             {...register('password', { 
-              required: 'Password is required', 
-              minLength: { 
-                value: 6, 
-                message: 'Min 6 characters' 
-              } 
+              required: 'Password is required',
+              minLength: {
+                value: 6,
+                message: 'Invalid password'
+              }
             })}
             className="w-full bg-[#3a1224]/3 border border-[#3a1224]/10 text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm font-medium"
             placeholder="••••••••"
@@ -96,7 +96,7 @@ export default function LoginForm({ onSwitch }) {
       <button 
         type="submit" 
         disabled={isSubmitting}
-        className="relative w-full group overflow-hidden bg-[#C0A04C] hover:bg-[#D4BC7B] text-white py-4 px-6 rounded-xl font-bold text-xs uppercase tracking-[0.2em] shadow-[0_10px_20px_-10px_rgba(192,160,76,0.3)] transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+        className="relative w-full group overflow-hidden bg-[#C0A04C] hover:bg-[#D4BC7B] text-white py-4 px-6 rounded-xl font-bold text-xs uppercase tracking-[0.2em] shadow-[0_10px_20px_-10px_rgba(192,160,76,0.3)] transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed mt-6 cursor-pointer"
       >
         <div className="absolute inset-0 w-full h-full bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700 skew-x-12"></div>
         <span className="relative flex items-center justify-center gap-2">
@@ -112,7 +112,7 @@ export default function LoginForm({ onSwitch }) {
         <button 
           type="button" 
           onClick={() => onSwitch && onSwitch()} 
-          className="text-[#C0A04C] text-[11px] underline font-bold hover:text-[#3a1224] transition-colors cursor-pointer ml-1 uppercase tracking-wider"
+          className="text-[#C0A04C]  text-[11px] underline font-bold hover:text-[#3a1224] transition-colors cursor-pointer ml-1 uppercase tracking-wider"
         >
           Create Account
         </button>

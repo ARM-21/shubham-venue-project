@@ -14,29 +14,27 @@ export default function OnboardingPage() {
     // Redirect unauthenticated users back to login
     if (!loading && !user) {
       router.replace(ROUTES.AUTH.LOGIN);
+      return;
     }
 
     // Redirect already onboarded users to home
-    if (!loading && user?.hasCompletedOnboarding) {
+    if (!loading && user && user?.hasCompletedOnboarding === true) {
       router.replace(ROUTES.HOME);
+      return;
     }
   }, [loading, user, router]);
 
-  if (loading) {
+  if (loading || !user) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen w-screen bg-gradient-to-br from-[#fdfaf6] to-[#f5f1ec] flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#3a1224] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-[#3a1224]/70 font-display font-bold uppercase tracking-widest text-xs">
-            Loading...
+            {loading ? 'Loading...' : 'Redirecting...'}
           </p>
         </div>
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (

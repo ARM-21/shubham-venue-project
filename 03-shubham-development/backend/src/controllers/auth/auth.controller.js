@@ -8,7 +8,9 @@ import {
 import { sendWelcomeEmail } from "../../services/email/email.service.js";
 import { httpError } from "../../utils/http.utils.js";
 import { success } from "../../utils/http.utils.js";
+import { validateRegistrationInput } from "../../utils/passwordValidation.js";
 import ENV from "../../config/env.config.js";
+import User from "../../models/User.js";
 
 // Register user and send OTP
 export const registerUserController = async (req, res, next) => {
@@ -21,6 +23,12 @@ export const registerUserController = async (req, res, next) => {
     }
     if (!username) {
       throw httpError(400, "Username is required");
+    }
+
+    // Validate password strength
+    const passwordValidation = validateRegistrationInput(email, password);
+    if (!passwordValidation.valid) {
+      throw httpError(400, passwordValidation.message);
     }
 
     const result = await registerWithOTP(req.body);
@@ -118,5 +126,70 @@ export const logoutController = async (req, res, next) => {
     });
   } catch (err) {
     return next(err);
+  }
+};
+
+// Validate session and user - called on app startup to detect stale/invalid cookies
+export const validateSessionController = async (req, res, next) => {
+  try {
+    const userId = req.session?.userId;
+    
+    // No session exists - not logged in
+    if (!userId) {
+      return res.status(200).json({ 
+        isValid: false, 
+        user: null,
+        message: "No active session" 
+      });
+    }
+
+    // Session exists - verify user still exists and is active
+    const user = await User.findById(userId).select("-password");
+    if (!user) {
+      // User was deleted - destroy stale session
+      req.session.destroy(() => {});
+      const cookieName = ENV.SESSION_NAME || "sid";
+      res.clearCookie(cookieName, {
+        path: "/",
+        domain: ENV.NODE_ENV === "production" ? ".shubham-venue.me" : undefined,
+        sameSite: ENV.NODE_ENV === "production" ? "none" : "lax",
+        secure: ENV.NODE_ENV === "production",
+      });
+      return res.status(200).json({ 
+        isValid: false, 
+        user: null,
+        message: "User not found - session cleared" 
+      });
+    }
+
+    if (user.isActive === false) {
+      // User is disabled - destroy stale session
+      req.session.destroy(() => {});
+      const cookieName = ENV.SESSION_NAME || "sid";
+      res.clearCookie(cookieName, {
+        path: "/",
+        domain: ENV.NODE_ENV === "production" ? ".shubham-venue.me" : undefined,
+        sameSite: ENV.NODE_ENV === "production" ? "none" : "lax",
+        secure: ENV.NODE_ENV === "production",
+      });
+      return res.status(200).json({ 
+        isValid: false, 
+        user: null,
+        message: "Account disabled - session cleared" 
+      });
+    }
+
+    // Session is valid
+    return res.status(200).json({ 
+      isValid: true, 
+      user: formatUserResponse(user)
+    });
+  } catch (err) {
+    console.error("Session validation error:", err);
+    return res.status(200).json({ 
+      isValid: false, 
+      user: null,
+      message: "Error validating session" 
+    });
   }
 };

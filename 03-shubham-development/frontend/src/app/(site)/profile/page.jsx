@@ -8,6 +8,7 @@ import { useAuth } from 'contexts/AuthProvider';
 import { ROUTES } from 'config/routes';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import axiosInstance from 'lib/axios';
 import { 
   User, 
   Calendar, 
@@ -19,6 +20,8 @@ import {
   X 
 } from 'lucide-react';
 import { useQueryProfileMy } from '@queries/customer/profile-my';
+import PasswordStrength from 'components/auth/PasswordStrength';
+import { validatePasswordForForm } from 'utils/passwordValidation';
 
 export default function ProfilePage() {
   const { user: authUser, loading: authLoading, logout, setUser } = useAuth();
@@ -37,18 +40,12 @@ export default function ProfilePage() {
   // Profile mutation
   const { mutate: mutateUpdateProfile, isPending: isUpdatingProfile } = useMutation({
     mutationFn: async (data) => {
-      const res = await fetch(ROUTES.API.PROFILE.UPDATE, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          first_name: data.first_name.trim(),
-          last_name: data.last_name.trim(),
-          phone: data.phone?.trim() || null
-        }),
-        credentials: 'include'
+      const res = await axiosInstance.put(ROUTES.API.PROFILE.UPDATE, {
+        first_name: data.first_name.trim(),
+        last_name: data.last_name.trim(),
+        phone: data.phone?.trim() || null
       });
-      if (!res.ok) throw new Error('Failed to update profile');
-      return res.json();
+      return res.data;
     },
     onSuccess: (data) => {
       const newUser = data.user;
@@ -58,24 +55,19 @@ export default function ProfilePage() {
       toast.success('Profile updated successfully!');
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to update profile');
+      const message = error.response?.data?.message || error.message || 'Failed to update profile';
+      toast.error(message);
     }
   });
 
   // Password mutation
   const { mutate: mutateUpdatePassword, isPending: isUpdatingPassword } = useMutation({
     mutationFn: async (data) => {
-      const res = await fetch(ROUTES.API.PROFILE.PASSWORD, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword: data.currentPassword,
-          newPassword: data.newPassword
-        }),
-        credentials: 'include'
+      const res = await axiosInstance.patch(ROUTES.API.PROFILE.PASSWORD, {
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword
       });
-      if (!res.ok) throw new Error('Password change failed');
-      return res.json();
+      return res.data;
     },
     onSuccess: () => {
       resetPassword();
@@ -83,44 +75,34 @@ export default function ProfilePage() {
       toast.success('Password changed successfully!');
     },
     onError: (error) => {
-      toast.error(error.message || 'Password change failed');
+      const message = error.response?.data?.message || error.message || 'Password change failed';
+      toast.error(message);
     }
   });
 
   // Avatar upload URL mutation
   const { mutate: mutateGetAvatarUrl, isPending: isGettingUrl } = useMutation({
     mutationFn: async (file) => {
-      const res = await fetch(ROUTES.API.PROFILE.AVATAR_UPLOAD_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileExtension: file.name.substring(file.name.lastIndexOf('.')),
-          contentType: file.type
-        }),
-        credentials: 'include'
+      const res = await axiosInstance.post(ROUTES.API.PROFILE.AVATAR_UPLOAD_URL, {
+        fileExtension: file.name.substring(file.name.lastIndexOf('.')),
+        contentType: file.type
       });
-      if (!res.ok) throw new Error('Failed to get upload URL');
-      return res.json();
+      return res.data;
     },
     onSuccess: (data, file) => {
       uploadToS3(data.data, file);
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to get upload URL');
+      const message = error.response?.data?.message || error.message || 'Failed to get upload URL';
+      toast.error(message);
     }
   });
 
   // Avatar confirm mutation
   const { mutate: mutateConfirmAvatar, isPending: isConfirmingAvatar } = useMutation({
     mutationFn: async (payload) => {
-      const res = await fetch(ROUTES.API.PROFILE.AVATAR_CONFIRM, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        credentials: 'include'
-      });
-      if (!res.ok) throw new Error('Failed to confirm avatar');
-      return res.json();
+      const res = await axiosInstance.post(ROUTES.API.PROFILE.AVATAR_CONFIRM, payload);
+      return res.data;
     },
     onSuccess: (data) => {
       const newUser = data.user;
@@ -131,7 +113,8 @@ export default function ProfilePage() {
       toast.success('Avatar uploaded successfully!');
     },
     onError: (error) => {
-      toast.error(error.message || 'Avatar upload failed');
+      const message = error.response?.data?.message || error.message || 'Avatar upload failed';
+      toast.error(message);
     }
   });
 
@@ -529,13 +512,18 @@ export default function ProfilePage() {
                   <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2 block">New Password</label>
                   <input 
                     type="password" 
-                    {...registerPassword('newPassword', { required: 'Required', minLength: { value: 8, message: 'Min 8 characters' } })} 
+                    {...registerPassword('newPassword', { 
+                      required: 'Password is required', 
+                      validate: validatePasswordForForm
+                    })} 
                     placeholder="••••••••" 
                     className={`w-full h-12 px-4 bg-gray-50 border rounded-xl focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20 transition-all ${
                       passwordErrors.newPassword ? 'border-red-300 bg-red-50' : 'border-[#3a1224]/10'
                     }`}
                   />
                   {passwordErrors.newPassword && <p className="text-red-500 text-[8px] font-black mt-1">{passwordErrors.newPassword.message}</p>}
+                  {/* Show password strength indicator */}
+                  <PasswordStrength password={newPassword} showRequirements={true} />
                 </div>
                 <div>
                   <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2 block">Confirm Password</label>

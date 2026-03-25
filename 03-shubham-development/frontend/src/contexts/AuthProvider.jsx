@@ -11,16 +11,43 @@ export function AuthProvider({ children }) {
 
    async function getProfile() {
     try {
-        const res = await axiosInstance.get(ROUTES.API.PROFILE.ME);
-        const user = res?.data?.user ?? res?.data ?? null;
-
-        if (user && user.isEmailVerified === false) {
-            setUser(null);
+        // First validate session on server to detect stale/invalid cookies
+        const validateRes = await axiosInstance.get(ROUTES.API.AUTH.VALIDATE_SESSION);
+        
+        if (validateRes?.data?.isValid && validateRes?.data?.user) {
+            // Session is valid, use the user from session validation
+            setUser(validateRes.data.user);
         } else {
-            setUser(user);
+            // Session is invalid or doesn't exist, try to get profile
+            try {
+                const res = await axiosInstance.get(ROUTES.API.PROFILE.ME);
+                const user = res?.data?.user ?? res?.data ?? null;
+
+                if (user && user.isEmailVerified === false) {
+                    setUser(null);
+                } else {
+                    setUser(user);
+                }
+            } catch (err) {
+                // Profile also failed - not authenticated
+                setUser(null);
+            }
         }
     } catch (err) {
-        setUser(null);
+        console.error("Profile/session validation error:", err);
+        // If validation fails, try profile endpoint as fallback
+        try {
+            const res = await axiosInstance.get(ROUTES.API.PROFILE.ME);
+            const user = res?.data?.user ?? res?.data ?? null;
+
+            if (user && user.isEmailVerified === false) {
+                setUser(null);
+            } else {
+                setUser(user);
+            }
+        } catch (e) {
+            setUser(null);
+        }
     } finally {
         setLoading(false);
     }

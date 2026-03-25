@@ -12,7 +12,14 @@ export async function isAuthenticated(req, res, next) {
         if (user.isActive === false) {
             // Clear session for disabled accounts
             req.session?.destroy?.(() => {});
-            res.clearCookie("sid");
+            // Use correct cookie name with same domain config as session
+            const cookieName = process.env.SESSION_NAME || "sid";
+            res.clearCookie(cookieName, {
+                path: "/",
+                domain: process.env.NODE_ENV === "production" ? ".shubham-venue.me" : undefined,
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+                secure: process.env.NODE_ENV === "production"
+            });
             return res.status(403).json({ message: "Account disabled" });
         }
         req.currentUser = user;

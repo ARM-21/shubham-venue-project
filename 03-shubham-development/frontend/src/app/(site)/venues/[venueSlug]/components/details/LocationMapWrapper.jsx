@@ -11,7 +11,12 @@ export const LocationMapWrapper = ({ venueData }) => {
   }
 
   return (
-    <LoadScript googleMapsApiKey={googleMapsApiKey}>
+    <LoadScript 
+      googleMapsApiKey={googleMapsApiKey}
+      onError={() => {
+        // Handle error silently - script may already be loaded
+      }}
+    >
       <LocationMap venueData={venueData} />
     </LoadScript>
   );

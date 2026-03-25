@@ -9,6 +9,7 @@ export function sessionMiddleware() {
     resave: false,
     saveUninitialized: false,
     proxy: ENV.NODE_ENV === "production",
+    unset: "destroy",
 
     store: MongoStore.create({
       mongoUrl: ENV.MONGODB_URI,
@@ -21,6 +22,7 @@ export function sessionMiddleware() {
       secure: ENV.NODE_ENV === "production",
       sameSite: ENV.NODE_ENV === "production" ? "none" : "lax",
       domain: ENV.NODE_ENV === "production" ? ".shubham-venue.me" : undefined,
+      path: "/",
     },
   });
 }
