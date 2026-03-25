@@ -37,10 +37,14 @@ router.post("/login", async (req, res) => {
                     id: existingUser._id,
                     email: existingUser.email,
                     role: existingUser.role,
-                    firstname: existingUser.first_name,
-                    lastname: existingUser.last_name,
+                    first_name: existingUser.first_name,
+                    last_name: existingUser.last_name,
                     username: existingUser.username,
-                    profilePicture: existingUser.profilePicture
+                    profilePicture: existingUser.profilePicture,
+                    isVerified: existingUser.isVerified,
+                    hasCompletedOnboarding: existingUser.hasCompletedOnboarding || false,
+                    isOrganizerEligible: existingUser.isOrganizerEligible || false,
+                    provider: 'google'
                 }
             });
         }
@@ -63,11 +67,14 @@ router.post("/login", async (req, res) => {
                 id: user._id.toString(),
                 email: user.email,
                 role: user.role,
-                firstname: user.first_name,
-                lastname: user.last_name,
+                first_name: user.first_name,
+                last_name: user.last_name,
                 username: user.username,
-                profilePicture: user.profilePicture
-
+                profilePicture: user.profilePicture,
+                isVerified: user.isVerified,
+                hasCompletedOnboarding: user.hasCompletedOnboarding || false,
+                isOrganizerEligible: user.isOrganizerEligible || false,
+                provider: 'google'
             }
         });
     } catch (err) {

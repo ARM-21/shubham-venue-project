@@ -46,7 +46,7 @@ export default function Venue() {
   const images = useMemo(() => (venueData?.images?.length ? venueData.images : ['/assets/business-images/placeholder.jpg']), [venueData]);
 
   // Fetch menus
-  const { data: menusData = [] } = useQueryMenusPublic();
+  const { data: menusData = [], isLoading: menusLoading } = useQueryMenusPublic();
   const menuPackages = useMemo(() => {
     if (!venueData) return [];
     let menus = Array.isArray(menusData) ? menusData : [];

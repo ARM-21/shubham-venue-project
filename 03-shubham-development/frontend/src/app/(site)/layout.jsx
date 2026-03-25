@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Navbar from "components/navbar/Navbar.jsx";
 import Footer from "components/footer/Footer.jsx";
@@ -7,12 +8,15 @@ import { Sparkles, MapPin, Phone } from "lucide-react";
 
 export default function SiteLayout({ children }) {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
 
   // Pages where footer should NOT appear (minimal/critical flows)
   const noFooterPages = [
     '/search-availability',
     '/payment/verify',
     '/tickets',
+    '/profile',
+    '/auth'
   ];
 
   // Pages where navbar and footer should NOT appear (full-screen flows)
@@ -21,10 +25,15 @@ export default function SiteLayout({ children }) {
   ];
 
   // Check if current page should hide navbar/header
-  const shouldHideNavbar = noNavbarPages.some(page => pathname.startsWith(page));
+  const shouldHideNavbar = mounted && noNavbarPages.some(page => pathname.startsWith(page));
 
   // Check if current page should hide footer
-  const shouldHideFooter = noFooterPages.some(page => pathname.startsWith(page)) || shouldHideNavbar;
+  const shouldHideFooter = mounted && (noFooterPages.some(page => pathname.startsWith(page)) || shouldHideNavbar);
+
+  // Ensure hydration match by only rendering conditional content after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">

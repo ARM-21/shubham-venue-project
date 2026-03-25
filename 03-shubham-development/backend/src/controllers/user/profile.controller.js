@@ -8,6 +8,7 @@ import {
   confirmAvatarUpload,
   deleteFromS3
 } from '../../services/user/upload/s3.presigned.service.js';
+import { validatePassword } from "../../utils/passwordValidation.js";
 import User from '../../models/User.js';
 
 /**
@@ -225,22 +226,12 @@ export async function changeUserPassword(req, res) {
       });
     }
 
-    if (newPassword.length < 8) {
+    // Use centralized password validation
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.valid) {
       return res.status(400).json({
         success: false,
-        message: 'New password must be at least 8 characters',
-      });
-    }
-
-    // Password strength validation
-    const hasUppercase = /[A-Z]/.test(newPassword);
-    const hasLowercase = /[a-z]/.test(newPassword);
-    const hasNumber = /[0-9]/.test(newPassword);
-
-    if (!hasUppercase || !hasLowercase || !hasNumber) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must contain uppercase, lowercase, and number',
+        message: passwordValidation.message,
       });
     }
 

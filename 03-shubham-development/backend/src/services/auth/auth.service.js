@@ -189,6 +189,9 @@ export const formatUserResponse = (user) => {
     last_name: user.last_name,
     profilePicture: user.profilePicture,
     username: user.username,
-    isVerified: user.isVerified
+    isVerified: user.isVerified,
+    hasCompletedOnboarding: user.hasCompletedOnboarding || false,
+    isOrganizerEligible: user.isOrganizerEligible || false,
+    provider: user.provider || 'local'
   };
 };

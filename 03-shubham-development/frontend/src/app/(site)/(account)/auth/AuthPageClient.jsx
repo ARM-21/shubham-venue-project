@@ -136,8 +136,8 @@ export default function AuthPageClient({ redirect }) {
               <div className="flex-grow h-[1px] bg-[#3a1224]/30"></div>
             </div>
 
-            <div className="mb-8">
-              <div className="google-btn-modern">
+            <div className="mb-8 flex justify-center items-center">
+              <div className="google-btn-modern mx-auto">
                 <GoogleLogin
                   onSuccess={(credentialResponse) => {
                     if (!credentialResponse?.credential) {

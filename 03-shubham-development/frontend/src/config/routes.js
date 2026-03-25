@@ -56,6 +56,7 @@ export const ROUTES = {
       VERIFY_OTP: '/api/v1/auth/verify-otp',
       RESEND_OTP: '/api/v1/auth/resend-otp',
       GOOGLE_LOGIN: '/api/v1/auth/google/login',
+      VALIDATE_SESSION: '/api/v1/auth/validate-session',
     },
     PROFILE: {
       ME: '/api/v1/profile/me',

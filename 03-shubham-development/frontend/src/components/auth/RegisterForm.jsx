@@ -9,6 +9,8 @@ import { useEffect } from 'react';
 import EnterOTP from '../otp/EnterOTP';
 import Modal from '../ui/Modal';
 import { ROUTES } from 'config/routes';
+import PasswordStrength from './PasswordStrength';
+import { validatePasswordForForm } from 'utils/passwordValidation';
 
 export default function RegisterForm({ onSwitch }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, watch } = useForm();
@@ -146,38 +148,45 @@ export default function RegisterForm({ onSwitch }) {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-5">
         <div className="group">
           <label className="block text-[11px] font-bold text-[#3a1224]/70 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Password</label>
           <div className="relative">
             <input
               type="password"
               {...register('password', { 
-                required: 'Required', 
-                minLength: { 
-                  value: 6, 
-                  message: 'Min 6' 
-                } 
+                required: 'Password is required',
+                validate: validatePasswordForForm
               })}
-              className="w-full bg-[#3a1224]/3 border border-[#3a1224]/10 text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm font-medium"
+              className={`w-full bg-[#3a1224]/3 border text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm font-medium ${
+                errors.password
+                  ? 'border-red-400 bg-red-50 focus:border-red-400 focus:bg-red-50'
+                  : 'border-[#3a1224]/10 focus:border-[#C0A04C]/50'
+              }`}
               placeholder="••••••••"
             />
           </div>
           {errors.password && (
             <p className="text-red-600 text-[10px] mt-2 ml-1 font-bold uppercase tracking-wider">{errors.password.message}</p>
           )}
+          {/* Show strength indicator as user types */}
+          <PasswordStrength password={watch('password') || ''} showRequirements={true} />
         </div>
 
         <div className="group">
-          <label className="block text-[11px] font-bold text-[#3a1224]/70 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Confirm</label>
+          <label className="block text-[11px] font-bold text-[#3a1224]/70 uppercase tracking-widest mb-3 ml-1 group-focus-within:text-[#C0A04C] transition-colors">Confirm Password</label>
           <div className="relative">
             <input
               type="password"
               {...register('confirmPassword', { 
-                required: 'Required', 
-                validate: (value) => value === password || 'No match' 
+                required: 'Please confirm your password',
+                validate: (value) => value === password || 'Passwords must match' 
               })}
-              className="w-full bg-[#3a1224]/3 border border-[#3a1224]/10 text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm font-medium"
+              className={`w-full bg-[#3a1224]/3 border text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm font-medium ${
+                errors.confirmPassword
+                  ? 'border-red-400 bg-red-50 focus:border-red-400 focus:bg-red-50'
+                  : 'border-[#3a1224]/10 focus:border-[#C0A04C]/50'
+              }`}
               placeholder="••••••••"
             />
           </div>
@@ -190,12 +199,12 @@ export default function RegisterForm({ onSwitch }) {
       <button 
         type="submit" 
         disabled={isSubmitting}
-        className="relative w-full group overflow-hidden bg-[#C0A04C] hover:bg-[#D4BC7B] text-white py-4 px-6 rounded-xl font-bold text-xs uppercase tracking-[0.2em] shadow-[0_10px_20px_-10px_rgba(192,160,76,0.3)] transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+        className="relative w-full group cursor-pointer overflow-hidden bg-[#C0A04C] hover:bg-[#D4BC7B] text-white py-4 px-6 rounded-xl font-bold text-xs uppercase tracking-[0.2em] shadow-[0_10px_20px_-10px_rgba(192,160,76,0.3)] transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
       >
-        <div className="absolute inset-0 w-full h-full bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700 skew-x-12"></div>
-        <span className="relative flex items-center justify-center gap-2">
+        <div className="absolute inset-0 w-full h-full bg-white/20 -translate-x-full group-hover:translate-x-full cursor-pointer transition-transform duration-700 skew-x-12"></div>
+        <span className="relative flex items-center justify-center gap-2  ">
           {isSubmitting ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-4 h-4  border-2 cursor-not-allowed border-white border-t-transparent rounded-full animate-spin"></div>
           ) : null}
           Create Account
         </span>
