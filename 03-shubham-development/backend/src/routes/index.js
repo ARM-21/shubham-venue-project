@@ -18,6 +18,7 @@ import adminRoutes from "./admin/index.js"
 import organizerRequestRoutes from "./organizer/organizer-requests.routes.js"
 import organizerRoutes from "./organizer/organizer.routes.js"
 import reviewRoutes from "./review/review.routes.js"
+import scannerRoutes from "./scanner/scanner.routes.js"
 
 const router = express.Router();
 
@@ -47,5 +48,6 @@ router.use("/organizer-requests", organizerRequestRoutes)
 router.use("/organizer", organizerRoutes)
 router.use("/admin", adminRoutes)
 router.use("/reviews", reviewRoutes)
+router.use("/scanner", scannerRoutes)
 
 export default router;

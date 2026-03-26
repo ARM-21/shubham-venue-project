@@ -62,6 +62,9 @@ router.post("/organizer-events/:eventId/reject", isAuthenticated, isAdmin, organ
 // Suspend event
 router.post("/organizer-events/:eventId/suspend", isAuthenticated, isAdmin, organizerEventsController.suspendEvent);
 
+// Get single event detail (MUST come after all specific routes)
+router.get("/organizer-events/:eventId", isAuthenticated, isAdmin, organizerEventsController.getEventDetail);
+
 // ============================================
 // ORGANIZER REPUTATION & TRUST MANAGEMENT
 // ============================================

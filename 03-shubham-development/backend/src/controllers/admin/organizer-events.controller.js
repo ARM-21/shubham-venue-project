@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import OrganizerEvent from "../../models/OrganizerEvent.js";
 import User from "../../models/User.js";
 import Hall from "../../models/Hall.js";
@@ -51,6 +52,72 @@ export const createOrganizerEvent = async (req, res, next) => {
     const hall = await Hall.findById(hallId);
     if (!hall) {
       return httpError(res, "Hall not found", 404);
+    }
+
+    // Get booking to validate event dates against booking date
+    const booking = await mongoose.model('Booking').findById(bookingId);
+    if (!booking) {
+      return httpError(res, "Booking not found", 404);
+    }
+
+    // Strict validation: Event dates must match booking date
+    const bookingDate = new Date(booking.date);
+    const bookingDateString = bookingDate.toISOString().split('T')[0];
+
+    // If startDateTime is provided, validate it's on the booking date
+    if (startDateTime) {
+      const startDate = new Date(startDateTime);
+      const startDateString = startDate.toISOString().split('T')[0];
+      if (startDateString !== bookingDateString) {
+        return httpError(
+          res,
+          `Event must start on the booked date (${bookingDateString}). You selected ${startDateString}`,
+          400
+        );
+      }
+    }
+
+    // If endDateTime is provided, validate it's on the booking date
+    if (endDateTime) {
+      const endDate = new Date(endDateTime);
+      const endDateString = endDate.toISOString().split('T')[0];
+      if (endDateString !== bookingDateString) {
+        return httpError(
+          res,
+          `Event must end on the booked date (${bookingDateString}). You selected ${endDateString}`,
+          400
+        );
+      }
+    }
+
+    // Validate start time < end time
+    if (startDateTime && endDateTime) {
+      const startDt = new Date(startDateTime);
+      const endDt = new Date(endDateTime);
+      if (startDt >= endDt) {
+        return httpError(res, "Event start time must be before end time", 400);
+      }
+    }
+
+    // Validate registration end date is before or on event date
+    if (registrationEndDate) {
+      const regEndDate = new Date(registrationEndDate);
+      if (startDateTime) {
+        const startDt = new Date(startDateTime);
+        if (regEndDate > startDt) {
+          return httpError(
+            res,
+            "Registration must close before event starts",
+            400
+          );
+        }
+      } else if (regEndDate > bookingDate) {
+        return httpError(
+          res,
+          "Registration must close on or before the event date",
+          400
+        );
+      }
     }
 
     // Check organizer trust score
@@ -401,6 +468,51 @@ export const suspendEvent = async (req, res, next) => {
     });
 
     return success(res, event, "Event suspended");
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Get event detail by ID
+ * Returns full event information including organizer and hall details
+ */
+export const getEventDetail = async (req, res, next) => {
+  try {
+    const { eventId } = req.params;
+
+    if (!eventId) {
+      return httpError(res, "Event ID is required", 400);
+    }
+
+    const event = await OrganizerEvent.findById(eventId)
+      .populate("organizerId", "email firstName lastName")
+      .populate("hallId", "name");
+
+    if (!event) {
+      return httpError(res, "Event not found", 404);
+    }
+
+    // Map to expected structure
+    const eventData = {
+      _id: event._id,
+      name: event.name,
+      type: event.type,
+      description: event.description,
+      startDateTime: event.startDateTime,
+      endDateTime: event.endDateTime,
+      eventDate: event.eventDate,
+      expectedAttendees: event.expectedAttendees || 0,
+      organizerId: event.organizerId,
+      hallId: {
+        _id: event.hallId?._id,
+        name: event.hallId?.name || "TBD",
+      },
+      status: event.status,
+      createdAt: event.createdAt,
+    };
+
+    return success(res, eventData);
   } catch (err) {
     next(err);
   }

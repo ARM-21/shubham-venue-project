@@ -9,6 +9,11 @@ import menuAdminRoutes from "./menus/menu.routes.js";
 import settingsRoutes from "./settings.routes.js";
 import notificationRoutes from "./notifications.routes.js";
 import governanceRoutes from "./governance.routes.js";
+import {
+  assignScannerToEvent,
+  getEventScanners,
+  removeScannerAssignment,
+} from "../../controllers/admin/scanner.controller.js";
 
 const router = express.Router();
 
@@ -24,5 +29,10 @@ router.use("/reports", reportsAdminRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/governance", governanceRoutes);
 router.use("/", overviewAdminRoutes);
+
+// Scanner assignment routes
+router.post("/events/:eventId/assign-scanner", assignScannerToEvent);
+router.get("/events/:eventId/scanners", getEventScanners);
+router.delete("/scanners/:assignmentId", removeScannerAssignment);
 
 export default router;
