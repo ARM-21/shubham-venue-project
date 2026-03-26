@@ -49,6 +49,13 @@ export default function EventDetailPage() {
 
   const event = eventData?.event || null;
 
+  // Extract and sync ticketTypes from API response
+  useEffect(() => {
+    if (eventData?.ticketTypes && Array.isArray(eventData.ticketTypes)) {
+      setTicketTypes(eventData.ticketTypes);
+    }
+  }, [eventData?.ticketTypes]);
+
   // Special handling for access-code protected events
   useEffect(() => {
     if (error?.response?.status === 403) {

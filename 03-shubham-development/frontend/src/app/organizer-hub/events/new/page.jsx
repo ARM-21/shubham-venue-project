@@ -240,6 +240,7 @@ export default function OrganizerEventCreatePage() {
           </div>
           
           <ProfessionalEventForm 
+            initialData={{ bookingId: selectedBookingId }}
             onSubmit={onFormSubmit}
             isLoading={isCreating}
           />

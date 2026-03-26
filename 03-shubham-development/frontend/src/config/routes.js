@@ -19,6 +19,8 @@ export const ROUTES = {
     NOTIFICATIONS: '/admin/notifications',
     REPORTS: '/admin/reports',
     SETTINGS: '/admin/settings',
+    EVENT_STAFF: '/admin/event-staff',
+    EVENT_STAFF_DETAIL: (eventId) => `/admin/event-staff/${eventId}`,
     GOVERNANCE: {
       ROOT: '/admin/governance',
       OVERVIEW: '/admin/governance',
@@ -114,6 +116,7 @@ export const ROUTES = {
     },
     ADMIN: {
       OVERVIEW: '/api/v1/admin/overview',
+      EVENTS_ALL: '/api/v1/admin/governance/organizer-events',
       REPORTS: {
         SUMMARY: '/api/v1/admin/reports/summary',
         TRANSACTIONS: '/api/v1/admin/reports/transactions',
@@ -148,6 +151,11 @@ export const ROUTES = {
       SETTINGS_LOGO_UPLOAD: '/api/v1/admin/settings/config/logo-upload',
       SETTINGS_NOTIFICATIONS: '/api/v1/admin/settings/notifications',
       NOTIFICATIONS: '/api/v1/admin/notifications',
+      SCANNER: {
+        ASSIGN: (eventId) => `/api/v1/admin/events/${eventId}/assign-scanner`,
+        REMOVE: (assignmentId) => `/api/v1/admin/scanners/${assignmentId}`,
+        LIST_EVENT: (eventId) => `/api/v1/admin/events/${eventId}/scanners`,
+      },
       NOTIFICATION_READ: (id) => `/api/v1/admin/notifications/${id}/read`,
       NOTIFICATIONS_READ_ALL: '/api/v1/admin/notifications/read-all',
       GOVERNANCE: {
