@@ -24,14 +24,14 @@ export const sendOTPEmail = async (email, otp, username) => {
       <hr style="margin: 20px 0;"/>
       <footer style="text-align: center; font-size: 12px; color: #888;">
         Shubham Venue, Waling BP Road, Syangja <br/>
-        📞 9849320765 | ✉️ shubhampartypalace.waling@gmail.com
+        📞 9849320765 | ✉️ contact@shubham-venue.me
       </footer>
     </div>
   `;
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Shubham Venue <info@shubhampartypalacewaling.live>',
+      from: 'Shubham Venue <info@shubham-venue.me>',
       to: [email],
       subject: 'Your Verification Code – Shubham Venue',
       html
@@ -65,14 +65,14 @@ export const sendWelcomeEmail = async (email, username) => {
       <hr style="margin: 20px 0;"/>
       <footer style="text-align: center; font-size: 12px; color: #888;">
         Shubham Party Palace, Waling BP Road, Syangja <br/>
-        📞 9849320765 | ✉️ shubhampartypalace.waling@gmail.com
+        📞 9849320765 | ✉️ contact@shubham-venue.me
       </footer>
     </div>
   `;
 
   try {
     const { data } = await resend.emails.send({
-      from: 'Shubham Venue <info@shubhampartypalacewaling.live>',
+      from: 'Shubham Venue <info@shubham-venue.me>',
       to: [email],
       subject: 'Welcome to Shubham Venue - Email Verified',
       html
@@ -107,14 +107,14 @@ export const sendBookingConfirmationEmail = async (email, username, bookingDetai
       <hr style="margin: 20px 0;"/>
       <footer style="text-align: center; font-size: 12px; color: #888;">
         Shubham Venue, Waling BP Road, Syangja <br/>
-        📞 9849320765 | ✉️ shubhampartypalace.waling@gmail.com
+        📞 9849320765 | ✉️ contact@shubham-venue.me
       </footer>
     </div>
   `;
 
   try {
     const { data } = await resend.emails.send({
-      from: 'Shubham Venue <info@shubhampartypalacewaling.live>',
+      from: 'Shubham Venue <info@shubham-venue.me>',
       to: [email],
       subject: 'Booking Confirmation - Shubham Party Palace',
       html

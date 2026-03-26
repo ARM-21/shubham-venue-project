@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useParams, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { 
   RefreshCcw, 
   Calendar, 
@@ -32,6 +33,8 @@ import { useAuth } from "contexts/AuthProvider";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlusCircle } from "lucide-react";
+import { useQueryOrganizerStatus } from "@queries/organizer/status";
+import { useQueryEventAttendees } from "@queries/organizer/attendees";
 
 const ATTENDEE_LIMIT = 20;
 
@@ -73,34 +76,13 @@ export default function OrganizerEventDetailPage() {
   const router = useRouter();
   const { eventId } = useParams();
   const { user } = useAuth();
-  const [status, setStatus] = useState(null);
-
-  useEffect(() => {
-    let ignore = false;
-    async function fetchStatus() {
-      try {
-        const res = await axiosInstance.get(ROUTES.API.ORGANIZER_REQUESTS.ME);
-        if (!ignore) setStatus(res.data || null);
-      } catch (err) {
-        if (!ignore) setStatus(null);
-      }
-    }
-    if (user) fetchStatus();
-    return () => { ignore = true; };
-  }, [user]);
-
-  const statusValue = String(status?.organizerStatus || (user?.isOrganizerEligible ? "approved" : user?.organizerStatus || "none")).toLowerCase();
-  const isApproved = status?.isOrganizerEligible || statusValue === "approved" || user?.isOrganizerEligible;
+  const queryClient = useQueryClient();
 
   const [event, setEvent] = useState(null);
   const [ticketTypes, setTicketTypes] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const [attendees, setAttendees] = useState([]);
   const [attendeeQuery, setAttendeeQuery] = useState("");
   const [attendeesPage, setAttendeesPage] = useState(1);
-  const [attendeesTotal, setAttendeesTotal] = useState(0);
-  const [attendeesLoading, setAttendeesLoading] = useState(false);
 
   const [newType, setNewType] = useState({ name: "", price: "", quantityTotal: "" });
   const [savingType, setSavingType] = useState(false);
@@ -109,6 +91,12 @@ export default function OrganizerEventDetailPage() {
 
   const [checkinCode, setCheckinCode] = useState("");
   const [checkinLoading, setCheckinLoading] = useState(false);
+
+  const { data: statusData } = useQueryOrganizerStatus({ enabled: !!user });
+  const { data: attendeesData, isLoading: attendeesLoading, refetch: refetchAttendees } = useQueryEventAttendees(eventId, {
+    enabled: !!eventId,
+    params: { page: attendeesPage, limit: ATTENDEE_LIMIT }
+  });
 
   const {
     register,
@@ -131,6 +119,8 @@ export default function OrganizerEventDetailPage() {
   });
 
   const visibility = watch("visibility");
+  const statusValue = String(statusData?.organizerStatus || (user?.isOrganizerEligible ? "approved" : user?.organizerStatus || "none")).toLowerCase();
+  const isApproved = statusData?.isOrganizerEligible || statusValue === "approved" || user?.isOrganizerEligible;
 
   useEffect(() => {
     let ignore = false;
@@ -176,48 +166,8 @@ export default function OrganizerEventDetailPage() {
     };
   }, [eventId, isApproved, reset]);
 
-  useEffect(() => {
-    let ignore = false;
-    async function fetchAttendees(pageValue) {
-      try {
-        setAttendeesLoading(true);
-        const res = await axiosInstance.get(ROUTES.API.ORGANIZER.EVENT_ATTENDEES(eventId), {
-          params: { page: pageValue, limit: ATTENDEE_LIMIT },
-        });
-        if (!ignore) {
-          setAttendees(res.data?.attendees || []);
-          setAttendeesTotal(res.data?.total || 0);
-        }
-      } catch (err) {
-        if (!ignore) {
-          toast.error(err?.response?.data?.message || "Failed to load attendees");
-        }
-      } finally {
-        if (!ignore) setAttendeesLoading(false);
-      }
-    }
-
-    if (isApproved && eventId) fetchAttendees(attendeesPage);
-
-    return () => {
-      ignore = true;
-    };
-  }, [attendeesPage, eventId, isApproved]);
-
-  const refreshAttendees = async (pageValue = attendeesPage) => {
-    try {
-      setAttendeesLoading(true);
-      const res = await axiosInstance.get(ROUTES.API.ORGANIZER.EVENT_ATTENDEES(eventId), {
-        params: { page: pageValue, limit: ATTENDEE_LIMIT },
-      });
-      setAttendees(res.data?.attendees || []);
-      setAttendeesTotal(res.data?.total || 0);
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to load attendees");
-    } finally {
-      setAttendeesLoading(false);
-    }
-  };
+  const attendees = attendeesData?.attendees || [];
+  const attendeesTotal = attendeesData?.total || 0;
 
   const filteredAttendees = useMemo(() => {
     if (!attendeeQuery.trim()) return attendees;
@@ -234,6 +184,31 @@ export default function OrganizerEventDetailPage() {
     if (values.visibility === "private" && (!values.accessCode || values.accessCode.trim().length < 4)) {
       toast.error("Access code must be at least 4 characters for private events");
       return;
+    }
+
+    // Validate registration dates are before or on event date
+    if (event?.bookingId?.date) {
+      const eventDate = new Date(event.bookingId.date);
+      eventDate.setHours(0, 0, 0, 0);
+
+      if (values.startDateTime) {
+        const startDateTime = new Date(values.startDateTime);
+        if (startDateTime > eventDate) {
+          toast.error("Registration start time must be before the event date");
+          return;
+        }
+      }
+
+      if (values.endDateTime) {
+        const endDateTime = new Date(values.endDateTime);
+        const eventDateEnd = new Date(event.bookingId.date);
+        eventDateEnd.setHours(23, 59, 59, 999);
+        
+        if (endDateTime > eventDateEnd) {
+          toast.error("Registration end time must be on or before the event date");
+          return;
+        }
+      }
     }
 
     try {
@@ -353,7 +328,7 @@ export default function OrganizerEventDetailPage() {
       toast.success("Check-in successful");
       setCheckinCode("");
       setAttendeesPage(1);
-      refreshAttendees(1);
+      refetchAttendees();
     } catch (err) {
       toast.error(err?.response?.data?.message || "Check-in failed");
     } finally {
@@ -409,137 +384,355 @@ export default function OrganizerEventDetailPage() {
   const totalPages = Math.ceil(attendeesTotal / ATTENDEE_LIMIT) || 1;
 
   return (
-    <div className="max-w-[1200px] mx-auto space-y-12 pb-20">
-      {/* Dynamic Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10">
-        <div className="flex-1">
-          <div className="flex items-center gap-4 mb-6">
-             <div className={`px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${statusTone(event.status)}`}>
+    <div className="min-h-screen bg-gradient-to-br from-[#fdfaf6] via-white to-[#fdfaf6] pb-20">
+      {/* Professional Banner Section */}
+      <div className="relative w-full h-48 sm:h-56 md:h-72 lg:h-96 overflow-hidden">
+        {/* Banner Image */}
+        <div 
+          className="absolute inset-0 bg-gradient-to-br from-[#3a1224] to-[#5a2844] opacity-80"
+          style={{
+            backgroundImage: event.bannerUrl ? `url('${event.bannerUrl}')` : 'none',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/90 via-[#3a1224]/40 to-transparent" />
+        </div>
+
+        {/* Banner Content Overlay */}
+        <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-6 md:p-8 lg:p-10">
+          <div className="flex flex-col gap-3 sm:gap-4">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <span className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest ${statusTone(event.status)}`}>
                 {event.status}
-             </div>
-             <div className="w-12 h-[1px] bg-[#3a1224]/10" />
-             <span className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-[0.4em]">Control Center</span>
-          </div>
-          <h1 className="text-5xl lg:text-7xl font-black text-[#3a1224] tracking-tight mb-6">
-            {event.name}
-          </h1>
-          <div className="flex flex-wrap items-center gap-8 text-[#3a1224]/60 font-medium">
-             <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-[#C0A04C]" />
-                <span className="text-sm">{formatDate(event.startDateTime || event.bookingId?.date)}</span>
-             </div>
-             <div className="flex items-center gap-3">
-                <Users className="w-5 h-5 text-[#C0A04C]" />
-                <span className="text-sm">{event.bookingId?.guests} Expected Guests</span>
-             </div>
+              </span>
+              <span className="text-[9px] sm:text-[10px] font-black text-white/60 uppercase tracking-[0.3em]">ORGANIZER CONTROL</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+              {event.name}
+            </h1>
+            <p className="text-xs sm:text-sm text-white/80 font-semibold max-w-2xl line-clamp-2">
+              {event.type} • {event.eventCategory}
+            </p>
           </div>
         </div>
-        
-        <div className="flex items-center gap-4">
-           <button
-             onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENTS)}
-             className="px-10 py-5 bg-white border border-[#3a1224]/5 text-[#3a1224] rounded-[2rem] text-xs font-black uppercase tracking-widest hover:bg-[#3a1224] hover:text-white transition-all shadow-sm"
-           >
-             Back to Portfolio
-           </button>
-        </div>
+
+        {/* Action Button in Banner */}
+        <button
+          onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENTS)}
+          className="absolute top-4 sm:top-6 right-4 sm:right-6 px-4 sm:px-6 py-2 sm:py-3 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-full text-[9px] sm:text-xs font-black uppercase tracking-widest hover:bg-white/20 transition-all"
+        >
+          ← Back
+        </button>
       </div>
+
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 py-8 sm:py-10 md:py-12 space-y-10 md:space-y-14">
+        
+        {/* Key Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
+          {/* Capacity Card */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-5 sm:p-6 md:p-7 shadow-sm hover:shadow-lg transition-all">
+            <div className="flex items-start justify-between mb-3 sm:mb-4">
+              <div className="w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 bg-gradient-to-br from-[#C0A04C] to-[#A68A3C] rounded-lg sm:rounded-xl flex items-center justify-center">
+                <Users className="w-6 sm:w-7 md:w-8 h-6 sm:h-7 md:h-8 text-white" />
+              </div>
+            </div>
+            <p className="text-[10px] sm:text-[11px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Hall Capacity</p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-black text-[#3a1224] mb-2">{event.hallId?.capacity}</p>
+            <p className="text-[9px] sm:text-xs text-[#3a1224]/50 font-semibold">{event.hallId?.name}</p>
+          </div>
+
+          {/* Expected Attendees Card */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-5 sm:p-6 md:p-7 shadow-sm hover:shadow-lg transition-all">
+            <div className="flex items-start justify-between mb-3 sm:mb-4">
+              <div className="w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-lg sm:rounded-xl flex items-center justify-center">
+                <Activity className="w-6 sm:w-7 md:w-8 h-6 sm:h-7 md:h-8 text-white" />
+              </div>
+            </div>
+            <p className="text-[10px] sm:text-[11px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Expected Attendees</p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-black text-[#3a1224] mb-2">{event.expectedAttendees}</p>
+            <p className="text-[9px] sm:text-xs text-[#3a1224]/50 font-semibold">{Math.round((event.expectedAttendees / event.hallId?.capacity) * 100)}% capacity</p>
+          </div>
+
+          {/* Event Date Card */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-5 sm:p-6 md:p-7 shadow-sm hover:shadow-lg transition-all">
+            <div className="flex items-start justify-between mb-3 sm:mb-4">
+              <div className="w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center">
+                <Calendar className="w-6 sm:w-7 md:w-8 h-6 sm:h-7 md:h-8 text-white" />
+              </div>
+            </div>
+            <p className="text-[10px] sm:text-[11px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Event Date</p>
+            <p className="text-base sm:text-lg md:text-xl font-black text-[#3a1224] mb-1">{formatDate(event.bookingId?.date)}</p>
+            <p className="text-[9px] sm:text-xs text-[#3a1224]/50 font-semibold">{event.bookingId?.slot?.toUpperCase()} SLOT</p>
+          </div>
+
+          {/* Booking Status Card */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-5 sm:p-6 md:p-7 shadow-sm hover:shadow-lg transition-all">
+            <div className="flex items-start justify-between mb-3 sm:mb-4">
+              <div className="w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg sm:rounded-xl flex items-center justify-center">
+                <ShieldCheck className="w-6 sm:w-7 md:w-8 h-6 sm:h-7 md:h-8 text-white" />
+              </div>
+            </div>
+            <p className="text-[10px] sm:text-[11px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Booking Status</p>
+            <p className="text-base sm:text-lg md:text-xl font-black text-[#3a1224] mb-2">{event.bookingId?.status}</p>
+            <div className="w-full bg-[#3a1224]/5 rounded-full h-1.5 sm:h-2 overflow-hidden">
+              <div className="bg-emerald-500 h-full rounded-full" style={{ width: '100%' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Event Details Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+          {/* Left Column: Core Details */}
+          <div className="lg:col-span-2 space-y-6 md:space-y-8">
+            {/* Description */}
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-6 sm:p-7 md:p-8 shadow-sm">
+              <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-5">
+                <div className="w-8 sm:w-10 h-8 sm:h-10 bg-[#3a1224] rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <Info className="w-5 sm:w-6 h-5 sm:h-6 text-[#C0A04C]" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-black text-[#3a1224] uppercase tracking-wider">About This Event</h3>
+              </div>
+              <p className="text-sm sm:text-base text-[#3a1224]/70 leading-relaxed font-medium whitespace-pre-wrap">{event.description}</p>
+            </div>
+
+            {/* Event Amenities & Details */}
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-6 sm:p-7 md:p-8 shadow-sm">
+              <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-5">
+                <div className="w-8 sm:w-10 h-8 sm:h-10 bg-[#3a1224] rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-5 sm:w-6 h-5 sm:h-6 text-[#C0A04C]" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-black text-[#3a1224] uppercase tracking-wider">Amenities & Features</h3>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div className="bg-[#fdfaf6] rounded-lg sm:rounded-xl p-3 sm:p-4">
+                  <p className="text-[9px] sm:text-xs font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Catering</p>
+                  <p className="text-sm sm:text-base font-black text-[#3a1224]">{event.catering ? '✓ Included' : '✗ Not Included'}</p>
+                </div>
+                <div className="bg-[#fdfaf6] rounded-lg sm:rounded-xl p-3 sm:p-4">
+                  <p className="text-[9px] sm:text-xs font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Decoration</p>
+                  <p className="text-sm sm:text-base font-black text-[#3a1224]">{event.decoration ? '✓ Available' : '✗ Not Available'}</p>
+                </div>
+                <div className="bg-[#fdfaf6] rounded-lg sm:rounded-xl p-3 sm:p-4">
+                  <p className="text-[9px] sm:text-xs font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Tickets</p>
+                  <p className="text-sm sm:text-base font-black text-[#3a1224]">{event.requiresTicket ? '✓ Required' : '✗ Not Required'}</p>
+                </div>
+                <div className="bg-[#fdfaf6] rounded-lg sm:rounded-xl p-3 sm:p-4">
+                  <p className="text-[9px] sm:text-xs font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Dress Code</p>
+                  <p className="text-sm sm:text-base font-black text-[#3a1224] capitalize">{event.dressCode || 'Not Specified'}</p>
+                </div>
+                <div className="bg-[#fdfaf6] rounded-lg sm:rounded-xl p-3 sm:p-4">
+                  <p className="text-[9px] sm:text-xs font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Age Limit</p>
+                  <p className="text-sm sm:text-base font-black text-[#3a1224]">{event.ageRestriction ? `${event.ageRestriction}+` : 'No Limit'}</p>
+                </div>
+                <div className="bg-[#fdfaf6] rounded-lg sm:rounded-xl p-3 sm:p-4">
+                  <p className="text-[9px] sm:text-xs font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Audience</p>
+                  <p className="text-sm sm:text-base font-black text-[#3a1224] line-clamp-1">{event.targetAudience?.split(',')[0] || 'General'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Location Details */}
+            {event.location && (
+              <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-6 sm:p-7 md:p-8 shadow-sm">
+                <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-5">
+                  <div className="w-8 sm:w-10 h-8 sm:h-10 bg-[#3a1224] rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <Users className="w-5 sm:w-6 h-5 sm:h-6 text-[#C0A04C]" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-black text-[#3a1224] uppercase tracking-wider">Venue Location</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <p className="text-[9px] sm:text-xs font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">City</p>
+                    <p className="text-sm sm:text-base font-bold text-[#3a1224]">{event.location.city}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] sm:text-xs font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">State</p>
+                    <p className="text-sm sm:text-base font-bold text-[#3a1224]">{event.location.state}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] sm:text-xs font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Country</p>
+                    <p className="text-sm sm:text-base font-bold text-[#3a1224]">{event.location.country}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] sm:text-xs font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Coordinates</p>
+                    <p className="text-sm sm:text-base font-bold text-[#3a1224]">{event.location.coordinates?.latitude?.toFixed(4)}, {event.location.coordinates?.longitude?.toFixed(4)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Event Tags & Additional Info */}
+          <div className="space-y-6 md:space-y-8">
+            {/* Tags */}
+            {event.tags && event.tags.length > 0 && (
+              <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-6 sm:p-7 md:p-8 shadow-sm">
+                <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-5">
+                  <div className="w-8 sm:w-10 h-8 sm:h-10 bg-[#3a1224] rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <Zap className="w-5 sm:w-6 h-5 sm:h-6 text-[#C0A04C]" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-black text-[#3a1224] uppercase tracking-wider">Topics</h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {event.tags.map((tag, idx) => (
+                    <span key={idx} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#3a1224]/5 text-[#3a1224] rounded-full text-[9px] sm:text-xs font-bold uppercase tracking-widest border border-[#3a1224]/10">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Additional Details */}
+            {event.additionalDetails && Object.keys(event.additionalDetails).length > 0 && (
+              <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-6 sm:p-7 md:p-8 shadow-sm">
+                <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-5">
+                  <div className="w-8 sm:w-10 h-8 sm:h-10 bg-[#3a1224] rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <CheckCircle2 className="w-5 sm:w-6 h-5 sm:h-6 text-[#C0A04C]" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-black text-[#3a1224] uppercase tracking-wider">Highlights</h3>
+                </div>
+                <div className="space-y-2 sm:space-y-3">
+                  {Object.entries(event.additionalDetails).map(([key, value]) => (
+                    <div key={key} className="flex justify-between items-start gap-2 py-2 border-b border-[#3a1224]/5 last:border-0">
+                      <span className="text-[9px] sm:text-xs font-bold text-[#3a1224]/60 uppercase tracking-widest">{key.replace(/_/g, ' ')}</span>
+                      <span className="text-sm sm:text-base font-black text-[#3a1224] text-right">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Special Requirements */}
+            {event.specialRequirements && (
+              <div className="bg-amber-50 rounded-2xl sm:rounded-3xl border border-amber-100 p-6 sm:p-7 md:p-8">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <AlertCircle className="w-5 sm:w-6 h-5 sm:h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm sm:text-base font-black text-amber-900 uppercase tracking-wider mb-2">Special Requirements</h4>
+                    <p className="text-xs sm:text-sm text-amber-800 font-medium leading-relaxed">{event.specialRequirements}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
         {/* Left Column: Form and Settings */}
         <div className="xl:col-span-2 space-y-12">
            {/* Section: Identity & Content */}
-           <section className="bg-white rounded-[3rem] border border-[#3a1224]/5 p-10 lg:p-12 shadow-sm">
-              <div className="flex items-center gap-4 mb-12">
-                 <div className="w-12 h-12 bg-[#3a1224] rounded-2xl flex items-center justify-center text-[#C0A04C] font-black shadow-lg">01</div>
-                 <h3 className="text-xl font-black text-[#3a1224] uppercase tracking-wider">Identity & Content</h3>
+           <section className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-6 sm:p-7 md:p-8 shadow-sm">
+              <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-7 md:mb-8">
+                 <div className="w-8 sm:w-10 h-8 sm:h-10 bg-[#3a1224] rounded-lg sm:rounded-xl flex items-center justify-center text-[#C0A04C] font-black text-sm sm:text-base">A</div>
+                 <h3 className="text-lg sm:text-xl font-black text-[#3a1224] uppercase tracking-wider">Manage Event</h3>
               </div>
 
-              <form onSubmit={handleSubmit(saveEvent)} className="space-y-10">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    <div className="space-y-4">
-                       <label className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Event Name</label>
+              <form onSubmit={handleSubmit(saveEvent)} className="space-y-6 sm:space-y-7 md:space-y-8">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
+                    <div className="space-y-2 sm:space-y-3">
+                       <label className="text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Event Name *</label>
                        <input
                          {...register("name", { required: "Name is required" })}
-                         className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-[1.5rem] px-8 py-5 text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 transition-all"
+                         className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl sm:rounded-2xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 transition-all"
                        />
+                       {errors.name && <p className="text-[8px] text-rose-500 font-bold uppercase ml-2">{errors.name.message}</p>}
                     </div>
-                    <div className="space-y-4">
-                       <label className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Category</label>
+                    <div className="space-y-2 sm:space-y-3">
+                       <label className="text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Category *</label>
                        <input
                          {...register("type")}
-                         className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-[1.5rem] px-8 py-5 text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 transition-all"
+                         className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl sm:rounded-2xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 transition-all"
                        />
                     </div>
                  </div>
 
-                 <div className="space-y-4">
-                    <label className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Description</label>
+                 <div className="space-y-2 sm:space-y-3">
+                    <label className="text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Description</label>
                     <textarea
                       {...register("description")}
-                      rows={5}
-                      className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-[2rem] px-8 py-6 text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 transition-all resize-none"
+                      rows={4}
+                      className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl sm:rounded-2xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 transition-all resize-none"
                     />
                  </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    <div className="space-y-4">
-                       <label className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Visibility</label>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
+                    <div className="space-y-2 sm:space-y-3">
+                       <label className="text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Visibility</label>
                        <select
                          {...register("visibility")}
-                         className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-[1.5rem] px-8 py-5 text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 appearance-none"
+                         className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl sm:rounded-2xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 appearance-none"
                        >
                          <option value="public">Public - Searchable</option>
-                         <option value="private">Private - Password Required</option>
+                         <option value="private">Private - Access Code Required</option>
                        </select>
                     </div>
-                    <div className="space-y-4">
-                       <label className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Passphrase</label>
+                    <div className="space-y-2 sm:space-y-3">
+                       <label className="text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Access Code</label>
                        <input
                          {...register("accessCode")}
-                         className={`w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-[1.5rem] px-8 py-5 text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 transition-all ${visibility !== 'private' ? 'opacity-30 grayscale' : ''}`}
+                         className={`w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl sm:rounded-2xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 transition-all ${visibility !== 'private' ? 'opacity-30 grayscale' : ''}`}
                          placeholder="Min 4 chars"
                        />
                     </div>
                  </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    <div className="space-y-4">
-                       <label className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Timeline Start</label>
-                       <input
-                         type="datetime-local"
-                         {...register("startDateTime")}
-                         className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-[1.5rem] px-8 py-5 text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20"
-                       />
-                    </div>
-                    <div className="space-y-4">
-                       <label className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Timeline End</label>
-                       <input
-                         type="datetime-local"
-                         {...register("endDateTime")}
-                         className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-[1.5rem] px-8 py-5 text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20"
-                       />
+                 <div className="space-y-2 sm:space-y-3">
+                    <label className="text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Banner Image URL</label>
+                    <input
+                      {...register("bannerUrl")}
+                      type="url"
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl sm:rounded-2xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 text-xs sm:text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 transition-all"
+                    />
+                    <p className="text-[8px] sm:text-[9px] text-[#3a1224]/40 ml-2">Use high-res image (1200x400px recommended)</p>
+                 </div>
+
+                 <div className="border-t border-[#3a1224]/5 pt-6 sm:pt-7 md:pt-8">
+                    <p className="text-[10px] sm:text-[11px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-4">Registration Timeline</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
+                       <div className="space-y-2 sm:space-y-3">
+                          <label className="text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Timeline Start</label>
+                          <input
+                            type="datetime-local"
+                            {...register("startDateTime")}
+                            className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl sm:rounded-2xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 text-xs sm:text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 transition-all"
+                          />
+                          {event?.bookingId?.date && (
+                            <p className="text-[8px] text-[#3a1224]/50 ml-2">Must be before {new Date(event.bookingId.date).toLocaleDateString('en-GB')}</p>
+                          )}
+                       </div>
+                       <div className="space-y-2 sm:space-y-3">
+                          <label className="text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Timeline End</label>
+                          <input
+                            type="datetime-local"
+                            {...register("endDateTime")}
+                            className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl sm:rounded-2xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 text-xs sm:text-sm font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 transition-all"
+                          />
+                          {event?.bookingId?.date && (
+                            <p className="text-[8px] text-[#3a1224]/50 ml-2">Must be on or before {new Date(event.bookingId.date).toLocaleDateString('en-GB')}</p>
+                          )}
+                       </div>
                     </div>
                  </div>
 
-                 <div className="flex flex-col md:flex-row items-center justify-between gap-8 pt-8 border-t border-[#3a1224]/5">
-                    <div className="flex-1">
-                       <label className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 block mb-4">Lifecycle Status</label>
-                       <div className="flex flex-wrap gap-4">
-                          {['DRAFT', 'PUBLISHED', 'CANCELLED'].map((s) => (
-                             <label key={s} className="cursor-pointer">
-                                <input type="radio" {...register("status")} value={s} className="hidden" />
-                                <span className={`px-6 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all inline-block ${watch("status") === s ? "bg-[#3a1224] text-[#C0A04C] shadow-lg shadow-[#3a1224]/20" : "bg-[#fdfaf6] text-[#3a1224]/40 border border-[#3a1224]/5"}`}>
-                                   {s}
-                                </span>
-                             </label>
-                          ))}
-                       </div>
+                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-6 sm:pt-7 md:pt-8 border-t border-[#3a1224]/5">
+                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                       {['DRAFT', 'PUBLISHED', 'CANCELLED'].map((s) => (
+                          <label key={s} className="cursor-pointer">
+                             <input type="radio" {...register("status")} value={s} className="hidden" />
+                             <span className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all inline-block ${watch("status") === s ? "bg-[#3a1224] text-[#C0A04C] shadow-lg shadow-[#3a1224]/20" : "bg-[#fdfaf6] text-[#3a1224]/40 border border-[#3a1224]/5"}`}>
+                                {s}
+                             </span>
+                          </label>
+                       ))}
                     </div>
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full md:w-auto px-12 py-5 bg-[#3a1224] text-white rounded-[2rem] text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-[#3a1224]/10 disabled:opacity-50"
+                      className="w-full sm:w-auto px-6 sm:px-10 md:px-12 py-3 sm:py-4 md:py-5 bg-[#3a1224] text-white rounded-xl sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-[#3a1224]/10 disabled:opacity-50"
                     >
                       {isSubmitting ? "Syncing..." : "Update Event"}
                     </button>
@@ -547,239 +740,158 @@ export default function OrganizerEventDetailPage() {
               </form>
            </section>
 
-           {/* Section: Guest Passports (Attendees) */}
-           <section className="bg-white rounded-[3rem] border border-[#3a1224]/5 p-10 lg:p-12 shadow-sm overflow-hidden">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
-                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-[#3a1224] rounded-2xl flex items-center justify-center text-[#C0A04C] font-black shadow-lg">02</div>
-                    <h3 className="text-xl font-black text-[#3a1224] uppercase tracking-wider">Attendee Manifest</h3>
-                 </div>
-                 <div className="relative group min-w-[300px]">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3a1224]/20 group-hover:text-[#C0A04C] transition-colors" />
-                    <input
-                      type="text"
-                      placeholder="Filter by name or email..."
-                      value={attendeeQuery}
-                      onChange={(e) => setAttendeeQuery(e.target.value)}
-                      className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-[1.5rem] pl-16 pr-8 py-4 text-xs font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none"
-                    />
-                 </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                 <table className="w-full text-left">
-                    <thead>
-                       <tr className="border-b border-[#3a1224]/5">
-                          <th className="pb-6 text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest pl-4">Guest</th>
-                          <th className="pb-6 text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest">Passport ID</th>
-                          <th className="pb-6 text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest">Entry Date</th>
-                          <th className="pb-6 text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest text-right pr-4">Identity</th>
-                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#3a1224]/5">
-                       {attendeesLoading ? (
-                          Array.from({ length: 3 }).map((_, i) => (
-                             <tr key={i} className="animate-pulse">
-                                <td className="py-8 pl-4"><div className="w-32 h-4 bg-[#3a1224]/5 rounded-full" /></td>
-                                <td className="py-8"><div className="w-24 h-4 bg-[#3a1224]/5 rounded-full" /></td>
-                                <td className="py-8"><div className="w-20 h-4 bg-[#3a1224]/5 rounded-full" /></td>
-                                <td className="py-8 pr-4 text-right"><div className="w-16 h-4 bg-[#3a1224]/5 rounded-full ml-auto" /></td>
-                             </tr>
-                          ))
-                       ) : filteredAttendees.length === 0 ? (
-                          <tr>
-                             <td colSpan={4} className="py-32 text-center">
-                                <Users className="w-12 h-12 text-[#3a1224]/5 mx-auto mb-4" />
-                                <p className="text-[10px] font-black text-[#3a1224]/20 uppercase tracking-[0.2em]">Manifest is empty</p>
-                             </td>
-                          </tr>
-                       ) : (
-                          filteredAttendees.map((a) => (
-                             <tr key={a._id} className="group hover:bg-[#fdfaf6] transition-colors">
-                                <td className="py-8 pl-4">
-                                   <div className="flex flex-col">
-                                      <span className="text-sm font-black text-[#3a1224]">{a.attendee?.first_name} {a.attendee?.last_name}</span>
-                                      <span className="text-[10px] font-bold text-[#3a1224]/40 uppercase tracking-tight">{a.attendee?.email}</span>
-                                   </div>
-                                </td>
-                                <td className="py-8 text-xs font-black text-[#C0A04C]">{a.qrCodeValue}</td>
-                                <td className="py-8 text-xs font-bold text-[#3a1224]/60">{formatDate(a.checkInDateTime || a.createdAt)}</td>
-                                <td className="py-8 pr-4 text-right">
-                                   <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${a.checkedIn ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-[#3a1224]/5 text-[#3a1224]/40'}`}>
-                                      {a.checkedIn ? 'Inside Venue' : 'Awaiting Entry'}
-                                   </span>
-                                </td>
-                             </tr>
-                          ))
-                       )}
-                    </tbody>
-                 </table>
-              </div>
-
-              {totalPages > 1 && (
-                 <div className="flex items-center justify-between mt-12 pt-12 border-t border-[#3a1224]/5">
-                    <p className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest">Page {attendeesPage} of {totalPages}</p>
-                    <div className="flex gap-4">
-                       <button
-                         disabled={attendeesPage <= 1}
-                         onClick={() => setAttendeesPage(p => p - 1)}
-                         className="px-6 py-2.5 rounded-full bg-white border border-[#3a1224]/5 text-[10px] font-black uppercase tracking-widest disabled:opacity-20 transition-all hover:bg-[#3a1224] hover:text-white"
-                       >
-                         Previous
-                       </button>
-                       <button
-                         disabled={attendeesPage >= totalPages}
-                         onClick={() => setAttendeesPage(p => p + 1)}
-                         className="px-6 py-2.5 rounded-full bg-white border border-[#3a1224]/5 text-[10px] font-black uppercase tracking-widest disabled:opacity-20 transition-all hover:bg-[#3a1224] hover:text-white"
-                       >
-                         Next
-                       </button>
-                    </div>
-                 </div>
-              )}
-           </section>
-        </div>
-
-        {/* Right Column: Rapid Check-in & Ticket Tiers */}
-        <div className="space-y-12">
+        {/* Right Column: Entry Terminal & Ticket Inventory */}
+        <div className="space-y-6 md:space-y-8">
            {/* Rapid Entry Terminal */}
-           <section className="bg-[#3a1224] rounded-[3rem] p-10 lg:p-12 text-white relative overflow-hidden shadow-2xl">
+           <section className="bg-gradient-to-br from-[#3a1224] to-[#5a2844] rounded-2xl sm:rounded-3xl p-6 sm:p-7 md:p-8 text-white relative overflow-hidden shadow-2xl">
               <div className="relative z-10">
-                 <div className="flex items-center gap-4 mb-8">
-                    <QrCode className="w-8 h-8 text-[#C0A04C]" />
-                    <h3 className="text-xl font-black uppercase tracking-wider">Entry Terminal</h3>
+                 <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-5">
+                    <div className="w-8 sm:w-10 h-8 sm:h-10 bg-white/10 rounded-lg sm:rounded-xl flex items-center justify-center">
+                       <QrCode className="w-5 sm:w-6 h-5 sm:h-6 text-[#C0A04C]" />
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-black uppercase tracking-wider">Entry Terminal</h3>
                  </div>
-                 <p className="text-white/40 text-xs font-medium leading-relaxed mb-10">
-                   Scan QR code values manually here if primary terminal is offline.
+                 <p className="text-white/60 text-[9px] sm:text-xs font-medium leading-relaxed mb-6 sm:mb-7">
+                   Scan QR codes or enter passport IDs for real-time visitor validation.
                  </p>
                  
-                 <div className="space-y-6">
+                 <div className="space-y-3 sm:space-y-4">
                     <input
                       type="text"
-                      placeholder="Passport ID / QR Value"
+                      placeholder="Scan QR code or enter ID..."
                       value={checkinCode}
                       onChange={(e) => setCheckinCode(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-sm font-bold text-white outline-none focus:ring-2 ring-[#C0A04C]/50 transition-all"
+                      className="w-full bg-white/10 border border-white/20 rounded-lg sm:rounded-2xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 text-sm font-bold text-white placeholder-white/40 outline-none focus:ring-2 ring-[#C0A04C]/50 transition-all"
                     />
                     <button
                       onClick={handleCheckin}
                       disabled={checkinLoading}
-                      className="w-full py-5 bg-[#C0A04C] text-[#3a1224] rounded-[2rem] text-[10px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-[#C0A04C]/20 disabled:opacity-50"
+                      className="w-full py-3 sm:py-4 md:py-5 bg-[#C0A04C] hover:bg-[#D4B557] text-[#3a1224] rounded-lg sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-[0.2em] active:scale-[0.98] transition-all shadow-xl shadow-[#C0A04C]/20 disabled:opacity-50"
                     >
-                      {checkinLoading ? "Processing..." : "Validate Entry"}
+                      {checkinLoading ? "Validating..." : "✓ Validate Entry"}
                     </button>
                  </div>
               </div>
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute top-0 right-0 w-40 sm:w-56 h-40 sm:h-56 bg-white/5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
            </section>
 
-           {/* Ticket Inventory Terminal */}
-           <section className="bg-white rounded-[3rem] border border-[#3a1224]/5 p-10 lg:p-12 shadow-sm">
-              <div className="flex items-center justify-between mb-12">
-                 <div className="flex items-center gap-4">
-                    <Ticket className="w-5 h-5 text-[#C0A04C]" />
-                    <h3 className="text-lg font-black text-[#3a1224] uppercase tracking-wider">Inventory</h3>
+           {/* Ticket Inventory Section */}
+           <section className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-6 sm:p-7 md:p-8 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-7 md:mb-8">
+                 <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="w-8 sm:w-10 h-8 sm:h-10 bg-[#3a1224] rounded-lg sm:rounded-xl flex items-center justify-center">
+                       <Ticket className="w-5 sm:w-6 h-5 sm:h-6 text-[#C0A04C]" />
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-black text-[#3a1224] uppercase tracking-wider">Ticket Tiers</h3>
                  </div>
-                 <button onClick={refreshTicketTypes} className="p-2.5 rounded-xl bg-[#3a1224]/5 hover:bg-[#C0A04C]/10 text-[#C0A04C] transition-all">
-                    <RefreshCcw className="w-4 h-4" />
+                 <button 
+                    onClick={refreshTicketTypes} 
+                    title="Refresh"
+                    className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-[#3a1224]/5 hover:bg-[#C0A04C]/10 text-[#C0A04C] transition-all flex items-center justify-center"
+                 >
+                    <RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />
                  </button>
               </div>
 
-              <div className="space-y-10">
-                 {/* Existing Tires */}
-                 <div className="space-y-6">
-                    {ticketTypes.map((type) => (
-                       <div key={type._id} className="relative group bg-[#fdfaf6] rounded-[2rem] border border-[#3a1224]/5 p-8 transition-all hover:border-[#C0A04C]/30">
-                          {editingTypeId === type._id ? (
-                             <div className="space-y-6">
-                                <input
-                                  value={editType.name}
-                                  onChange={(e) => setEditType({ ...editType, name: e.target.value })}
-                                  placeholder="Tier Name"
-                                  className="w-full bg-white border border-[#3a1224]/10 rounded-xl px-4 py-3 text-xs font-bold"
-                                />
-                                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4 sm:space-y-5">
+                 {/* Existing Ticket Types */}
+                 {ticketTypes.length > 0 && (
+                    <div className="space-y-3 sm:space-y-4">
+                       {ticketTypes.map((type) => (
+                          <div key={type._id} className="relative group bg-[#fdfaf6] rounded-lg sm:rounded-2xl border border-[#3a1224]/5 p-4 sm:p-5 md:p-6 transition-all hover:border-[#C0A04C]/30">
+                             {editingTypeId === type._id ? (
+                                <div className="space-y-3 sm:space-y-4">
                                    <input
-                                     type="number"
-                                     value={editType.price}
-                                     onChange={(e) => setEditType({ ...editType, price: e.target.value })}
-                                     placeholder="NRS"
-                                     className="w-full bg-white border border-[#3a1224]/10 rounded-xl px-4 py-3 text-xs font-bold"
+                                     value={editType.name}
+                                     onChange={(e) => setEditType({ ...editType, name: e.target.value })}
+                                     placeholder="Tier Name"
+                                     className="w-full bg-white border border-[#3a1224]/10 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-xs font-bold focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
                                    />
-                                   <input
-                                     type="number"
-                                     value={editType.quantityTotal}
-                                     onChange={(e) => setEditType({ ...editType, quantityTotal: e.target.value })}
-                                     placeholder="Qty"
-                                     className="w-full bg-white border border-[#3a1224]/10 rounded-xl px-4 py-3 text-xs font-bold"
-                                   />
-                                </div>
-                                <div className="flex items-center gap-3 pt-2">
-                                   <button onClick={() => saveEdit(type._id)} className="flex-1 py-3 bg-[#3a1224] text-white rounded-xl text-[10px] font-black uppercase tracking-widest">Save</button>
-                                   <button onClick={() => setEditingTypeId(null)} className="flex-1 py-3 bg-white border border-[#3a1224]/5 text-[#3a1224]/40 rounded-xl text-[10px] font-black uppercase tracking-widest">Undo</button>
-                                </div>
-                             </div>
-                          ) : (
-                             <div className="flex flex-col">
-                                <div className="flex items-center justify-between mb-4">
-                                   <span className="text-[9px] font-black text-[#C0A04C] uppercase tracking-[0.2em]">{type.isActive ? 'Active Inventory' : 'Inactive'}</span>
-                                   <button onClick={() => startEdit(type)} className="p-2 opacity-0 group-hover:opacity-100 transition-opacity text-[#3a1224]/20 hover:text-[#3a1224]">
-                                      <Activity className="w-4 h-4" />
-                                   </button>
-                                </div>
-                                <h4 className="text-lg font-black text-[#3a1224]">{type.name}</h4>
-                                <div className="flex items-center justify-between mt-6 pt-6 border-t border-[#3a1224]/5">
-                                   <div className="flex flex-col">
-                                      <span className="text-[8px] font-black text-[#3a1224]/20 uppercase tracking-widest">Rate</span>
-                                      <span className="text-sm font-black text-[#3a1224]">NRS {type.price}</span>
+                                   <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                                      <input
+                                        type="number"
+                                        value={editType.price}
+                                        onChange={(e) => setEditType({ ...editType, price: e.target.value })}
+                                        placeholder="Price NRS"
+                                        className="w-full bg-white border border-[#3a1224]/10 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-xs font-bold focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
+                                      />
+                                      <input
+                                        type="number"
+                                        value={editType.quantityTotal}
+                                        onChange={(e) => setEditType({ ...editType, quantityTotal: e.target.value })}
+                                        placeholder="Quantity"
+                                        className="w-full bg-white border border-[#3a1224]/10 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-xs font-bold focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
+                                      />
                                    </div>
-                                   <div className="flex flex-col text-right">
-                                      <span className="text-[8px] font-black text-[#3a1224]/20 uppercase tracking-widest">Stock</span>
-                                      <span className="text-sm font-black text-[#3a1224]">{type.quantitySold} / {type.quantityTotal}</span>
+                                   <div className="flex items-center gap-2 sm:gap-3 pt-2 sm:pt-3">
+                                      <button onClick={() => saveEdit(type._id)} className="flex-1 py-2 sm:py-3 bg-[#3a1224] text-white rounded-lg text-[9px] sm:text-xs font-black uppercase tracking-widest hover:bg-[#3a1224]/90 transition-all">Save</button>
+                                      <button onClick={() => setEditingTypeId(null)} className="flex-1 py-2 sm:py-3 bg-white border border-[#3a1224]/5 text-[#3a1224]/40 rounded-lg text-[9px] sm:text-xs font-black uppercase tracking-widest hover:bg-[#3a1224]/5 transition-all">Cancel</button>
                                    </div>
                                 </div>
-                             </div>
-                          )}
-                       </div>
-                    ))}
-                 </div>
-
-                 {/* New Tier Terminal */}
-                 <div className="pt-10 border-t border-[#3a1224]/10">
-                    <div className="flex items-center gap-4 mb-8">
-                       <PlusCircle className="w-4 h-4 text-[#C0A04C]" />
-
-                       <span className="text-[10px] font-black text-[#3a1224] uppercase tracking-widest">Commission New Tier</span>
+                             ) : (
+                                <div className="flex flex-col">
+                                   <div className="flex items-start justify-between mb-3 sm:mb-4">
+                                      <span className="text-[8px] sm:text-[9px] font-bold text-[#C0A04C] uppercase tracking-[0.2em] bg-[#C0A04C]/10 px-2 sm:px-3 py-1 rounded-full">{type.isActive ? 'Active' : 'Inactive'}</span>
+                                      <button onClick={() => startEdit(type)} className="p-1.5 sm:p-2 opacity-0 group-hover:opacity-100 transition-opacity text-[#3a1224]/20 hover:text-[#3a1224]">
+                                         <Activity className="w-4 sm:w-5 h-4 sm:h-5" />
+                                      </button>
+                                   </div>
+                                   <h4 className="text-base sm:text-lg font-black text-[#3a1224] mb-3 sm:mb-4">{type.name}</h4>
+                                   <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-[#3a1224]/5">
+                                      <div className="flex flex-col">
+                                         <span className="text-[8px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-0.5">Price</span>
+                                         <span className="text-sm sm:text-base font-black text-[#3a1224]">₨ {type.price?.toLocaleString()}</span>
+                                      </div>
+                                      <div className="flex flex-col text-right">
+                                         <span className="text-[8px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-0.5">Sold / Total</span>
+                                         <span className="text-sm sm:text-base font-black text-[#3a1224]">{type.quantitySold} / {type.quantityTotal}</span>
+                                      </div>
+                                   </div>
+                                </div>
+                             )}
+                          </div>
+                       ))}
                     </div>
-                    <div className="space-y-4">
+                 )}
+
+                 {/* Divider */}
+                 {ticketTypes.length > 0 && <div className="h-px bg-gradient-to-r from-transparent via-[#3a1224]/10 to-transparent" />}
+
+                 {/* Add New Ticket Type */}
+                 <div className="pt-2 sm:pt-3">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                       <Plus className="w-4 sm:w-5 h-4 sm:h-5 text-[#C0A04C]" />
+                       <span className="text-[9px] sm:text-xs font-black text-[#3a1224]/60 uppercase tracking-widest">Add New Tier</span>
+                    </div>
+                    <div className="space-y-2 sm:space-y-3">
                        <input
                          value={newType.name}
                          onChange={(e) => setNewType({ ...newType, name: e.target.value })}
-                         placeholder="Tier Identity (e.g. VIP Access)"
-                         className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-2xl px-6 py-4 text-xs font-bold text-[#3a1224] outline-none"
+                         placeholder="Tier Name (e.g., VIP Access, General)"
+                         className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-xs font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 transition-all"
                        />
-                       <div className="grid grid-cols-2 gap-4">
+                       <div className="grid grid-cols-2 gap-2 sm:gap-3">
                           <input
                             type="number"
                             value={newType.price}
                             onChange={(e) => setNewType({ ...newType, price: e.target.value })}
                             placeholder="Price NRS"
-                            className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-2xl px-6 py-4 text-xs font-bold text-[#3a1224] outline-none"
+                            className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-xs font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 transition-all"
                           />
                           <input
                             type="number"
                             value={newType.quantityTotal}
                             onChange={(e) => setNewType({ ...newType, quantityTotal: e.target.value })}
-                            placeholder="Initial Qty"
-                            className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-2xl px-6 py-4 text-xs font-bold text-[#3a1224] outline-none"
+                            placeholder="Quantity"
+                            className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-xs font-bold text-[#3a1224] outline-none focus:ring-2 ring-[#C0A04C]/20 transition-all"
                           />
                        </div>
                        <button
                          onClick={addTicketType}
                          disabled={savingType}
-                         className="w-full py-4 bg-[#3a1224] text-white rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest hover:bg-[#3a1224]/90 transition-all disabled:opacity-50"
+                         className="w-full py-2 sm:py-3 md:py-4 bg-[#3a1224] hover:bg-[#3a1224]/90 text-white rounded-lg sm:rounded-xl text-[9px] sm:text-xs font-black uppercase tracking-widest transition-all disabled:opacity-50"
                        >
-                         {savingType ? "Processing..." : "Deploy Ticket Tier"}
+                         {savingType ? "Adding..." : "+ Deploy Tier"}
                        </button>
                     </div>
                  </div>
@@ -787,7 +899,110 @@ export default function OrganizerEventDetailPage() {
            </section>
         </div>
       </div>
+
+      {/* Attendee Manifest Section (Full Width) */}
+      <section className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-6 sm:p-7 md:p-8 shadow-sm overflow-hidden">
+         <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-6 sm:mb-7 md:mb-8">
+            <div className="flex items-center gap-3 sm:gap-4">
+               <div className="w-8 sm:w-10 h-8 sm:h-10 bg-[#3a1224] rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <Users className="w-5 sm:w-6 h-5 sm:h-6 text-[#C0A04C]" />
+               </div>
+               <h3 className="text-lg sm:text-xl font-black text-[#3a1224] uppercase tracking-wider">Attendee Manifest</h3>
+               <span className="text-[9px] sm:text-xs font-bold bg-[#3a1224]/5 text-[#3a1224]/60 px-2 sm:px-3 py-1 rounded-full">{attendeesTotal} Total</span>
+            </div>
+            <div className="relative flex-1 sm:flex-initial group min-w-0 sm:min-w-[250px] md:min-w-[350px]">
+               <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-[#3a1224]/20 group-hover:text-[#C0A04C] transition-colors flex-shrink-0" />
+               <input
+                  type="text"
+                  placeholder="Filter by name, email..."
+                  value={attendeeQuery}
+                  onChange={(e) => setAttendeeQuery(e.target.value)}
+                  className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl pl-9 sm:pl-12 pr-4 py-2 sm:py-3 md:py-4 text-xs sm:text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
+               />
+            </div>
+         </div>
+
+         {/* Responsive Table */}
+         <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+               <thead>
+                  <tr className="border-b border-[#3a1224]/5">
+                     <th className="pb-3 sm:pb-4 text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest pl-3 sm:pl-4">Guest</th>
+                     <th className="pb-3 sm:pb-4 text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest px-2 sm:px-4">Pass ID</th>
+                     <th className="pb-3 sm:pb-4 text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest px-2 sm:px-4 hidden sm:table-cell">Entry Date</th>
+                     <th className="pb-3 sm:pb-4 text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest text-right pr-3 sm:pr-4">Status</th>
+                  </tr>
+               </thead>
+               <tbody className="divide-y divide-[#3a1224]/5">
+                  {attendeesLoading ? (
+                     Array.from({ length: 3 }).map((_, i) => (
+                        <tr key={i} className="animate-pulse">
+                           <td className="py-4 sm:py-6 pl-3 sm:pl-4"><div className="w-32 h-3 bg-[#3a1224]/5 rounded-full" /></td>
+                           <td className="py-4 sm:py-6 px-2 sm:px-4"><div className="w-24 h-3 bg-[#3a1224]/5 rounded-full" /></td>
+                           <td className="py-4 sm:py-6 px-2 sm:px-4 hidden sm:table-cell"><div className="w-20 h-3 bg-[#3a1224]/5 rounded-full" /></td>
+                           <td className="py-4 sm:py-6 pr-3 sm:pr-4 text-right"><div className="w-16 h-3 bg-[#3a1224]/5 rounded-full ml-auto" /></td>
+                        </tr>
+                     ))
+                  ) : filteredAttendees.length === 0 ? (
+                     <tr>
+                        <td colSpan={4} className="py-16 sm:py-20 text-center">
+                           <Users className="w-10 sm:w-12 h-10 sm:h-12 text-[#3a1224]/10 mx-auto mb-3 sm:mb-4" />
+                           <p className="text-[9px] sm:text-[10px] font-black text-[#3a1224]/20 uppercase tracking-[0.2em]">No attendees found</p>
+                        </td>
+                     </tr>
+                  ) : (
+                     filteredAttendees.map((a) => (
+                        <tr key={a._id} className="group hover:bg-[#fdfaf6] transition-colors">
+                           <td className="py-4 sm:py-6 pl-3 sm:pl-4">
+                              <div className="flex flex-col">
+                                 <span className="text-xs sm:text-sm font-black text-[#3a1224]">{a.attendee?.first_name} {a.attendee?.last_name}</span>
+                                 <span className="text-[8px] sm:text-xs font-bold text-[#3a1224]/40 uppercase tracking-tight">{a.attendee?.email}</span>
+                              </div>
+                           </td>
+                           <td className="py-4 sm:py-6 px-2 sm:px-4">
+                              <span className="text-[8px] sm:text-xs font-black text-[#C0A04C] font-mono">{a.qrCodeValue?.substring(0, 8)}...</span>
+                           </td>
+                           <td className="py-4 sm:py-6 px-2 sm:px-4 hidden sm:table-cell text-[8px] sm:text-xs font-bold text-[#3a1224]/60">
+                              {a.checkedInAt ? formatDate(a.checkedInAt) : formatDate(a.createdAt)}
+                           </td>
+                           <td className="py-4 sm:py-6 pr-3 sm:pr-4 text-right">
+                              <span className={`inline-block px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest ${a.checkedInAt ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-[#3a1224]/5 text-[#3a1224]/40'}`}>
+                                 {a.checkedInAt ? '✓ Inside' : 'Waiting'}
+                              </span>
+                           </td>
+                        </tr>
+                     ))
+                  )}
+               </tbody>
+            </table>
+         </div>
+
+         {/* Pagination */}
+         {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-[#3a1224]/5">
+               <p className="text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest">Page {attendeesPage} of {totalPages}</p>
+               <div className="flex gap-2 sm:gap-3">
+                  <button
+                    disabled={attendeesPage <= 1}
+                    onClick={() => setAttendeesPage(p => p - 1)}
+                    className="px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white border border-[#3a1224]/5 text-[9px] sm:text-xs font-black uppercase tracking-widest disabled:opacity-20 transition-all hover:bg-[#3a1224] hover:text-white active:scale-[0.98]"
+                  >
+                    ← Prev
+                  </button>
+                  <button
+                    disabled={attendeesPage >= totalPages}
+                    onClick={() => setAttendeesPage(p => p + 1)}
+                    className="px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white border border-[#3a1224]/5 text-[9px] sm:text-xs font-black uppercase tracking-widest disabled:opacity-20 transition-all hover:bg-[#3a1224] hover:text-white active:scale-[0.98]"
+                  >
+                    Next →
+                  </button>
+               </div>
+            </div>
+         )}
+      </section>
     </div>
+    </div>
+    
   );
-}
+};
      

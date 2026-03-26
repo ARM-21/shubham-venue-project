@@ -29,7 +29,7 @@ export default function EventStaffPage() {
         _id: event._id,
         eventName: event.name,
         eventType: event.type,
-        eventDate: event.startDateTime,
+        eventDate: event.eventDate || event.bookingId?.date || event.startDateTime,
         totalGuests: event.expectedAttendees || 0,
         hallName: event.hallId?.name || 'N/A',
         organizer: event.organizerId ? {
@@ -41,9 +41,13 @@ export default function EventStaffPage() {
       
       // Filter for upcoming events only
       const upcoming = mappedEvents.filter((event) => {
-        const eventDate = new Date(event.eventDate);
-        return eventDate > new Date();
-      }).sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
+        const eventDate = event.eventDate ? new Date(event.eventDate) : null;
+        return eventDate && eventDate > new Date();
+      }).sort((a, b) => {
+        const dateA = new Date(a.eventDate);
+        const dateB = new Date(b.eventDate);
+        return dateA - dateB;
+      });
 
       setEvents(upcoming);
     } catch (error) {

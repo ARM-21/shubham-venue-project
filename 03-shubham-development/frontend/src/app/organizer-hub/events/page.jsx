@@ -23,7 +23,7 @@ import { ROUTES } from "config/routes";
 import { useAuth } from "contexts/AuthProvider";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -69,7 +69,6 @@ export default function OrganizerEventsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [filteredEvents, setFilteredEvents] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selected, setSelected] = useState(new Set());
@@ -122,8 +121,8 @@ export default function OrganizerEventsPage() {
   const status = statusData;
   const loading = statusLoading || eventsLoading;
 
-  // Filter and search logic
-  useEffect(() => {
+  // Filter and search logic using useMemo (not useEffect to prevent infinite loops)
+  const filteredEvents = useMemo(() => {
     let filtered = events;
 
     // Apply status filter
@@ -139,7 +138,7 @@ export default function OrganizerEventsPage() {
       );
     }
 
-    setFilteredEvents(filtered);
+    return filtered;
   }, [events, statusFilter, searchQuery]);
 
   const statusValue = String(status?.organizerStatus || (user?.isOrganizerEligible ? "approved" : user?.organizerStatus || "none")).toLowerCase();
@@ -402,19 +401,25 @@ export default function OrganizerEventsPage() {
                   <div className="space-y-2 sm:space-y-3">
                      <div className="flex items-center gap-2 sm:gap-3">
                         <Calendar size={12} className="sm:w-3.5 text-[#C0A04C]/40" />
-                        <span className="text-[10px] sm:text-[11px] font-medium text-[#3a1224]/60">{formatDate(event.startDateTime || event.bookingId?.date)}</span>
+                        <span className="text-[10px] sm:text-[11px] font-medium text-[#3a1224]/60">{formatDate(event.bookingId?.date)}</span>
                      </div>
                      <div className="flex items-center gap-2 sm:gap-3">
                         <Users size={12} className="sm:w-3.5 text-[#C0A04C]/40" />
-                        <span className="text-[10px] sm:text-[11px] font-medium text-[#3a1224]/60">{event.bookingId?.guests || 0} Guests</span>
+                        <span className="text-[10px] sm:text-[11px] font-medium text-[#3a1224]/60">{event.expectedAttendees || 0} Guests</span>
                      </div>
                   </div>
                </div>
 
                {/* Footer - Click to open */}
                <div 
-                 onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_DETAIL(event._id))}
-                 className="bg-[#3a1224] p-4 sm:p-6 flex items-center justify-between cursor-pointer hover:bg-[#4a172d] transition-colors"
+                 onClick={() => {
+                   if (!event?._id) {
+                     toast.error("Event data incomplete. Please refresh.");
+                     return;
+                   }
+                   router.push(ROUTES.SITE.ORGANIZER_EVENT_DETAIL(event._id));
+                 }}
+                 className={`bg-[#3a1224] p-4 sm:p-6 flex items-center justify-between ${event?._id ? 'cursor-pointer hover:bg-[#4a172d]' : 'cursor-not-allowed opacity-50'} transition-colors`}
                >
                   <div className="flex items-center gap-2 text-white">
                      <Ticket size={13} className="sm:w-3.5 text-[#C0A04C]" />
