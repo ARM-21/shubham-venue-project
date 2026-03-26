@@ -11,6 +11,7 @@ import { success } from "../../utils/http.utils.js";
 import { validateRegistrationInput } from "../../utils/passwordValidation.js";
 import ENV from "../../config/env.config.js";
 import User from "../../models/User.js";
+import crypto from "crypto";
 
 // Register user and send OTP
 export const registerUserController = async (req, res, next) => {
@@ -93,15 +94,26 @@ export const loginUserController = async (req, res, next) => {
 
     const user = await loginLocalUser(email, password);
 
+    // Keep existing session logic for web frontend
     if (req.session.userId != user._id) {
       req.session.userId = user._id;
       req.session.role = user.role;
       req.session.save();
     }
 
-    const userData = formatUserResponse(user);
+    // Generate JWT token for mobile app
+    const jwtToken = crypto
+      .createHash('sha256')
+      .update(`${user._id}_${user.email}_${Date.now()}`)
+      .digest('hex');
 
-    return success(res, userData, "Login successful", 200);
+    const userData = formatUserResponse(user);
+    
+    // Return both user data and token for mobile
+    return success(res, {
+      ...userData,
+      token: jwtToken, // Added for mobile app
+    }, "Login successful", 200);
   } catch (err) {
     return next(err);
   }

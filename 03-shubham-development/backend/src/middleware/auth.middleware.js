@@ -1,6 +1,5 @@
 import User from "../models/User.js";
 
-
 export async function isAuthenticated(req, res, next) {
     try {
         const userId = req.session?.userId;

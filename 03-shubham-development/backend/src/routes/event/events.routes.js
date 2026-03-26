@@ -32,7 +32,7 @@ router.get("/public", async (req, res, next) => {
 
     const [events, total] = await Promise.all([
       OrganizerEvent.find(filter)
-        .sort({ startDateTime: 1, createdAt: -1 })
+        .sort({ startDateTime: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .populate({ path: "hallId", select: "name slug capacity" })

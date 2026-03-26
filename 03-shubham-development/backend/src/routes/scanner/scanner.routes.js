@@ -1,219 +1,192 @@
 import express from "express";
 import mongoose from "mongoose";
-import crypto from "crypto";
-import { authenticateScannerBearer } from "../../middleware/auth.middleware.js";
+import { isAuthenticated } from "../../middleware/auth.middleware.js";
 import User from "../../models/User.js";
 import EventStaffAssignment from "../../models/EventStaffAssignment.js";
 import Ticket from "../../models/Ticket.js";
 import OrganizerEvent from "../../models/OrganizerEvent.js";
 import TicketCheckin from "../../models/TicketCheckin.js";
-import { signScannerJwt, verifyTicketScanToken, hashToken } from "../../utils/token.utils.js";
+import { hashToken } from "../../utils/token.utils.js";
 
 const router = express.Router();
 
-async function getActiveAssignments(staffUserId) {
-  return EventStaffAssignment.find({ staffUserId, active: true, status: { $in: ["INVITED", "ACCEPTED"] } })
-    .select("eventId gate status acceptedAt invitationExpiresAt")
-    .lean();
-}
-
-function normalizeAssignments(assignments = []) {
-  return assignments.map((a) => ({
-    id: a._id,
-    eventId: a.eventId,
-    gate: a.gate || "",
-    status: a.status,
-    acceptedAt: a.acceptedAt,
-    invitationExpiresAt: a.invitationExpiresAt,
-  }));
-}
-
-router.post("/login", async (req, res, next) => {
+/**
+ * GET /scanner/my-events
+ * Get list of events the user is assigned to scan
+ * Authenticated required
+ */
+router.get("/my-events", isAuthenticated, async (req, res, next) => {
   try {
-    const email = String(req.body?.email || "").trim().toLowerCase();
-    const password = String(req.body?.password || "").trim();
-    if (!email || !password) return res.status(400).json({ message: "Email and password are required" });
+    const userId = req.currentUser._id;
 
-    const user = await User.findOne({ email, role: "staff_scanner" }).select("+password role isActive");
-    if (!user) return res.status(401).json({ message: "Invalid credentials" });
-    if (user.isActive === false) return res.status(403).json({ message: "Account disabled" });
-
-    const valid = await user.comparePassword(password);
-    if (!valid) return res.status(401).json({ message: "Invalid credentials" });
-
-    const assignments = await getActiveAssignments(user._id);
-    const token = signScannerJwt({ userId: user._id, assignmentIds: assignments.map((a) => a._id) });
-
-    return res.json({
-      message: "Login successful",
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-      },
-      assignments: normalizeAssignments(assignments),
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.post("/invitations/accept", async (req, res, next) => {
-  try {
-    const rawToken = String(req.body?.token || "").trim();
-    const password = String(req.body?.password || "").trim();
-    const firstName = String(req.body?.firstName || "").trim();
-    const lastName = String(req.body?.lastName || "").trim();
-
-    if (!rawToken || !password) {
-      return res.status(400).json({ message: "token and password are required" });
-    }
-
-    const tokenHash = hashToken(rawToken);
-    const assignment = await EventStaffAssignment.findOne({
-      invitationTokenHash: tokenHash,
+    // Query for assignments where userId matches (convert both to string for comparison to handle type mismatch)
+    const assignments = await EventStaffAssignment.find({
+      $or: [
+        { userId: userId }, // Try direct ObjectId match
+        { userId: userId.toString() }, // Try string match (in case data was stored as string)
+      ],
       active: true,
-      status: "INVITED",
-      invitationExpiresAt: { $gt: new Date() },
-    });
-
-    if (!assignment) return res.status(400).json({ message: "Invitation is invalid or expired" });
-
-    const user = await User.findById(assignment.staffUserId).select("+password role isActive");
-    if (!user) return res.status(404).json({ message: "Staff account not found" });
-    if (user.role !== "staff_scanner") return res.status(403).json({ message: "Scanner access required" });
-    if (user.isActive === false) return res.status(403).json({ message: "Account disabled" });
-
-    user.password = password;
-    if (firstName) user.first_name = firstName;
-    if (lastName) user.last_name = lastName;
-    await user.save();
-
-    assignment.status = "ACCEPTED";
-    assignment.acceptedAt = new Date();
-    assignment.invitationTokenHash = null;
-    assignment.invitationExpiresAt = null;
-    await assignment.save();
-
-    const assignments = await getActiveAssignments(user._id);
-    const token = signScannerJwt({ userId: user._id, assignmentIds: assignments.map((a) => a._id) });
+    })
+      .populate("eventId", "name eventDate startDateTime status hallId")
+      .populate("eventId.hallId", "name")
+      .sort({ createdAt: -1 });
 
     return res.json({
-      message: "Invitation accepted",
-      token,
-      user: { id: user._id, email: user.email, role: user.role },
-      assignments: normalizeAssignments(assignments),
+      events: assignments.map((a) => ({
+        _id: a._id,
+        eventId: a.eventId._id,
+        eventName: a.eventId.name,
+        eventDate: a.eventId.eventDate || a.eventId.startDateTime,
+        gate: a.gate,
+        status: a.eventId.status,
+        hall: {
+          hallName: a.eventId.hallId?.name || "N/A",
+        },
+        assignedAt: a.createdAt,
+      })),
     });
   } catch (err) {
     return next(err);
   }
 });
 
-router.get("/me", authenticateScannerBearer, async (req, res, next) => {
-  try {
-    const assignments = await getActiveAssignments(req.scannerUser._id);
-    return res.json({
-      user: {
-        id: req.scannerUser._id,
-        email: req.scannerUser.email,
-        role: req.scannerUser.role,
-      },
-      assignments: normalizeAssignments(assignments),
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.post("/events/:eventId/checkins/scan", authenticateScannerBearer, async (req, res, next) => {
+/**
+ * POST /scanner/events/:eventId/checkins/scan
+ * Scan a QR code ticket for check-in
+ * Authenticated + assigned to event required
+ *
+ * Request:
+ * {
+ *   qrCode: "ticket_qr_code_value",
+ *   deviceId: "device_123"  (optional)
+ * }
+ */
+router.post("/events/:eventId/checkins/scan", isAuthenticated, async (req, res, next) => {
   try {
     const eventId = req.params.eventId;
+    const userId = req.currentUser._id;
+
     if (!mongoose.Types.ObjectId.isValid(eventId)) {
       return res.status(400).json({ message: "Invalid event id" });
     }
 
+    // ===== CHECK USER IS ASSIGNED TO EVENT =====
     const assignment = await EventStaffAssignment.findOne({
       eventId,
-      staffUserId: req.scannerUser._id,
+      $or: [
+        { userId: userId }, // Try direct ObjectId match
+        { userId: userId.toString() }, // Try string match (in case data was stored as string)
+      ],
       active: true,
-      status: "ACCEPTED",
     }).lean();
 
     if (!assignment) {
-      return res.status(403).json({ message: "Not assigned to this event" });
+      return res.status(403).json({
+        message: "You are not assigned to scan for this event",
+      });
     }
 
-    const qrToken = String(req.body?.qrToken || req.body?.token || "").trim();
+    // ===== GET QR CODE FROM REQUEST =====
+    const qrCode = String(req.body?.qrCode || "").trim();
     const deviceId = String(req.body?.deviceId || "").trim() || null;
-    if (!qrToken) return res.status(400).json({ message: "qrToken is required" });
 
-    let decoded;
-    try {
-      decoded = verifyTicketScanToken(qrToken);
-    } catch (err) {
-      await TicketCheckin.create({
-        eventId,
-        checkedInBy: req.scannerUser._id,
-        checkedInAt: new Date(),
-        deviceId,
-        status: "REJECTED",
-        note: err?.message || "Invalid QR token",
-        payloadHash: hashToken(qrToken),
-      });
-      const status = err?.statusCode || 401;
-      return res.status(status).json({ message: err?.message || "Invalid QR token" });
+    if (!qrCode) {
+      return res.status(400).json({ message: "qrCode is required" });
     }
 
-    if (decoded?.eventId && String(decoded.eventId) !== String(eventId)) {
-      await TicketCheckin.create({
-        eventId,
-        checkedInBy: req.scannerUser._id,
-        checkedInAt: new Date(),
-        deviceId,
-        status: "REJECTED",
-        note: "QR token does not belong to this event",
-        payloadHash: hashToken(qrToken),
-      });
-      return res.status(400).json({ message: "QR token does not belong to this event" });
-    }
+    // ===== FIND TICKET BY QR CODE =====
+    const ticket = await Ticket.findOne({
+      eventId,
+      qrCodeValue: qrCode,
+    }).lean();
 
-    const ticketFilter = { eventId };
-    if (decoded?.sub) ticketFilter._id = decoded.sub;
-    if (decoded?.code) ticketFilter.qrCodeValue = decoded.code;
-
-    const ticket = await Ticket.findOne(ticketFilter).lean();
     if (!ticket) {
+      // Log failed scan
       await TicketCheckin.create({
         eventId,
-        checkedInBy: req.scannerUser._id,
+        checkedInBy: userId,
         checkedInAt: new Date(),
         deviceId,
         status: "REJECTED",
-        note: "Ticket not found",
-        payloadHash: hashToken(qrToken),
+        note: "Ticket not found with this QR code",
+        payloadHash: hashToken(qrCode),
+        gate: assignment.gate,
       });
-      return res.status(404).json({ message: "Ticket not found" });
+
+      return res.status(404).json({
+        message: "Ticket not found",
+        status: "REJECTED",
+      });
     }
 
+    // ===== CHECK TICKET STATUS =====
     if (ticket.status !== "ACTIVE") {
       await TicketCheckin.create({
         eventId,
         ticketId: ticket._id,
-        checkedInBy: req.scannerUser._id,
+        checkedInBy: userId,
         checkedInAt: new Date(),
         deviceId,
         status: "REJECTED",
-        note: "Ticket is not active",
-        payloadHash: hashToken(qrToken),
+        note: `Ticket is ${ticket.status}`,
+        payloadHash: hashToken(qrCode),
+        gate: assignment.gate,
       });
-      return res.status(400).json({ message: "Ticket is not active" });
+
+      return res.status(400).json({
+        message: `Ticket is not active (status: ${ticket.status})`,
+        status: "REJECTED",
+      });
     }
 
-    const event = await OrganizerEvent.findById(eventId).select("status endDateTime").lean();
-    if (!event) return res.status(404).json({ message: "Event not found" });
-    if (event.status === "CANCELLED") return res.status(400).json({ message: "Event is cancelled" });
+    // ===== CHECK IF ALREADY CHECKED IN =====
+    if (ticket.checkedInAt) {
+      await TicketCheckin.create({
+        eventId,
+        ticketId: ticket._id,
+        checkedInBy: userId,
+        checkedInAt: new Date(),
+        deviceId,
+        status: "ALREADY_CHECKED_IN",
+        note: `Already checked in at ${ticket.checkedInAt}`,
+        payloadHash: hashToken(qrCode),
+        gate: assignment.gate,
+      });
 
+      return res.status(409).json({
+        message: `Ticket already checked in at ${new Date(ticket.checkedInAt).toLocaleString()}`,
+        status: "ALREADY_CHECKED_IN",
+        checkedInAt: ticket.checkedInAt,
+      });
+    }
+
+    // ===== CHECK EVENT STATUS =====
+    const event = await OrganizerEvent.findById(eventId).select("status").lean();
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    if (event.status === "CANCELLED") {
+      await TicketCheckin.create({
+        eventId,
+        ticketId: ticket._id,
+        checkedInBy: userId,
+        checkedInAt: new Date(),
+        deviceId,
+        status: "REJECTED",
+        note: "Event is cancelled",
+        payloadHash: hashToken(qrCode),
+        gate: assignment.gate,
+      });
+
+      return res.status(400).json({
+        message: "Event is cancelled",
+        status: "REJECTED",
+      });
+    }
+
+    // ===== UPDATE TICKET - MARK AS CHECKED IN =====
     const now = new Date();
     const updatedTicket = await Ticket.findOneAndUpdate(
       {
@@ -221,42 +194,37 @@ router.post("/events/:eventId/checkins/scan", authenticateScannerBearer, async (
         status: "ACTIVE",
         $or: [{ checkedInAt: { $exists: false } }, { checkedInAt: null }],
       },
-      { $set: { checkedInAt: now, checkedInBy: req.scannerUser._id } },
+      {
+        $set: {
+          checkedInAt: now,
+          checkedInBy: userId,
+        },
+      },
       { new: true }
     ).lean();
 
-    const alreadyCheckedIn = Boolean(ticket.checkedInAt);
-    const checkStatus = updatedTicket ? "SUCCESS" : alreadyCheckedIn ? "ALREADY_CHECKED_IN" : "REJECTED";
-    const checkedInAt = updatedTicket ? updatedTicket.checkedInAt : ticket.checkedInAt || now;
-
+    // ===== LOG CHECK-IN =====
     await TicketCheckin.create({
       eventId,
       ticketId: ticket._id,
-      checkedInBy: req.scannerUser._id,
-      checkedInAt,
+      checkedInBy: userId,
+      checkedInAt: now,
       deviceId,
-      status: checkStatus,
-      note: checkStatus === "REJECTED" ? "Ticket locked" : undefined,
-      payloadHash: hashToken(qrToken),
+      status: "SUCCESS",
+      payloadHash: hashToken(qrCode),
+      gate: assignment.gate,
     });
 
-    if (checkStatus === "REJECTED") {
-      return res.status(409).json({ message: "Ticket could not be checked in" });
-    }
-
+    // ===== RETURN SUCCESS =====
     return res.json({
-      message: checkStatus === "SUCCESS" ? "Check-in successful" : "Ticket already checked in",
-      status: checkStatus,
-      checkedInAt,
+      message: "Check-in successful ✓",
+      status: "SUCCESS",
       ticket: {
         id: ticket._id,
-        eventId: ticket.eventId,
-        ticketTypeId: ticket.ticketTypeId,
         ownerUserId: ticket.ownerUserId,
-        status: ticket.status,
-        checkedInBy: updatedTicket?.checkedInBy || ticket.checkedInBy,
       },
-      gate: assignment.gate || "",
+      checkedInAt: now,
+      gate: assignment.gate,
     });
   } catch (err) {
     return next(err);
