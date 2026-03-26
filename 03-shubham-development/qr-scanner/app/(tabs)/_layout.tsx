@@ -1,33 +1,62 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { user, logout } = useAuth();
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
         tabBarButton: HapticTab,
-      }}>
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: Colors[colorScheme ?? 'light'].background,
+        },
+        headerTintColor: Colors[colorScheme ?? 'light'].text,
+        headerTitleStyle: {
+          fontWeight: '600',
+        },
+      }}
+    >
       <Tabs.Screen
-        name="index"
+        name="events"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Events',
+          tabBarIcon: ({ color }) => <Ionicons name="calendar" size={28} color={color} />,
+          headerTitle: `Welcome, ${user?.username || 'Scanner'}`,
+          headerRight: () => (
+            <Ionicons
+              name="log-out"
+              size={24}
+              color={Colors[colorScheme ?? 'light'].text}
+              style={{ marginRight: 16, cursor: 'pointer' }}
+              onPress={logout}
+            />
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="scanner"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Scanner',
+          tabBarIcon: ({ color }) => <Ionicons name="scan" size={28} color={color} />,
+          headerShown: false, // Scanner has its own header
+        }}
+      />
+      <Tabs.Screen
+        name="result"
+        options={{
+          title: 'Result',
+          tabBarIcon: ({ color }) => <Ionicons name="checkmark-circle" size={28} color={color} />,
+          headerShown: false, // Result screen handles its own display
         }}
       />
     </Tabs>
