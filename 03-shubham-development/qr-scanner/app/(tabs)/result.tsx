@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Vibration,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,13 +13,12 @@ export default function ResultScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    // Auto-dismiss after 3 seconds
     const timer = setTimeout(() => {
       router.back();
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [status, eventId]);
 
   const isSuccess = status === 'SUCCESS';
   const backgroundColor = isSuccess ? '#e8f5e9' : '#ffebee';
@@ -118,3 +116,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 });
+

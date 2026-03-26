@@ -264,21 +264,21 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6 sm:space-y-8">
       {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-4">
+      <div className="flex flex-wrap gap-2 border-b border-[#3a1224]/10 pb-3 sm:pb-4 overflow-x-auto">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             type="button"
             onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold uppercase tracking-widest transition-all whitespace-nowrap flex-shrink-0 ${
               activeTab === id
-                ? "bg-amber-100 text-amber-900 border-b-2 border-amber-600"
-                : "text-gray-600 hover:bg-gray-100"
+                ? "bg-[#3a1224] text-[#C0A04C] shadow-md"
+                : "bg-[#fdfaf6] text-[#3a1224]/60 border border-[#3a1224]/5 hover:border-[#C0A04C]/30"
             }`}
           >
-            <Icon size={18} />
+            <Icon size={16} className="flex-shrink-0" />
             <span className="hidden sm:inline">{label}</span>
           </button>
         ))}
@@ -286,35 +286,35 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
 
       {/* Basic Info Tab */}
       {activeTab === "basic" && (
-        <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <FileText size={20} className="text-amber-600" />
+        <div className="space-y-5 sm:space-y-6">
+          <h3 className="text-lg sm:text-xl font-black text-[#3a1224] flex items-center gap-3 uppercase tracking-wider">
+            <FileText size={20} className="text-[#C0A04C]" />
             Event Basic Information
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
                 Event Name *
               </label>
               <input
                 type="text"
                 placeholder="Enter event name"
                 {...register("name", { required: "Event name is required" })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
               />
               {errors.name && (
-                <p className="text-red-600 text-sm mt-1">{errors.name.message}</p>
+                <p className="text-rose-500 text-[8px] sm:text-xs mt-1.5 font-bold ml-2">{errors.name.message}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
                 Event Category *
               </label>
               <select
                 {...register("eventCategory", { required: "Category is required" })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all appearance-none"
               >
                 {EVENT_CATEGORIES.map(({ value, label }) => (
                   <option key={value} value={value}>
@@ -323,34 +323,33 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
                 ))}
               </select>
               {errors.eventCategory && (
-                <p className="text-red-600 text-sm mt-1">{errors.eventCategory.message}</p>
+                <p className="text-rose-500 text-[8px] sm:text-xs mt-1.5 font-bold ml-2">{errors.eventCategory.message}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Event Type
+              <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
+                Event Type / Subtype
               </label>
               <input
                 type="text"
                 placeholder="e.g., formal dinner, product showcase"
                 {...register("type")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
                 Event Banner Image
               </label>
-              <div className="space-y-3">
-                {/* Banner Preview */}
+              <div className="space-y-2 sm:space-y-3">
                 {bannerPreview && (
                   <div className="relative">
                     <img 
                       src={bannerPreview} 
                       alt="Banner preview" 
-                      className="w-full h-40 object-cover rounded-lg border border-gray-300"
+                      className="w-full h-24 sm:h-32 object-cover rounded-lg sm:rounded-xl border border-[#3a1224]/5"
                     />
                     <button
                       type="button"
@@ -359,164 +358,147 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
                         setBannerFile(null);
                         setValue('bannerUrl', '');
                       }}
-                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                      className="absolute top-2 right-2 p-1 sm:p-1.5 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
                       title="Remove banner"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 )}
 
-                {/* Upload Area */}
-                {!bannerPreview ? (
-                  <div className="flex items-center gap-3">
-                    <label className="flex-1 cursor-pointer">
-                      <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-amber-300 rounded-lg hover:bg-amber-50 transition-colors">
-                        <Upload size={18} className="text-amber-600" />
-                        <span className="text-sm font-medium text-amber-900">
-                          {bannerFile ? bannerFile.name : 'Choose banner image'}
-                        </span>
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleBannerChange}
-                        disabled={bannerUploading}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                ) : null}
+                {!bannerPreview && (
+                  <label className="flex-1 cursor-pointer">
+                    <div className="flex items-center justify-center gap-2 px-3 sm:px-4 py-3 sm:py-4 border-2 border-dashed border-[#C0A04C]/40 rounded-lg sm:rounded-xl bg-[#C0A04C]/5 hover:bg-[#C0A04C]/10 transition-colors">
+                      <Upload size={16} className="text-[#C0A04C] flex-shrink-0" />
+                      <span className="text-xs sm:text-sm font-bold text-[#3a1224]/60 uppercase tracking-widest">
+                        {bannerFile ? bannerFile.name : 'Upload Image'}
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBannerChange}
+                      disabled={bannerUploading}
+                      className="hidden"
+                    />
+                  </label>
+                )}
 
-                {/* Upload Button - Only show if file is selected but not yet uploaded */}
                 {bannerFile && !bannerUploading && (
                   <button
                     type="button"
                     onClick={uploadBanner}
-                    className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-[#3a1224] text-white rounded-lg sm:rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest hover:bg-[#3a1224]/90 transition-all flex items-center justify-center gap-2"
                   >
-                    <Upload size={16} />
+                    <Upload size={14} />
                     Upload Banner
                   </button>
                 )}
 
-                {/* Uploading State */}
                 {bannerUploading && (
-                  <div className="w-full px-4 py-2 bg-amber-100 text-amber-900 rounded-lg font-medium text-center animate-pulse">
-                    Uploading banner...
+                  <div className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-[#C0A04C]/10 text-[#C0A04C] rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold text-center uppercase animate-pulse">
+                    Uploading...
                   </div>
                 )}
 
-                {/* Error Message */}
                 {bannerError && (
-                  <p className="text-red-600 text-sm">{bannerError}</p>
+                  <p className="text-rose-500 text-xs font-bold">{bannerError}</p>
                 )}
 
-                {/* Hidden input for form */}
-                <input
-                  type="hidden"
-                  {...register("bannerUrl")}
-                  value={bannerPreview || ""}
-                />
+                <input type="hidden" {...register("bannerUrl")} value={bannerPreview || ""} />
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
               Description *
             </label>
             <textarea
-              rows="4"
-              placeholder="Detailed event description, objectives, and key highlights"
+              rows={4}
+              placeholder="Detailed event description, objectives, and key highlights..."
               {...register("description", { required: "Description is required" })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all resize-none"
             />
             {errors.description && (
-              <p className="text-red-600 text-sm mt-1">{errors.description.message}</p>
+              <p className="text-rose-500 text-[8px] sm:text-xs mt-1.5 font-bold ml-2">{errors.description.message}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tags (comma-separated)
+            <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
+              Event Tags (comma-separated)
             </label>
             <input
               type="text"
-              placeholder="wedding, celebration, formal, etc."
+              placeholder="wedding, celebration, formal, training, etc."
               {...register("tags")}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
             />
-            <p className="text-gray-500 text-xs mt-1">
-              Add tags to help attendees find your event
-            </p>
+            <p className="text-[8px] sm:text-[9px] text-[#3a1224]/50 font-semibold ml-2 mt-1.5">Add tags to help attendees find your event</p>
           </div>
         </div>
       )}
 
       {/* Timing Tab */}
       {activeTab === "timing" && (
-        <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Calendar size={20} className="text-amber-600" />
+        <div className="space-y-5 sm:space-y-6">
+          <h3 className="text-lg sm:text-xl font-black text-[#3a1224] flex items-center gap-3 uppercase tracking-wider">
+            <Calendar size={20} className="text-[#C0A04C]" />
             Event Timing & Registration
           </h3>
 
-          {/* Booking Date Info (Locked) */}
           {bookingDate && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
-              <AlertCircle size={20} className="text-blue-700 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-blue-900">Event Date Locked to Booking</p>
-                <p className="text-sm text-blue-800 mt-1">
-                  Your event will be held on <strong>{new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg sm:rounded-xl p-3 sm:p-4 flex gap-3">
+              <AlertCircle size={18} className="text-blue-700 flex-shrink-0 mt-0.5" />
+              <div className="text-xs sm:text-sm">
+                <p className="font-black text-blue-900 uppercase tracking-widest">Event Date Locked to Booking</p>
+                <p className="text-blue-800 mt-1 font-semibold">
+                  Your event will be held on <strong>{new Date(bookingDate).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>
                 </p>
-                <p className="text-xs text-blue-700 mt-2">You can only adjust the start and end times below.</p>
               </div>
             </div>
           )}
 
           {bookingLoading && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-gray-600 text-sm">
+            <div className="bg-[#3a1224]/5 border border-[#3a1224]/10 rounded-lg sm:rounded-xl p-3 sm:p-4 text-[#3a1224]/60 text-xs sm:text-sm font-semibold">
               Loading booking details...
             </div>
           )}
 
-          {/* Event Times */}
           <div>
-            <h4 className="font-semibold text-gray-900 mb-4">Event Times</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <h4 className="font-black text-[#3a1224] text-sm sm:text-base uppercase tracking-widest mb-3 sm:mb-4">Event Times</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Event Start Time *
+                <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
+                  Start Time *
                 </label>
                 <input
                   type="time"
                   {...register("eventStartTime", { required: "Start time is required" })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
                 />
                 {errors.eventStartTime && (
-                  <p className="text-red-600 text-sm mt-1">{errors.eventStartTime.message}</p>
+                  <p className="text-rose-500 text-[8px] sm:text-xs mt-1.5 font-bold ml-2">{errors.eventStartTime.message}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Event End Time *
+                <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
+                  End Time *
                 </label>
                 <input
                   type="time"
                   {...register("eventEndTime", { required: "End time is required" })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
                 />
                 {errors.eventEndTime && (
-                  <p className="text-red-600 text-sm mt-1">{errors.eventEndTime.message}</p>
+                  <p className="text-rose-500 text-[8px] sm:text-xs mt-1.5 font-bold ml-2">{errors.eventEndTime.message}</p>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Duration Calculator */}
           {(() => {
             const startTime = watch("eventStartTime");
             const endTime = watch("eventEndTime");
@@ -534,30 +516,30 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
               }
             }
             return duration ? (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-sm font-medium text-green-900">Event Duration</p>
-                <p className="text-lg font-semibold text-green-700 mt-1">{duration}</p>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                <p className="text-[9px] sm:text-xs font-black text-emerald-700 uppercase tracking-widest">Event Duration</p>
+                <p className="text-lg sm:text-xl font-black text-emerald-600 mt-1">{duration}</p>
               </div>
             ) : null;
           })()}
 
-          <div className="border-t border-gray-200 pt-6">
-            <h4 className="font-semibold text-gray-900 mb-4">Registration Period</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="border-t border-[#3a1224]/5 pt-4 sm:pt-5">
+            <h4 className="font-black text-[#3a1224] text-sm sm:text-base uppercase tracking-widest mb-3 sm:mb-4">Registration Period</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
                   Registration Opens
                 </label>
                 <input
                   type="date"
                   {...register("registrationStartDate")}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
                 />
-                <p className="text-gray-500 text-xs mt-1">When registration opens for attendees</p>
+                <p className="text-[8px] sm:text-[9px] text-[#3a1224]/50 font-semibold ml-2 mt-1.5">When registration opens for attendees</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
                   Registration Closes *
                 </label>
                 <input
@@ -575,12 +557,12 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
                     }
                   })}
                   max={bookingDate ? new Date(bookingDate).toISOString().split('T')[0] : undefined}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
                 />
                 {errors.registrationEndDate && (
-                  <p className="text-red-600 text-sm mt-1">{errors.registrationEndDate.message}</p>
+                  <p className="text-rose-500 text-[8px] sm:text-xs mt-1.5 font-bold ml-2">{errors.registrationEndDate.message}</p>
                 )}
-                <p className="text-gray-500 text-xs mt-1">Must be before or on event date</p>
+                <p className="text-[8px] sm:text-[9px] text-[#3a1224]/50 font-semibold ml-2 mt-1.5">Must be before or on event date</p>
               </div>
             </div>
           </div>

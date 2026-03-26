@@ -1,4 +1,5 @@
 import { Calendar, Clock, Users, Building2, Tag, AlertCircle, ChefHat, Palette } from "lucide-react";
+import { SLOT_TIMES } from "constants/slots";
 
 export function EventDetails({ event, formatDateTime, hallName }) {
   const calculateDuration = (start, end) => {
@@ -10,6 +11,20 @@ export function EventDetails({ event, formatDateTime, hallName }) {
     
     if (diffDays > 0) return `${diffDays}d ${diffHours}h`;
     return `${diffHours}h`;
+  };
+
+  const getSlotTimeDisplay = () => {
+    const slot = event.bookingId?.slot || event.slot;
+    if (!slot) return "Time not specified";
+    return SLOT_TIMES[slot]?.display || "Time not specified";
+  };
+
+  const getSlotDuration = () => {
+    const slot = event.bookingId?.slot || event.slot;
+    if (!slot) return "N/A";
+    const slotInfo = SLOT_TIMES[slot];
+    if (!slotInfo) return "N/A";
+    return `${slotInfo.endHour - slotInfo.startHour}h`;
   };
 
   const isRegistrationOpen = () => {
@@ -38,8 +53,8 @@ export function EventDetails({ event, formatDateTime, hallName }) {
                 <span className="text-[10px] font-black text-[#3a1224]/50 uppercase tracking-[0.2em]">Event Date</span>
               </div>
               <p className="text-lg sm:text-xl font-bold text-[#3a1224]">
-                {event.eventDate 
-                  ? new Date(event.eventDate).toLocaleDateString('en-NP', { 
+                {event.eventDate || (event.bookingId?.date)
+                  ? new Date(event.eventDate || event.bookingId?.date).toLocaleDateString('en-NP', { 
                       weekday: 'long',
                       year: 'numeric',
                       month: 'long',
@@ -48,12 +63,7 @@ export function EventDetails({ event, formatDateTime, hallName }) {
                   : "Date not set"}
               </p>
               <p className="text-sm text-[#3a1224]/60 mt-2">
-                {event.startDateTime 
-                  ? `Starts at ${new Date(event.startDateTime).toLocaleTimeString('en-NP', { 
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}`
-                  : "Time not set"}
+                {getSlotTimeDisplay()}
               </p>
             </div>
 
@@ -63,10 +73,10 @@ export function EventDetails({ event, formatDateTime, hallName }) {
                 <span className="text-[10px] font-black text-[#3a1224]/50 uppercase tracking-[0.2em]">Duration</span>
               </div>
               <p className="text-lg sm:text-xl font-bold text-[#3a1224]">
-                {calculateDuration(event.startDateTime, event.endDateTime)}
+                {getSlotDuration()}
               </p>
               <p className="text-sm text-[#3a1224]/60 mt-2">
-                Ends {new Date(event.endDateTime).toLocaleDateString('en-NP')}
+                Registration ends {event.endDateTime ? new Date(event.endDateTime).toLocaleDateString('en-NP') : "Not set"}
               </p>
             </div>
           </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import axiosInstance from "lib/axios";
@@ -47,6 +48,24 @@ export default function EventDetailPage() {
     enabled: !!eventId && !needsAccessCode,
   });
 
+  // Mutation for access code validation
+  const accessCodeMutation = useMutation({
+    mutationFn: async (code) => {
+      const res = await axiosInstance.get(ROUTES.API.EVENTS.DETAIL(eventId), {
+        params: { accessCode: code.trim() },
+      });
+      return res.data || {};
+    },
+    onSuccess: (payload) => {
+      setTicketTypes(payload.ticketTypes || []);
+      setNeedsAccessCode(false);
+      toast.success("Access granted");
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Invalid access code");
+    },
+  });
+
   const event = eventData?.event || null;
 
   // Extract and sync ticketTypes from API response
@@ -63,19 +82,13 @@ export default function EventDetailPage() {
     }
   }, [error]);
 
-  const fetchEventWithAccessCode = useCallback(async (code) => {
-    if (!eventId || !code) return;
-    try {
-      const res = await axiosInstance.get(ROUTES.API.EVENTS.DETAIL(eventId), {
-        params: { accessCode: code.trim() },
-      });
-      const payload = res.data || {};
-      setTicketTypes(payload.ticketTypes || []);
-      setNeedsAccessCode(false);
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Invalid access code");
+  const handleAccessCodeSubmit = () => {
+    if (!accessCode.trim()) {
+      toast.error("Please enter an access code");
+      return;
     }
-  }, [eventId]);
+    accessCodeMutation.mutate(accessCode);
+  };
 
   const redirectToEsewa = (paymentUrl, payload) => {
     const form = document.createElement("form");
@@ -170,6 +183,7 @@ export default function EventDetailPage() {
 
   const banner = event.bannerUrl || PLACEHOLDER_IMAGE;
   const hallName = event.hallId?.name || "Venue";
+  const eventDate = event.eventDate || (event.bookingId?.date) || null;
   const remainingTypes = ticketTypes.map((type) => ({
     ...type,
     remaining: Math.max(0, Number(type.quantityTotal || 0) - Number(type.quantitySold || 0)),
@@ -215,10 +229,11 @@ export default function EventDetailPage() {
                 className="w-full bg-[#3a1224]/3 border border-[#3a1224]/10 text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm mb-6 font-medium"
               />
               <button
-                onClick={() => fetchEvent(accessCode.trim())}
-                className="w-full py-4 rounded-xl bg-[#3a1224] text-white font-black uppercase tracking-wider hover:bg-[#C0A04C] hover:text-[#3a1224] transition duration-300"
+                onClick={handleAccessCodeSubmit}
+                disabled={accessCodeMutation.isPending}
+                className="w-full py-4 rounded-xl bg-[#3a1224] text-white font-black uppercase tracking-wider hover:bg-[#C0A04C] hover:text-[#3a1224] transition duration-300 disabled:opacity-50"
               >
-                Unlock Event
+                {accessCodeMutation.isPending ? "Unlocking..." : "Unlock Event"}
               </button>
             </div>
           </div>

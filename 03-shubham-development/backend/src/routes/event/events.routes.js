@@ -36,6 +36,7 @@ router.get("/public", async (req, res, next) => {
         .skip(skip)
         .limit(limit)
         .populate({ path: "hallId", select: "name slug capacity" })
+        .populate({ path: "bookingId", select: "date slot status" })
         .lean(),
       OrganizerEvent.countDocuments(filter),
     ]);
@@ -60,6 +61,7 @@ router.get("/:id", async (req, res, next) => {
 
     const event = await OrganizerEvent.findById(req.params.id)
       .populate({ path: "hallId", select: "name slug capacity" })
+      .populate({ path: "bookingId", select: "date slot status" })
       .lean();
 
     if (!event) return res.status(404).json({ message: "Event not found" });

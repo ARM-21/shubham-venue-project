@@ -427,7 +427,7 @@ function StaffRow({ staff, userName, onRemove, isRemoving }) {
           Gate: {staff.gate}
         </p>
         <p className="text-[var(--admin-muted)] text-xs mt-1">
-          Assigned: {new Date(staff.createdAt).toLocaleDateString()}
+          Assigned: {new Date(staff.assignedAt).toLocaleDateString()}
         </p>
       </div>
       <button

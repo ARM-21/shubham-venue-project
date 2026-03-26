@@ -110,11 +110,11 @@ export default function Footer() {
                     </div>
                     <span className="text-sm font-medium">+977 9812345678</span>
                   </a>
-                  <a href="mailto:info@shubhamvenue.com" className="flex items-center gap-3 text-gray-400 hover:text-[#C0A04C] transition-colors group">
+                  <a href="mailto:contact@shubham-venue.me" className="flex items-center gap-3 text-gray-400 hover:text-[#C0A04C] transition-colors group">
                     <div className="p-2 bg-white/5 rounded-lg group-hover:bg-[#C0A04C]/10">
                       <Mail className="w-4 h-4" />
                     </div>
-                    <span className="text-sm font-medium">info@shubhamvenue.com</span>
+                    <span className="text-sm font-medium">contact@shubham-venue.me</span>
                   </a>
                 </div>
               </div>

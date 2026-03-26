@@ -6,11 +6,18 @@ import Hall from "../../models/Hall.js";
 import OrganizerEvent from "../../models/OrganizerEvent.js";
 import TicketType from "../../models/TicketType.js";
 import Ticket from "../../models/Ticket.js";
+import TicketPayment from "../../models/TicketPayment.js";
 
 const router = express.Router();
 
 const BOOKING_ELIGIBLE_STATUSES = ["CONFIRMED", "COMPLETED"];
 const EVENT_STATUSES = ["DRAFT", "PUBLISHED", "CANCELLED"];
+
+function startOfToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
 
 function parseBoolean(value, fallback) {
   if (typeof value === "boolean") return value;
@@ -42,11 +49,7 @@ function deriveEventTimeRange(dateValue, slot) {
   return { startDateTime: start, endDateTime: end };
 }
 
-function startOfToday() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
-}
+
 
 router.get("/bookings", isAuthenticated, isOrganizer, async (req, res, next) => {
   try {
@@ -169,8 +172,77 @@ router.post("/events", isAuthenticated, isOrganizer, async (req, res, next) => {
       if (!endValue) endValue = derived.endDateTime;
     }
 
+    // Validate that event times match the booking slot
+    if (startValue && endValue && booking.slot) {
+      const derived = deriveEventTimeRange(booking.date, booking.slot);
+      const startHour = startValue.getHours();
+      const endHour = endValue.getHours();
+      const derivedStartHour = derived.startDateTime.getHours();
+      const derivedEndHour = derived.endDateTime.getHours();
+
+      if (startHour !== derivedStartHour || endHour !== derivedEndHour) {
+        return res.status(400).json({ 
+          message: `Event times must match the ${booking.slot} slot timing`,
+          slotTiming: {
+            slot: booking.slot,
+            requiredStart: `${derivedStartHour}:00`,
+            requiredEnd: `${derivedEndHour}:00`
+          }
+        });
+      }
+    }
+
     if (startValue && endValue && startValue >= endValue) {
       return res.status(400).json({ message: "startDateTime must be before endDateTime" });
+    }
+
+    if (startValue && startValue < startOfToday()) {
+      return res.status(400).json({ message: "Event cannot start in the past" });
+    }
+
+    // Validate that registration times are before or on the event date
+    if (startValue && booking.date) {
+      const eventDate = new Date(booking.date);
+      eventDate.setHours(0, 0, 0, 0);
+      
+      if (startValue > eventDate) {
+        return res.status(400).json({ 
+          message: "Registration start time must be before the event date",
+          eventDate: eventDate.toISOString()
+        });
+      }
+    }
+
+    if (endValue && booking.date) {
+      const eventDate = new Date(booking.date);
+      eventDate.setHours(23, 59, 59, 999);
+      
+      if (endValue > eventDate) {
+        return res.status(400).json({ 
+          message: "Registration end time must be on or before the event date",
+          eventDate: booking.date
+        });
+      }
+    }
+
+    const conflictingEvents = await OrganizerEvent.findOne({
+      hallId: booking.hallId,
+      _id: { $ne: booking._id },
+      $or: [
+        { startDateTime: { $lt: endValue }, endDateTime: { $gt: startValue } }
+      ],
+      status: { $in: ["DRAFT", "PUBLISHED"] }
+    }).select("_id name startDateTime endDateTime");
+
+    if (conflictingEvents) {
+      return res.status(409).json({ 
+        message: "Hall is already booked for this time slot. Please choose different times.",
+        conflict: {
+          eventName: conflictingEvents.name,
+          start: conflictingEvents.startDateTime,
+          end: conflictingEvents.endDateTime
+        }
+      });
     }
 
     const eventDoc = await OrganizerEvent.create({
@@ -183,6 +255,7 @@ router.post("/events", isAuthenticated, isOrganizer, async (req, res, next) => {
       isPublic: isPublicValue,
       accessCode: isPublicValue ? null : accessCodeValue,
       bannerUrl: String(bannerUrl || "").trim(),
+      eventDate: booking.date,
       startDateTime: startValue,
       endDateTime: endValue,
       status: "DRAFT",
@@ -295,6 +368,85 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
     const nextEnd = update.endDateTime || event.endDateTime;
     if (nextStart && nextEnd && nextStart >= nextEnd) {
       return res.status(400).json({ message: "startDateTime must be before endDateTime" });
+    }
+
+    if (nextStart && nextStart < startOfToday()) {
+      return res.status(400).json({ message: "Event cannot start in the past" });
+    }
+
+    // Validate that updated times match the booking slot (if times are being updated)
+    if ((update.startDateTime || update.endDateTime) && event.bookingId) {
+      const booking = await Booking.findById(event.bookingId).select("date slot");
+      if (booking) {
+        // Validate slot timing
+        if (booking.slot) {
+          const derived = deriveEventTimeRange(booking.date, booking.slot);
+          const startHour = nextStart.getHours();
+          const endHour = nextEnd.getHours();
+          const derivedStartHour = derived.startDateTime.getHours();
+          const derivedEndHour = derived.endDateTime.getHours();
+
+          if (startHour !== derivedStartHour || endHour !== derivedEndHour) {
+            return res.status(400).json({ 
+              message: `Event times must match the ${booking.slot} slot timing`,
+              slotTiming: {
+                slot: booking.slot,
+                requiredStart: `${derivedStartHour}:00`,
+                requiredEnd: `${derivedEndHour}:00`
+              }
+            });
+          }
+        }
+
+        // Validate that registration times are before or on the event date
+        if (booking.date) {
+          if (nextStart) {
+            const eventDate = new Date(booking.date);
+            eventDate.setHours(0, 0, 0, 0);
+            
+            if (nextStart > eventDate) {
+              return res.status(400).json({ 
+                message: "Registration start time must be before the event date",
+                eventDate: eventDate.toISOString()
+              });
+            }
+          }
+
+          if (nextEnd) {
+            const eventDate = new Date(booking.date);
+            eventDate.setHours(23, 59, 59, 999);
+            
+            if (nextEnd > eventDate) {
+              return res.status(400).json({ 
+                message: "Registration end time must be on or before the event date",
+                eventDate: booking.date
+              });
+            }
+          }
+        }
+      }
+    }
+
+    if (update.startDateTime || update.endDateTime) {
+      const conflictingEvents = await OrganizerEvent.findOne({
+        hallId: event.hallId,
+        _id: { $ne: event._id },
+        $or: [
+          { startDateTime: { $lt: nextEnd }, endDateTime: { $gt: nextStart } }
+        ],
+        status: { $in: ["DRAFT", "PUBLISHED"] }
+      }).select("_id name startDateTime endDateTime");
+
+      if (conflictingEvents) {
+        return res.status(409).json({ 
+          message: "Hall is already booked for this time slot. Please choose different times.",
+          conflict: {
+            eventName: conflictingEvents.name,
+            start: conflictingEvents.startDateTime,
+            end: conflictingEvents.endDateTime
+          }
+        });
+      }
     }
 
     const nextPublic = typeof update.isPublic === "boolean" ? update.isPublic : event.isPublic;
@@ -540,6 +692,150 @@ router.post("/events/:id/checkin", isAuthenticated, isOrganizer, async (req, res
     await ticket.save();
 
     return res.json({ message: "Check-in successful", checkedInAt: ticket.checkedInAt });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// Analytics endpoint for organizer dashboard
+router.get("/analytics", isAuthenticated, isOrganizer, async (req, res, next) => {
+  try {
+    // Get all events for this organizer
+    const events = await OrganizerEvent.find({ organizerId: req.currentUser._id })
+      .select("_id status startDateTime endDateTime createdAt");
+    
+    const eventIds = events.map(e => e._id);
+
+    if (eventIds.length === 0) {
+      return res.json({
+        stats: {
+          totalEvents: 0,
+          totalAttendees: 0,
+          checkInRate: 0,
+          totalRevenue: 0,
+          upcomingEvents: 0,
+          activeEvents: 0
+        },
+        monthlyTrend: [],
+        eventStatus: [
+          { name: 'Completed', value: 0, color: '#10b981' },
+          { name: 'Active', value: 0, color: '#3b82f6' },
+          { name: 'Upcoming', value: 0, color: '#f59e0b' },
+          { name: 'Draft', value: 0, color: '#6b7280' }
+        ]
+      });
+    }
+
+    // Calculate event counts
+    const now = new Date();
+    const totalEvents = events.length;
+    
+    // Properly categorize PUBLISHED events
+    let completedEvents = 0;
+    let activeEvents = 0;
+    let upcomingEvents = 0;
+    const draftEvents = events.filter(e => e.status === 'DRAFT').length;
+    
+    events.forEach(e => {
+      if (e.status === 'PUBLISHED') {
+        const startTime = new Date(e.startDateTime);
+        const endTime = new Date(e.endDateTime);
+        
+        if (endTime < now) {
+          completedEvents++; // Event has finished
+        } else if (startTime <= now && endTime >= now) {
+          activeEvents++; // Event is currently happening
+        } else if (startTime > now) {
+          upcomingEvents++; // Event hasn't started yet
+        }
+      }
+    });
+
+    // Get all tickets for organizer's events
+    const tickets = await Ticket.find({ eventId: { $in: eventIds } })
+      .select("_id status checkedInAt paymentId createdAt eventId");
+    
+    // Calculate attendee metrics
+    const totalAttendees = tickets.length;
+    const checkedInCount = tickets.filter(t => t.checkedInAt !== null && t.checkedInAt !== undefined).length;
+    const checkInRate = totalAttendees > 0 ? Math.round((checkedInCount / totalAttendees) * 100) : 0;
+
+    // Get payments for revenue calculation
+    const paymentIds = tickets.map(t => t.paymentId).filter(pid => pid);
+    let totalRevenue = 0;
+    const monthlyRevenue = {};
+    
+    if (paymentIds.length > 0) {
+      const payments = await TicketPayment.find({ 
+        _id: { $in: paymentIds },
+        status: "completed"
+      }).select("amount ticketId");
+      
+      // Map ticket IDs for event lookup
+      const ticketIdToPayment = {};
+      payments.forEach(p => {
+        totalRevenue += p.amount || 0;
+        ticketIdToPayment[p.ticketId] = p.amount || 0;
+      });
+
+      // Group revenue by event month
+      tickets.forEach(t => {
+        const payment = ticketIdToPayment[t._id];
+        if (payment && t.eventId) {
+          // Find the corresponding event
+          const event = events.find(e => e._id.toString() === t.eventId.toString());
+          if (event) {
+            const date = new Date(event.startDateTime);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] || 0) + payment;
+          }
+        }
+      });
+    }
+
+    // Build monthly trend data (last 6 months)
+    const monthlyTrend = [];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const monthName = monthNames[d.getMonth()];
+      
+      // Count attendees for this month
+      const monthAttendees = tickets.filter(t => {
+        const ticketDate = new Date(t.createdAt);
+        return ticketDate.getFullYear() === d.getFullYear() && ticketDate.getMonth() === d.getMonth();
+      }).length;
+      
+      monthlyTrend.push({
+        month: monthName,
+        revenue: monthlyRevenue[monthKey] || 0,
+        attendees: monthAttendees
+      });
+    }
+
+    // Event status distribution
+    const eventStatus = [
+      { name: 'Completed', value: completedEvents, color: '#10b981' },
+      { name: 'Active', value: activeEvents, color: '#3b82f6' },
+      { name: 'Upcoming', value: upcomingEvents, color: '#f59e0b' },
+      { name: 'Draft', value: draftEvents, color: '#6b7280' }
+    ];
+
+    return res.json({
+      stats: {
+        totalEvents,
+        totalAttendees,
+        checkInRate,
+        totalRevenue,
+        upcomingEvents,
+        activeEvents
+      },
+      monthlyTrend,
+      eventStatus
+    });
   } catch (err) {
     return next(err);
   }

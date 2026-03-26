@@ -6,14 +6,20 @@ import {
 
 /**
  * Fetch attendees for a specific event
+ * Real-time polling enabled by default during active events
  */
-export function useQueryEventAttendees(eventId, options) {
+export function useQueryEventAttendees(eventId, options = {}) {
+  const isEventActive = options.isEventActive ?? true;
+
   return useQuery({
     queryKey: [ORGANIZER_EVENT_ATTENDEES_QUERY_KEY, eventId],
     queryFn: () => organizerEventAttendeesFetcher(eventId),
     enabled: !!eventId,
-    staleTime: 3 * 60 * 1000, // 3 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: isEventActive ? 8 * 1000 : 3 * 60 * 1000, // 8 sec if active, 3 min otherwise
+    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    refetchInterval: isEventActive ? 12 * 1000 : false, // Auto-poll every 12 seconds during active events
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnReconnect: true, // Refetch when network reconnects
     ...options,
   });
 }

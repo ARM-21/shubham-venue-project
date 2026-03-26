@@ -113,6 +113,7 @@ export const ROUTES = {
       TICKET_TYPE: (id) => `/api/v1/organizer/ticket-types/${id}`,
       EVENT_ATTENDEES: (id) => `/api/v1/organizer/events/${id}/attendees`,
       EVENT_CHECKIN: (id) => `/api/v1/organizer/events/${id}/checkin`,
+      ANALYTICS: '/api/v1/organizer/analytics',
     },
     ADMIN: {
       OVERVIEW: '/api/v1/admin/overview',
