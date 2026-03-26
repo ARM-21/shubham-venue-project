@@ -13,6 +13,7 @@ function buildNavItems(pathname) {
     { key: "menus", label: "Menus & Services", href: ROUTES.ADMIN.MENUS },
     { key: "halls", label: "Halls", href: ROUTES.ADMIN.HALLS },
     { key: "users", label: "Users", href: ROUTES.ADMIN.USERS },
+    { key: "event-staff", label: "Event Staff", href: ROUTES.ADMIN.EVENT_STAFF },
     { key: "reports", label: "Reports", href: ROUTES.ADMIN.REPORTS },
     {
       key: "governance",

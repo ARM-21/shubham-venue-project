@@ -15,8 +15,12 @@ import {
   Ticket,
   Clock,
   FileText,
+  Upload,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
 
 export const EVENT_CATEGORIES = [
   { value: "WEDDING", label: "Wedding" },
@@ -37,6 +41,12 @@ export const EVENT_CATEGORIES = [
 
 export default function ProfessionalEventForm({ initialData = null, onSubmit, isLoading = false }) {
   const [activeTab, setActiveTab] = useState("basic");
+  const [bannerFile, setBannerFile] = useState(null);
+  const [bannerPreview, setBannerPreview] = useState(initialData?.bannerUrl || null);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [bannerError, setBannerError] = useState(null);
+  const [bookingDate, setBookingDate] = useState(null);
+  const [bookingLoading, setBookingLoading] = useState(false)
   const {
     register,
     control,
@@ -53,10 +63,9 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
       eventCategory: initialData?.eventCategory || "OTHER",
       bannerUrl: initialData?.bannerUrl || "",
       
-      // Timing
-      startDateTime: initialData?.startDateTime ? new Date(initialData.startDateTime).toISOString().slice(0, 16) : "",
-      endDateTime: initialData?.endDateTime ? new Date(initialData.endDateTime).toISOString().slice(0, 16) : "",
-      eventDate: initialData?.eventDate ? new Date(initialData.eventDate).toISOString().slice(0, 10) : "",
+      // Timing - Extract time from startDateTime/endDateTime
+      eventStartTime: initialData?.startDateTime ? new Date(initialData.startDateTime).toISOString().slice(11, 16) : "",
+      eventEndTime: initialData?.endDateTime ? new Date(initialData.endDateTime).toISOString().slice(11, 16) : "",
       
       // Registration
       registrationStartDate: initialData?.registrationStartDate ? new Date(initialData.registrationStartDate).toISOString().slice(0, 10) : "",
@@ -91,6 +100,25 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
 
   const visibility = watch("visibility");
 
+  // Fetch booking date when component mounts
+  useEffect(() => {
+    if (initialData?.bookingId && !bookingDate) {
+      setBookingLoading(true);
+      axiosInstance
+        .get(`/api/v1/bookings/${initialData.bookingId}`)
+        .then((res) => {
+          if (res.data?.booking?.date) {
+            setBookingDate(res.data.booking.date);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to fetch booking date:", err);
+          toast.error("Could not load booking details");
+        })
+        .finally(() => setBookingLoading(false));
+    }
+  }, [initialData?.bookingId, bookingDate]);
+
   const tabs = [
     { id: "basic", label: "Basic Info", icon: FileText },
     { id: "timing", label: "Timing", icon: Calendar },
@@ -100,30 +128,125 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
     { id: "visibility", label: "Visibility", icon: Sparkles },
   ];
 
+  const handleBannerChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      setBannerError("Image must be less than 5MB");
+      return;
+    }
+
+    // Validate file type
+    if (!["image/jpeg", "image/png", "image/gif", "image/webp"].includes(file.type)) {
+      toast.error("Only JPG, PNG, GIF, or WEBP allowed");
+      setBannerError("Only JPG, PNG, GIF, or WEBP allowed");
+      return;
+    }
+
+    setBannerFile(file);
+    setBannerError(null);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => setBannerPreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const uploadBanner = async () => {
+    if (!bannerFile) return;
+    
+    try {
+      setBannerUploading(true);
+      setBannerError(null);
+
+      // Get presigned URL from backend using menu upload URL
+      const ext = `.${bannerFile.name.split('.').pop()}`;
+      const { data } = await axiosInstance.post(ROUTES.API.ADMIN.MENU_UPLOAD_URL, {
+        fileExtension: ext,
+        contentType: bannerFile.type,
+      });
+
+      const uploadUrl = data?.data?.uploadUrl;
+      const publicUrl = data?.data?.publicUrl;
+
+      if (!uploadUrl || !publicUrl) {
+        throw new Error('Upload URL not received');
+      }
+
+      // Upload to S3 using presigned URL
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': bannerFile.type },
+        body: bannerFile,
+      });
+
+      // Update form with the public URL
+      setValue('bannerUrl', publicUrl, { shouldDirty: true });
+      setBannerFile(null);
+      toast.success('Banner uploaded successfully');
+    } catch (err) {
+      const message = err?.response?.data?.message || err.message || 'Upload failed';
+      toast.error(message);
+      setBannerError(message);
+    } finally {
+      setBannerUploading(false);
+    }
+  };
+
   const handleFormSubmit = async (data) => {
+    // Validate event times exist
+    if (!data.eventStartTime || !data.eventEndTime) {
+      toast.error("Event start and end times are required");
+      return;
+    }
+
+    // Validate event start time < end time
+    if (data.eventStartTime >= data.eventEndTime) {
+      toast.error("Event start time must be before end time");
+      return;
+    }
+
     // Validate registration dates
     if (data.registrationStartDate && data.registrationEndDate) {
       if (new Date(data.registrationStartDate) > new Date(data.registrationEndDate)) {
         toast.error("Registration start date must be before end date");
         return;
       }
-      if (new Date(data.registrationEndDate) > new Date(data.eventDate)) {
+    }
+
+    // Validate registration end date is before or on event date
+    if (data.registrationEndDate && bookingDate) {
+      const regEndDate = new Date(data.registrationEndDate);
+      const eventDate = new Date(bookingDate);
+      if (regEndDate > eventDate) {
         toast.error("Registration must end before or on event date");
         return;
       }
     }
 
-    // Validate event timing
-    if (data.startDateTime && data.endDateTime) {
-      if (new Date(data.startDateTime) >= new Date(data.endDateTime)) {
-        toast.error("Event start time must be before end time");
-        return;
-      }
+    // Convert time-only inputs to datetime by combining with booking date
+    let startDateTime = null;
+    let endDateTime = null;
+    
+    if (data.eventStartTime && bookingDate) {
+      const bookDateStr = new Date(bookingDate).toISOString().split('T')[0];
+      startDateTime = `${bookDateStr}T${data.eventStartTime}:00`;
+    }
+    
+    if (data.eventEndTime && bookingDate) {
+      const bookDateStr = new Date(bookingDate).toISOString().split('T')[0];
+      endDateTime = `${bookDateStr}T${data.eventEndTime}:00`;
     }
 
     if (onSubmit) {
       await onSubmit({
         ...data,
+        startDateTime,
+        endDateTime,
+        eventDate: bookingDate, // Use booking date as event date
         tags: data.tags
           .split(",")
           .map((t) => t.trim())
@@ -218,14 +341,84 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Banner Image URL
+                Event Banner Image
               </label>
-              <input
-                type="url"
-                placeholder="https://example.com/banner.jpg"
-                {...register("bannerUrl")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              />
+              <div className="space-y-3">
+                {/* Banner Preview */}
+                {bannerPreview && (
+                  <div className="relative">
+                    <img 
+                      src={bannerPreview} 
+                      alt="Banner preview" 
+                      className="w-full h-40 object-cover rounded-lg border border-gray-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBannerPreview(null);
+                        setBannerFile(null);
+                        setValue('bannerUrl', '');
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                      title="Remove banner"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Upload Area */}
+                {!bannerPreview ? (
+                  <div className="flex items-center gap-3">
+                    <label className="flex-1 cursor-pointer">
+                      <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-amber-300 rounded-lg hover:bg-amber-50 transition-colors">
+                        <Upload size={18} className="text-amber-600" />
+                        <span className="text-sm font-medium text-amber-900">
+                          {bannerFile ? bannerFile.name : 'Choose banner image'}
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBannerChange}
+                        disabled={bannerUploading}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                ) : null}
+
+                {/* Upload Button - Only show if file is selected but not yet uploaded */}
+                {bannerFile && !bannerUploading && (
+                  <button
+                    type="button"
+                    onClick={uploadBanner}
+                    className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Upload size={16} />
+                    Upload Banner
+                  </button>
+                )}
+
+                {/* Uploading State */}
+                {bannerUploading && (
+                  <div className="w-full px-4 py-2 bg-amber-100 text-amber-900 rounded-lg font-medium text-center animate-pulse">
+                    Uploading banner...
+                  </div>
+                )}
+
+                {/* Error Message */}
+                {bannerError && (
+                  <p className="text-red-600 text-sm">{bannerError}</p>
+                )}
+
+                {/* Hidden input for form */}
+                <input
+                  type="hidden"
+                  {...register("bannerUrl")}
+                  value={bannerPreview || ""}
+                />
+              </div>
             </div>
           </div>
 
@@ -269,50 +462,84 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
             Event Timing & Registration
           </h3>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
-            <AlertCircle size={20} className="text-amber-700 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800">
-              Event Date is when the event actually happens. Start/End DateTime is the duration during which the event runs.
-            </p>
+          {/* Booking Date Info (Locked) */}
+          {bookingDate && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
+              <AlertCircle size={20} className="text-blue-700 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-blue-900">Event Date Locked to Booking</p>
+                <p className="text-sm text-blue-800 mt-1">
+                  Your event will be held on <strong>{new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>
+                </p>
+                <p className="text-xs text-blue-700 mt-2">You can only adjust the start and end times below.</p>
+              </div>
+            </div>
+          )}
+
+          {bookingLoading && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-gray-600 text-sm">
+              Loading booking details...
+            </div>
+          )}
+
+          {/* Event Times */}
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-4">Event Times</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Event Start Time *
+                </label>
+                <input
+                  type="time"
+                  {...register("eventStartTime", { required: "Start time is required" })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                />
+                {errors.eventStartTime && (
+                  <p className="text-red-600 text-sm mt-1">{errors.eventStartTime.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Event End Time *
+                </label>
+                <input
+                  type="time"
+                  {...register("eventEndTime", { required: "End time is required" })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                />
+                {errors.eventEndTime && (
+                  <p className="text-red-600 text-sm mt-1">{errors.eventEndTime.message}</p>
+                )}
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Event Date (when event happens) *
-              </label>
-              <input
-                type="date"
-                {...register("eventDate", { required: "Event date is required" })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              />
-              {errors.eventDate && (
-                <p className="text-red-600 text-sm mt-1">{errors.eventDate.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Start Time
-              </label>
-              <input
-                type="datetime-local"
-                {...register("startDateTime")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                End Time
-              </label>
-              <input
-                type="datetime-local"
-                {...register("endDateTime")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              />
-            </div>
-          </div>
+          {/* Duration Calculator */}
+          {(() => {
+            const startTime = watch("eventStartTime");
+            const endTime = watch("eventEndTime");
+            let duration = null;
+            if (startTime && endTime) {
+              const [startH, startM] = startTime.split(":").map(Number);
+              const [endH, endM] = endTime.split(":").map(Number);
+              const startMins = startH * 60 + startM;
+              const endMins = endH * 60 + endM;
+              if (endMins > startMins) {
+                const diffMins = endMins - startMins;
+                const hours = Math.floor(diffMins / 60);
+                const mins = diffMins % 60;
+                duration = `${hours}h ${mins}m`;
+              }
+            }
+            return duration ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm font-medium text-green-900">Event Duration</p>
+                <p className="text-lg font-semibold text-green-700 mt-1">{duration}</p>
+              </div>
+            ) : null;
+          })()}
 
           <div className="border-t border-gray-200 pt-6">
             <h4 className="font-semibold text-gray-900 mb-4">Registration Period</h4>
@@ -331,14 +558,29 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Registration Closes
+                  Registration Closes *
                 </label>
                 <input
                   type="date"
-                  {...register("registrationEndDate")}
+                  {...register("registrationEndDate", {
+                    required: "Registration close date is required",
+                    validate: (value) => {
+                      if (!value || !bookingDate) return true;
+                      const regDate = new Date(value);
+                      const bookDate = new Date(bookingDate);
+                      if (regDate > bookDate) {
+                        return "Registration cannot close after event date";
+                      }
+                      return true;
+                    }
+                  })}
+                  max={bookingDate ? new Date(bookingDate).toISOString().split('T')[0] : undefined}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 />
-                <p className="text-gray-500 text-xs mt-1">Final day attendees can register</p>
+                {errors.registrationEndDate && (
+                  <p className="text-red-600 text-sm mt-1">{errors.registrationEndDate.message}</p>
+                )}
+                <p className="text-gray-500 text-xs mt-1">Must be before or on event date</p>
               </div>
             </div>
           </div>

@@ -10,6 +10,7 @@ import {
   UtensilsCrossed,
   Shield,
   ChevronDown,
+  ScanLine,
 } from "lucide-react";
 
 const iconMap = {
@@ -18,6 +19,7 @@ const iconMap = {
   menus: UtensilsCrossed,
   halls: Building2,
   users: Users,
+  "event-staff": ScanLine,
   reports: BarChart3,
   settings: Settings,
   governance: Shield,
