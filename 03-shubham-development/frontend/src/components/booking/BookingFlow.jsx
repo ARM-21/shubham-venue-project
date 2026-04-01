@@ -377,54 +377,81 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
                   <p className="text-xs sm:text-sm text-slate-600">Complete this step to continue your booking</p>
                 </div>
               )}
-              {/* Booking Type Selection - ONLY show before availability step */}
-              {isOrganizerEligible && bookingData.bookingPurpose === 'customer' && currentStepIndex === 0 && currentStepKey !== 'availability' && (
+              {/* Booking Type Selection - Show ONLY at first step for organizer-eligible users */}
+              {isOrganizerEligible && currentStepIndex === 0 && currentStepKey === 'availability' && (
                 <div className="space-y-6 sm:space-y-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-6 h-[1px] bg-[#C0A04C]" />
+                    <span className="text-[9px] font-black text-[#C0A04C] uppercase tracking-[0.3em]">Choose Your Path</span>
+                  </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1 sm:mb-2">Select Booking Type</h2>
-                    <p className="text-xs sm:text-sm text-slate-600">Choose how you'd like to proceed with this booking</p>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-text-2xl mb-1 sm:mb-2">Select Booking Type</h2>
+                    <p className="text-sm sm:text-base text-slate-600 font-medium">Choose how you'd like to proceed with this venue booking</p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     {[
-                      { value: 'customer', label: 'Personal Event', desc: 'Complete menu & decoration options', icon: Users },
-                      { value: 'organizer', label: 'Organizer Event', desc: 'Direct venue booking', icon: Zap }
+                      { 
+                        value: 'customer', 
+                        label: 'Personal Event', 
+                        desc: 'Book with menu & decoration selection',
+                        details: '7-step process with full customization',
+                        icon: Users 
+                      },
+                      { 
+                        value: 'organizer', 
+                        label: 'Professional Event',
+                        desc: 'Direct venue booking for events',
+                        details: '5-step simplified process',
+                        icon: Building2,
+                        featured: true
+                      }
                     ].map((type) => {
                       const IconComponent = type.icon;
+                      const isSelected = bookingData.bookingPurpose === type.value;
                       return (
                         <button
                           key={type.value}
                           onClick={() => handlePurposeChange(type.value)}
-                          className={`p-4 sm:p-6 rounded-lg sm:rounded-xl border-2 transition-all text-left ${
-                            bookingData.bookingPurpose === type.value
-                              ? 'border-[#C0A04C] bg-[#C0A04C]/5'
-                              : 'border-slate-200 bg-slate-50 hover:border-[#C0A04C]/30'
+                          className={`relative p-6 sm:p-8 rounded-2xl sm:rounded-3xl border-2 transition-all text-left overflow-hidden group ${
+                            isSelected
+                              ? 'border-[#C0A04C] bg-gradient-to-br from-[#C0A04C]/10 to-[#C0A04C]/5'
+                              : 'border-slate-200 bg-slate-50 hover:border-[#C0A04C]/40 hover:bg-white'
                           }`}
                         >
-                          <div className="flex items-center justify-between mb-2 sm:mb-3">
-                            <IconComponent className={`w-5 h-5 sm:w-6 sm:h-6 ${bookingData.bookingPurpose === type.value ? 'text-[#C0A04C]' : 'text-slate-400'}`} />
-                            {bookingData.bookingPurpose === type.value && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-[#C0A04C]" />}
+                          {type.featured && !isSelected && (
+                            <div className="absolute top-3 right-3 px-3 py-1 bg-[#C0A04C] text-white text-[9px] font-black uppercase tracking-widest rounded-full">
+                              ⭐ Recommended
+                            </div>
+                          )}
+                          
+                          <div className="flex items-start justify-between mb-4 sm:mb-6">
+                            <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl ${isSelected ? 'bg-[#C0A04C]/20' : 'bg-white group-hover:bg-[#C0A04C]/5'}`}>
+                              <IconComponent className={`w-6 h-6 sm:w-7 sm:h-7 ${isSelected ? 'text-[#C0A04C]' : 'text-slate-400 group-hover:text-[#C0A04C]'}`} />
+                            </div>
+                            {isSelected && (
+                              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#C0A04C] text-white flex items-center justify-center flex-shrink-0">
+                                <Check className="w-4 h-4" />
+                              </div>
+                            )}
                           </div>
-                          <h3 className="font-bold text-slate-900 text-sm sm:text-base">{type.label}</h3>
-                          <p className="text-xs sm:text-sm text-slate-600 mt-1">{type.desc}</p>
+                          
+                          <h3 className="font-black text-slate-900 text-lg sm:text-xl mb-1 sm:mb-2">{type.label}</h3>
+                          <p className="text-sm sm:text-base text-slate-700 font-semibold mb-3 sm:mb-4">{type.desc}</p>
+                          <p className="text-xs sm:text-sm text-slate-500 font-medium">{type.details}</p>
                         </button>
                       );
                     })}
                   </div>
 
-                  <div className="flex gap-2 sm:gap-3 pt-4 sm:pt-6 border-t border-slate-200">
-                    <button
-                      onClick={prevStep}
-                      className="px-4 sm:px-6 py-2 sm:py-2.5 border border-slate-300 rounded-lg text-xs sm:text-sm text-slate-900 font-semibold hover:bg-slate-50 transition-colors"
-                    >
-                      Back
-                    </button>
+                  <div className="flex gap-3 pt-6 sm:pt-8 border-t border-slate-200">
                     <button
                       onClick={nextStep}
-                      className="flex-1 px-4 sm:px-6 py-2 sm:py-2.5 bg-[#C0A04C] rounded-lg text-white font-semibold text-xs sm:text-sm hover:bg-[#b39041] transition-colors flex items-center justify-center gap-2"
+                      disabled={!bookingData.bookingPurpose}
+                      className="flex-1 px-6 sm:px-8 py-3 sm:py-4 bg-[#C0A04C] hover:bg-[#b39041] disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black uppercase tracking-widest rounded-xl sm:rounded-2xl transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
                     >
                       Continue
-                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                   </div>
                 </div>
