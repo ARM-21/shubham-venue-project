@@ -159,14 +159,14 @@ export default function AdminBookingsPage() {
 
   const rows = useMemo(() => (bookingsData?.items || []).map((b) => ({
     id: b.id || b._id,
-    customer: [b.user?.firstName, b.user?.lastName].filter(Boolean).join(" ") || b.user?.email || "Guest",
+    customer: [b.user?.first_name || b.user?.firstName, b.user?.last_name || b.user?.lastName].filter(Boolean).join(" ") || b.user?.email || "Guest",
     avatar:b.user?.profilePicture || null,
     email: b.user?.email,
     hall: b.hall?.name || "Standard Hall",
     eventDate: b.date ? new Date(b.date).toLocaleDateString("en-NP", { month: "short", day: "numeric", year: "numeric" }) : "-",
     guests: b.guests || 0,
     amount: npr.format(b.amount || b.totalAmount || 0),
-    payment: { label: b.payment?.status || "Pending", tone: b.payment?.status === "completed" ? "positive" : "warning" },
+    payment: { label: b.payment?.status || b.payments?.[0]?.status || "Pending", tone: (b.payment?.status || b.payments?.[0]?.status) === "completed" ? "positive" : "warning" },
     status: { label: b.status || "Pending", tone: ["confirmed", "completed"].includes(b.status?.toLowerCase()) ? "positive" : "warning" },
   })), [bookingsData, npr]);
 
@@ -221,7 +221,12 @@ export default function AdminBookingsPage() {
               openMenuId={openMenuId} setOpenMenuId={setOpenMenuId}
               onView={setSelectedBookingId} onEdit={(id) => {
                 const b = bookingsData.items.find(x => (x.id || x._id) === id);
-                setEditModal({ open: true, id, date: b.date.slice(0,10), slot: b.slot, guests: b.guests, status: b.status, paymentStatus: b.payment.status, originalStatus: b.status, originalPaymentStatus: b.payment.status });
+                if (!b) {
+                  setErrorMsg("Booking not found. Please refresh and try again.");
+                  return;
+                }
+                const paymentStatus = b.payment?.status || b.payments?.[0]?.status || "Pending";
+                setEditModal({ open: true, id, date: b.date.slice(0,10), slot: b.slot, guests: b.guests, status: b.status, paymentStatus, originalStatus: b.status, originalPaymentStatus: paymentStatus });
               }} 
               onDelete={(id) => confirm("Delete?") && deleteMutation.mutate(id)} 
             />
