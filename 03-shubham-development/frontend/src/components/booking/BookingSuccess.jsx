@@ -222,7 +222,7 @@ export default function BookingSuccess({ booking, hallDetails }) {
             onClick={() => router.push(ROUTES.SITE.BOOKINGS)}
             className="flex-1 h-12 px-6 bg-[#3a1224] text-[#C0A04C] font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-[#4a172d] transition-colors shadow-lg cursor-pointer"
           >
-            View My Bookings
+            View My Tickets
           </button>
         </div>
 

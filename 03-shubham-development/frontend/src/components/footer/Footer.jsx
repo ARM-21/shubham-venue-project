@@ -51,9 +51,9 @@ export default function Footer() {
             </p>
 
             <div className="flex items-center gap-4">
-              <SocialIcon icon={Facebook} href="https://facebook.com" />
-              <SocialIcon icon={Instagram} href="https://instagram.com" />
-              <SocialIcon icon={Twitter} href="https://twitter.com" />
+              <SocialIcon icon={Facebook} href="https://facebook.com/shubhamvenue" title="Facebook" />
+              <SocialIcon icon={Instagram} href="https://instagram.com/shubhamvenue" title="Instagram" />
+              <SocialIcon icon={Twitter} href="https://twitter.com/shubhamvenue" title="Twitter" />
             </div>
           </div>
 
@@ -156,12 +156,13 @@ function FooterLink({ href, label }) {
   );
 }
 
-function SocialIcon({ icon: Icon, href }) {
+function SocialIcon({ icon: Icon, href, title }) {
   return (
     <a 
       href={href} 
       target="_blank" 
       rel="noopener noreferrer"
+      title={title}
       className="p-3 bg-white/5 rounded-xl border border-white/10 text-white/70 hover:text-[#C0A04C] hover:bg-[#C0A04C]/10 hover:border-[#C0A04C]/30 transition-all duration-300 active:scale-90"
     >
       <Icon className="w-5 h-5" />

@@ -84,8 +84,28 @@ export default function OrganizerSettings() {
         ...prev,
         [activeTab]: false
       }));
-      // Invalidate cache
+      // Update form with fresh data from server
+      if (data?.user || data?.profile) {
+        const userData = data.user || data.profile;
+        reset({
+          firstName: userData?.firstName || userData?.first_name || '',
+          lastName: userData?.lastName || userData?.last_name || '',
+          phone: userData?.phone || '',
+          city: userData?.city || '',
+          taxId: userData?.organizerDetails?.taxId || '',
+          bankCode: userData?.organizerDetails?.bankCode || '',
+          bankAccount: userData?.organizerDetails?.bankAccount || '',
+          accountHolder: userData?.organizerDetails?.accountHolder || '',
+          notificationsEmail: userData?.organizerDetails?.notificationsEmail ?? true,
+          notificationsSms: userData?.organizerDetails?.notificationsSms ?? false,
+          notificationsEventUpdates: userData?.organizerDetails?.notificationsEventUpdates ?? true,
+        });
+      }
+      // Invalidate and refetch profile cache to update auth context
       queryClient.invalidateQueries({ queryKey: ["profile-me"] });
+      queryClient.refetchQueries({ queryKey: ["profile-me"] });
+      // Also refetch user queries to ensure data is updated everywhere
+      queryClient.invalidateQueries({ queryKey: ["user"] });
     },
     onError: (error) => {
       toast.error(error?.response?.data?.message || 'Failed to save settings');

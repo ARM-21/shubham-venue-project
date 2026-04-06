@@ -296,9 +296,18 @@ export default function TicketsPage() {
                       </div>
 
                       <div className="pt-6 border-t border-[#3a1224]/10 flex items-center justify-between">
-                        <div className="flex flex-col">
+                        <div className="flex flex-col flex-1">
                           <span className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Auth Code</span>
-                          <span className="text-[10px] font-mono text-[#3a1224]/70">{ticket.qrCodeValue}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-mono text-[#3a1224]/70">{ticket.qrCodeValue}</span>
+                            <button
+                              onClick={() => handleCopyCode(ticket.qrCodeValue)}
+                              className="p-1.5 hover:bg-[#C0A04C]/20 text-[#C0A04C] rounded-lg transition-colors opacity-50 hover:opacity-100"
+                              title="Copy Auth Code"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
                         
                         {event._id && (

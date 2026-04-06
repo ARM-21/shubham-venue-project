@@ -219,7 +219,7 @@ export default function Navbar() {
                       />
                       <ProfileLink 
                         icon={Ticket} 
-                        label="My Bookings" 
+                        label="My Tickets" 
                         href={ROUTES.SITE.TICKETS} 
                         onClick={() => setProfileOpen(false)} 
                       />

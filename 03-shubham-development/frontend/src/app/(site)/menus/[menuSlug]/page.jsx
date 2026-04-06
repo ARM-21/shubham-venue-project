@@ -18,7 +18,7 @@ export default function Page({ params }) {
     "diamond-menu": "/assets/business-images/menu-images/diamond.jpg",
   };
 
-  const imageSrc = menu?.slug ? (STATIC_MENU_IMAGES[menu.slug] ?? "/assets/business-images/menu-images/placeholder.jpg") : "/assets/business-images/menu-images/placeholder.jpg";
+  const imageSrc = menu?.image || menu?.imageUrl || (menu?.slug ? (STATIC_MENU_IMAGES[menu.slug] ?? "/assets/business-images/menu-images/placeholder.jpg") : "/assets/business-images/menu-images/placeholder.jpg");
 
   if (isLoading) return <MenuPageSkeletonLoading />;
 

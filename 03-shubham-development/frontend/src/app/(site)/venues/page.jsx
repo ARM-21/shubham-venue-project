@@ -261,7 +261,7 @@ export default function VenuesPage() {
             {/* Price Range */}
             <div className="space-y-6 pb-8 border-b border-[#3a1224]/10">
               <div className="flex justify-between items-end">
-                <span className="text-[10px] font-black text-[#3a1224]/60 uppercase tracking-widest">Max Price</span>
+                <span className="text-[10px] font-black text-[#3a1224]/60 uppercase tracking-widest">Budget Range</span>
                 <span className="text-sm font-black text-[#C0A04C]">NPR {filters.price.toLocaleString()}</span>
               </div>
               <input 

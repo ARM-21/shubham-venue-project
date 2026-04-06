@@ -140,13 +140,14 @@ export default function MenuListPage() {
                             className="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow duration-300"
                         >
                             {/* Menu Image */}
-                            <div className="relative h-48 w-full">
+                            <div className="relative h-48 w-full bg-gradient-to-br from-[#3a1224] to-[#5c3d4a]">
                                 <Image
-                                    src={null && STATIC_MENU_IMAGES[menu.slug]}
-                                    alt={menu.slug || menu.name}
+                                    src={menu.image || menu.imageUrl || STATIC_MENU_IMAGES[menu.slug] || "/assets/business-images/menu-images/placeholder.jpg"}
+                                    alt={menu.name || "Menu"}
                                     fill
                                     className="object-cover"
                                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                    priority={false}
                                 />
                                 {menu.category && (
                                     <div className="absolute top-3 left-3">
