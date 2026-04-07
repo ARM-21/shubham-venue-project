@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Search, Filter, AlertTriangle, AlertCircle, AlertOctagon, Check } from 'lucide-react';
@@ -26,6 +26,32 @@ const statusConfig = {
 };
 
 export default function FlagsPage() {
+  return (
+    <Suspense fallback={<FlagsPageLoading />}>
+      <FlagsPageContent />
+    </Suspense>
+  );
+}
+
+function FlagsPageLoading() {
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <AdminTopbar heading="Event Flags" />
+      <div className="flex-1 overflow-y-auto admin-scroll p-6 lg:p-8 mt-10">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="h-12 bg-[#3a1a1a] rounded-xl animate-pulse" />
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-24 bg-[#3a1a1a] rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FlagsPageContent() {
   const searchParams = useSearchParams();
   const eventId = searchParams.get('eventId');
   const organizerId = searchParams.get('organizerId');
