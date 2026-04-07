@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { AlertTriangle, Upload, Send, Check, X } from 'lucide-react';
 import { useQueryFlagDetail } from '@queries/admin/governance.queries';
-import { resolveFlag } from '@api/governance/flags-api';
+import { resolveFlag, addFlagComment } from '@api/governance/flags-api';
 import { FlagInvestigationTimeline, EventStatusBadge } from 'components/admin/governance/GovernanceComponents';
 import AdminTopbar from 'components/admin/dashboard/AdminTopbar';
 import { toast } from 'sonner';
@@ -53,6 +53,18 @@ export default function FlagDetailPage() {
     },
   });
 
+  const commentMutation = useMutation({
+    mutationFn: (commentData) => addFlagComment(flagId, commentData),
+    onSuccess: () => {
+      toast.success('Comment added successfully');
+      setComment('');
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || 'Failed to add comment');
+    },
+  });
+
   const handleAddComment = async () => {
     if (!comment.trim()) {
       toast.error('Comment cannot be empty');
@@ -60,9 +72,7 @@ export default function FlagDetailPage() {
     }
 
     try {
-      // TODO: Call API to add comment
-      toast.success('Comment added');
-      setComment('');
+      commentMutation.mutate({ message: comment });
     } catch (error) {
       toast.error('Failed to add comment');
     }
@@ -212,11 +222,11 @@ export default function FlagDetailPage() {
                       />
                       <button
                         onClick={handleAddComment}
-                        disabled={!comment.trim()}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg flex items-center gap-2"
+                        disabled={!comment.trim() || commentMutation.isPending}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg flex items-center gap-2"
                       >
                         <Send className="w-4 h-4" />
-                        Add Note
+                        {commentMutation.isPending ? 'Adding...' : 'Add Note'}
                       </button>
                     </div>
                   </div>

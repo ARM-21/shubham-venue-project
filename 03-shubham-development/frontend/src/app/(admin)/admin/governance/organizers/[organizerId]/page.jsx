@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useMutation } from '@tanstack/react-query';
@@ -24,6 +24,9 @@ import {
 import AdminTopbar from 'components/admin/dashboard/AdminTopbar';
 
 export default function OrganizerReputationPage({ params }) {
+  // Unwrap params Promise for Next.js 15
+  const { organizerId } = use(params);
+  
   const router = useRouter();
   const [suspensionDays, setSuspensionDays] = useState(30);
   const [showSuspendModal, setShowSuspendModal] = useState(false);
@@ -32,12 +35,12 @@ export default function OrganizerReputationPage({ params }) {
     data: reputationData,
     isLoading: isReputationLoading,
     error: reputationError,
-  } = useQueryOrganizerReputation(params.organizerId);
+  } = useQueryOrganizerReputation(organizerId);
 
   const {
     data: auditData,
     isLoading: isAuditLoading,
-  } = useQueryOrganizerAuditTrail(params.organizerId);
+  } = useQueryOrganizerAuditTrail(organizerId);
 
   const suspendMutation = useMutation({
     mutationFn: (organizerId) => suspendOrganizerEvent(organizerId),
@@ -59,13 +62,13 @@ export default function OrganizerReputationPage({ params }) {
 
   if (reputationError)
     return (
-      <div className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded-lg">
-        <p className="text-red-800 dark:text-red-200">
+      <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-xl">
+        <p className="text-red-400">
           Failed to load organizer reputation. Try again.
         </p>
         <button
           onClick={() => router.back()}
-          className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
         >
           Go Back
         </button>
@@ -73,10 +76,17 @@ export default function OrganizerReputationPage({ params }) {
     );
 
   const organizer = reputationData?.organizer;
+  const reputation = reputationData?.reputation;
   const trustMetrics = organizer?.trustMetrics || {};
-  const isSuspended =
-    organizer?.suspendedUntil &&
-    new Date(organizer.suspendedUntil) > new Date();
+  const isSuspended = organizer?.suspensionStatus === 'suspended';
+
+  // Helper to get organizer full name from available fields
+  const getOrganizerName = () => {
+    if (organizer?.firstName && organizer?.lastName) {
+      return `${organizer.firstName} ${organizer.lastName}`;
+    }
+    return organizer?.email || 'Unknown Organizer';
+  };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -86,69 +96,55 @@ export default function OrganizerReputationPage({ params }) {
         <div className="max-w-7xl mx-auto space-y-6 pb-12">
           {/* Header with Back */}
           <div className="flex items-center gap-3">
-        <button
-          onClick={() => router.back()}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-        >
-          <ArrowLeft className="text-gray-600 dark:text-gray-400" />
-        </button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            {organizer?.fullName || 'Unknown Organizer'}
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Reputation Profile & Activity
-          </p>
-        </div>
-      </div>
+            <button
+              onClick={() => router.back()}
+              className="p-2 hover:bg-[#3a1a1a] rounded transition"
+            >
+              <ArrowLeft className="text-[#9ca3af]" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-white">
+                {getOrganizerName()}
+              </h1>
+              <p className="text-[#9ca3af]">
+                Reputation Profile & Activity
+              </p>
+            </div>
+          </div>
 
       {/* Organizer Info Card */}
       {isReputationLoading ? (
-        <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+        <div className="h-48 bg-[#3a1a1a] rounded-xl animate-pulse" />
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-[var(--admin-surface)] rounded-xl border border-[#3a1a1a] p-6 hover:border-[var(--admin-primary)]/50 transition-all">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left: Basic Info */}
             <div className="space-y-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                <h2 className="text-lg font-semibold text-white mb-4">
                   Contact Information
                 </h2>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <Mail className="text-gray-400" size={18} />
+                    <Mail className="text-[#9ca3af]" size={18} />
                     <div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-[#9ca3af]">
                         Email
                       </p>
-                      <p className="text-gray-900 dark:text-white">
+                      <p className="text-white">
                         {organizer?.email}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <Phone className="text-gray-400" size={18} />
+                    <Phone className="text-[#9ca3af]" size={18} />
                     <div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-[#9ca3af]">
                         Phone
                       </p>
-                      <p className="text-gray-900 dark:text-white">
+                      <p className="text-white">
                         {organizer?.phoneNumber || 'N/A'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <User className="text-gray-400" size={18} />
-                    <div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        Member Since
-                      </p>
-                      <p className="text-gray-900 dark:text-white">
-                        {organizer?.createdAt
-                          ? new Date(organizer.createdAt).toLocaleDateString()
-                          : 'N/A'}
                       </p>
                     </div>
                   </div>
@@ -157,11 +153,11 @@ export default function OrganizerReputationPage({ params }) {
 
               {/* Suspension Status */}
               {isSuspended && (
-                <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg">
-                  <p className="text-red-800 dark:text-red-200 font-medium">
+                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <p className="text-red-400 font-medium">
                     ⚠️ Currently Suspended
                   </p>
-                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                  <p className="text-sm text-red-400/80 mt-1">
                     Until: {new Date(organizer.suspendedUntil).toLocaleDateString()}
                   </p>
                 </div>
@@ -170,7 +166,7 @@ export default function OrganizerReputationPage({ params }) {
 
             {/* Right: Trust Score & Metrics */}
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-lg font-semibold text-white">
                 Trust Score & Metrics
               </h2>
 
@@ -179,14 +175,13 @@ export default function OrganizerReputationPage({ params }) {
                   <TrustScoreBadge score={trustMetrics.trustScore || 0} />
                 </div>
 
-                <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-4 flex-1">
                   <div className="text-center">
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-[#9ca3af] mb-2">
                       Approval Rate
                     </p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {trustMetrics.eventsApproved &&
-                      trustMetrics.eventsCreated
+                    <p className="text-lg font-bold text-green-400">
+                      {trustMetrics.eventsApproved && trustMetrics.eventsCreated
                         ? Math.round(
                             (trustMetrics.eventsApproved /
                               trustMetrics.eventsCreated) *
@@ -198,11 +193,31 @@ export default function OrganizerReputationPage({ params }) {
                   </div>
 
                   <div className="text-center">
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-[#9ca3af] mb-2">
                       Total Events
                     </p>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-lg font-bold text-blue-400">
                       {trustMetrics.eventsCreated || 0}
+                    </p>
+                  </div>
+
+                  <div className="text-center">
+                    <p className="text-xs text-[#9ca3af] mb-2">
+                      Approved Events
+                    </p>
+                    <p className="text-lg font-bold text-green-400">
+                      {trustMetrics.eventsApproved || 0}
+                    </p>
+                  </div>
+
+                  <div className="text-center">
+                    <p className="text-xs text-[#9ca3af] mb-2">
+                      Avg Rating
+                    </p>
+                    <p className="text-lg font-bold text-yellow-400">
+                      {trustMetrics.averageRating
+                        ? trustMetrics.averageRating.toFixed(1)
+                        : 'N/A'}
                     </p>
                   </div>
                 </div>
@@ -213,7 +228,7 @@ export default function OrganizerReputationPage({ params }) {
                 <button
                   onClick={() => setShowSuspendModal(true)}
                   disabled={isSuspended}
-                  className="flex-1 px-4 py-2 bg-red-600 dark:bg-red-700 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-800 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
                 >
                   {isSuspended ? 'Already Suspended' : 'Suspend Organizer'}
                 </button>
@@ -222,30 +237,30 @@ export default function OrganizerReputationPage({ params }) {
           </div>
 
           {/* Stats Grid */}
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-gray-200 dark:border-gray-700 pt-6">
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-[#3a1a1a] pt-6">
             <div className="text-center">
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
+              <p className="text-[#9ca3af] text-sm">
                 Active Flags
               </p>
-              <p className="text-2xl font-bold text-red-600 mt-1">
+              <p className="text-2xl font-bold text-red-400 mt-1">
                 {trustMetrics.currentFlags || 0}
               </p>
             </div>
 
             <div className="text-center">
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
+              <p className="text-[#9ca3af] text-sm">
                 Total Suspensions
               </p>
-              <p className="text-2xl font-bold text-orange-600 mt-1">
+              <p className="text-2xl font-bold text-orange-400 mt-1">
                 {trustMetrics.suspensions || 0}
               </p>
             </div>
 
             <div className="text-center">
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
+              <p className="text-[#9ca3af] text-sm">
                 Avg Rating
               </p>
-              <p className="text-2xl font-bold text-yellow-600 mt-1">
+              <p className="text-2xl font-bold text-yellow-400 mt-1">
                 {trustMetrics.averageRating
                   ? trustMetrics.averageRating.toFixed(1)
                   : 'N/A'}
@@ -253,10 +268,10 @@ export default function OrganizerReputationPage({ params }) {
             </div>
 
             <div className="text-center">
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
+              <p className="text-[#9ca3af] text-sm">
                 Resolved Issues
               </p>
-              <p className="text-2xl font-bold text-green-600 mt-1">
+              <p className="text-2xl font-bold text-green-400 mt-1">
                 {trustMetrics.resolvedIssues || 0}
               </p>
             </div>
@@ -265,8 +280,8 @@ export default function OrganizerReputationPage({ params }) {
       )}
 
       {/* Audit Trail */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+      <div className="bg-[var(--admin-surface)] rounded-lg border border-[#3a1a1a] p-6">
+        <h2 className="text-lg font-semibold text-white mb-4">
           Activity Timeline
         </h2>
 
@@ -275,7 +290,7 @@ export default function OrganizerReputationPage({ params }) {
             {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
-                className="h-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
+                className="h-12 bg-[#3a1a1a] rounded animate-pulse"
               />
             ))}
           </div>
@@ -284,24 +299,24 @@ export default function OrganizerReputationPage({ params }) {
             {auditData.logs.map((log) => (
               <div
                 key={log._id}
-                className="flex gap-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
+                className="flex gap-4 p-3 bg-[#2a2a2a] rounded-lg border border-[#3a1a1a]"
               >
                 <div className="flex-shrink-0">
-                  <Clock className="text-gray-400" size={18} />
+                  <Clock className="text-[#9ca3af]" size={18} />
                 </div>
 
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="font-medium text-white">
                       {log.action}
                     </p>
-                    <span className="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-2 py-0.5 rounded">
+                    <span className="text-xs bg-[#5a3a3a] text-yellow-300 px-2 py-0.5 rounded">
                       {log.entityType}
                     </span>
                   </div>
 
                   {log.changes && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="text-sm text-[#9ca3af] mt-1">
                       {Object.entries(log.changes)
                         .map(
                           ([key, val]) =>
@@ -311,7 +326,7 @@ export default function OrganizerReputationPage({ params }) {
                     </p>
                   )}
 
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  <p className="text-xs text-[#6b7280] mt-1">
                     {new Date(log.timestamp).toLocaleString()}
                   </p>
                 </div>
@@ -319,13 +334,13 @@ export default function OrganizerReputationPage({ params }) {
             ))}
 
             {auditData.logs.length > 10 && (
-              <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-4">
+              <p className="text-center text-sm text-[#9ca3af] mt-4">
                 Showing 10 most recent activities
               </p>
             )}
           </div>
         ) : (
-          <p className="text-gray-600 dark:text-gray-400 text-center py-6">
+          <p className="text-[#9ca3af] text-center py-6">
             No activity yet
           </p>
         )}
@@ -334,18 +349,18 @@ export default function OrganizerReputationPage({ params }) {
       {/* Suspend Modal */}
       {showSuspendModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-96 space-y-4">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+          <div className="bg-[var(--admin-surface)] rounded-lg p-6 w-96 space-y-4 border border-[#3a1a1a]">
+            <h3 className="text-lg font-bold text-white">
               Suspend Organizer
             </h3>
 
-            <p className="text-gray-600 dark:text-gray-400">
-              {organizer?.fullName} will not be able to create events during
+            <p className="text-[#9ca3af]">
+              {getOrganizerName()} will not be able to create events during
               suspension.
             </p>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-white mb-2">
                 Suspension Duration (days)
               </label>
               <input
@@ -354,14 +369,14 @@ export default function OrganizerReputationPage({ params }) {
                 max="365"
                 value={suspensionDays}
                 onChange={(e) => setSuspensionDays(Math.max(1, parseInt(e.target.value) || 30))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-[#3a1a1a] rounded-lg bg-[#2a2a2a] text-white"
               />
             </div>
 
             <div className="flex gap-3">
               <button
                 onClick={() => setShowSuspendModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="flex-1 px-4 py-2 border border-[#3a1a1a] rounded-lg hover:bg-[#3a3a3a] text-white"
               >
                 Cancel
               </button>
