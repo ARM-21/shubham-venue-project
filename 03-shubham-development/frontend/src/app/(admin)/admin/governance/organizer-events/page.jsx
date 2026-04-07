@@ -11,7 +11,7 @@ import {
   rejectOrganizerEvent,
   suspendOrganizerEvent,
 } from '@api/governance/organizer-events-api';
-import { EventStatusBadge, TrustScoreBadge } from 'components/admin/governance/GovernanceComponents';
+import { EventStatusBadge, TrustScoreBadge, ActionBadge } from 'components/admin/governance/GovernanceComponents';
 import { toast } from 'sonner';
 import AdminTopbar from 'components/admin/dashboard/AdminTopbar';
 import {
@@ -24,11 +24,37 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
+  Zap,
 } from 'lucide-react';
+
+// Helper function to get organizer name
+const getOrganizerName = (organizer) => {
+  if (!organizer) return 'Unknown Organizer';
+  if (organizer.firstName && organizer.lastName) {
+    return `${organizer.firstName} ${organizer.lastName}`;
+  }
+  return organizer.email || 'Unknown Organizer';
+};
+
+// Helper function to safely format date
+const formatDate = (dateString) => {
+  if (!dateString) return 'Invalid Date';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return 'Invalid Date';
+  }
+};
 
 export default function OrganizerEventsPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('pending'); // pending, published, rejected, suspended
+  const [statusFilter, setStatusFilter] = useState('PENDING_REVIEW'); // PENDING_REVIEW, PUBLISHED, CANCELLED, SUSPENDED
   const [sortBy, setSortBy] = useState('createdAt'); // createdAt, eventDate, organizer
   const [page, setPage] = useState(1);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -92,11 +118,12 @@ export default function OrganizerEventsPage() {
         case 'createdAt':
           return new Date(b.createdAt) - new Date(a.createdAt);
         case 'eventDate':
-          return new Date(a.eventDate) - new Date(b.eventDate);
+          return new Date(a.eventDate || a.startDateTime) - new Date(b.eventDate || b.startDateTime);
         case 'organizer':
           return (
-            (a.organizer?.fullName || 'Unknown') -
-            (b.organizer?.fullName || 'Unknown')
+            getOrganizerName(a.organizerId).localeCompare(
+              getOrganizerName(b.organizerId)
+            )
           );
         default:
           return 0;
@@ -132,13 +159,13 @@ export default function OrganizerEventsPage() {
 
   if (error)
     return (
-      <div className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded-lg">
-        <p className="text-red-800 dark:text-red-200">
+      <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-xl">
+        <p className="text-red-400 font-medium">
           Failed to load events. Try again.
         </p>
         <button
           onClick={() => refetch()}
-          className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition"
         >
           Retry
         </button>
@@ -153,77 +180,97 @@ export default function OrganizerEventsPage() {
         <div className="max-w-7xl mx-auto space-y-6 pb-12">
           {/* Header */}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-4xl font-bold text-white">
               Event Management
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Review and approve organizer events
+            <p className="text-[#9ca3af] mt-2">
+              Review organizer events pending approval or address flagged concerns
             </p>
           </div>
 
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Pending Review
-              </div>
-              <div className="text-3xl font-bold text-blue-600 mt-2">
-                {eventsData?.stats?.pending || 0}
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Published
-              </div>
-              <div className="text-3xl font-bold text-green-600 mt-2">
-                {eventsData?.stats?.published || 0}
+            <div className="bg-gradient-to-br from-yellow-600 to-yellow-700 rounded-xl p-6 border border-yellow-500/30 hover:border-yellow-400/60 transition-all group">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-yellow-100 group-hover:text-yellow-50 transition">
+                    Pending Review
+                  </div>
+                  <div className="text-4xl font-bold text-white mt-2">
+                    {eventsData?.stats?.pending || 0}
+                  </div>
+                </div>
+                <Clock className="w-12 h-12 opacity-20 group-hover:opacity-30 transition" />
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Suspended
-              </div>
-              <div className="text-3xl font-bold text-red-600 mt-2">
-                {eventsData?.stats?.suspended || 0}
+            <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl p-6 border border-emerald-500/30 hover:border-emerald-400/60 transition-all group">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-emerald-100 group-hover:text-emerald-50 transition">
+                    Published
+                  </div>
+                  <div className="text-4xl font-bold text-white mt-2">
+                    {eventsData?.stats?.published || 0}
+                  </div>
+                </div>
+                <CheckCircle className="w-12 h-12 opacity-20 group-hover:opacity-30 transition" />
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Events
+            <div className="bg-gradient-to-br from-red-600 to-red-700 rounded-xl p-6 border border-red-500/30 hover:border-red-400/60 transition-all group">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-red-100 group-hover:text-red-50 transition">
+                    Suspended
+                  </div>
+                  <div className="text-4xl font-bold text-white mt-2">
+                    {eventsData?.stats?.suspended || 0}
+                  </div>
+                </div>
+                <AlertTriangle className="w-12 h-12 opacity-20 group-hover:opacity-30 transition" />
               </div>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                {eventsData?.totalCount || 0}
+            </div>
+
+            <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 border border-blue-500/30 hover:border-blue-400/60 transition-all group">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-blue-100 group-hover:text-blue-50 transition">
+                    Total Events
+                  </div>
+                  <div className="text-4xl font-bold text-white mt-2">
+                    {eventsData?.totalCount || 0}
+                  </div>
+                </div>
+                <Zap className="w-12 h-12 opacity-20 group-hover:opacity-30 transition" />
               </div>
             </div>
           </div>
 
           {/* Filters */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 space-y-4">
-            <div className="flex gap-4 flex-wrap">
+          <div className="bg-[var(--admin-surface)] rounded-xl p-5 border border-[#3a1a1a] space-y-4">
+            <div className="flex gap-3 flex-wrap items-end">
               <div className="flex-1 min-w-xs">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Search
+                <label className="block text-sm font-medium text-white mb-2">
+                  Search Events
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+                  <Search className="absolute left-3 top-3 text-[#6b7280]" size={18} />
                   <input
                     type="text"
-                    placeholder="Search by event name or organizer..."
+                    placeholder="Event name or organizer..."
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
                       setPage(1);
                     }}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                    className="w-full pl-10 pr-4 py-2.5 border border-[#3a1a1a] rounded-lg bg-[#1a0808] text-white placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)] focus:border-transparent transition"
                   />
                 </div>
               </div>
 
-              <div className="w-40">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <div className="w-44">
+                <label className="block text-sm font-medium text-white mb-2">
                   Status
                 </label>
                 <select
@@ -232,23 +279,23 @@ export default function OrganizerEventsPage() {
                     setStatusFilter(e.target.value);
                     setPage(1);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full px-3 py-2.5 border border-[#3a1a1a] rounded-lg bg-[#1a0808] text-white focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)] focus:border-transparent transition cursor-pointer"
                 >
-                  <option value="pending">Pending Review</option>
-                  <option value="published">Published</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="suspended">Suspended</option>
+                  <option value="PENDING_REVIEW">Pending Review</option>
+                  <option value="PUBLISHED">Published</option>
+                  <option value="CANCELLED">Rejected</option>
+                  <option value="SUSPENDED">Suspended</option>
                 </select>
               </div>
 
-              <div className="w-40">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <div className="w-44">
+                <label className="block text-sm font-medium text-white mb-2">
                   Sort By
                 </label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full px-3 py-2.5 border border-[#3a1a1a] rounded-lg bg-[#1a0808] text-white focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)] focus:border-transparent transition cursor-pointer"
                 >
                   <option value="createdAt">Recently Created</option>
                   <option value="eventDate">Event Date</option>
@@ -260,52 +307,53 @@ export default function OrganizerEventsPage() {
 
           {/* Events Table */}
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"
+                  className="h-32 bg-[var(--admin-surface)] rounded-xl border border-[#3a1a1a] animate-pulse"
                 />
               ))}
             </div>
           ) : sortedEvents.length === 0 ? (
-            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <Filter className="mx-auto text-gray-400 mb-3" size={48} />
-              <p className="text-gray-600 dark:text-gray-400">No events found</p>
+            <div className="text-center py-12 bg-[var(--admin-surface)] rounded-xl border border-[#3a1a1a]">
+              <Filter className="mx-auto text-[#6b7280] mb-3" size={48} />
+              <p className="text-[#9ca3af] font-medium">No events found</p>
+              <p className="text-sm text-[#6b7280] mt-1">Try adjusting your filters or search terms</p>
             </div>
           ) : (
             <div className="space-y-4">
               {sortedEvents.map((event) => (
                 <div
                   key={event._id}
-                  className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-lg transition"
+                  className="bg-[var(--admin-surface)] rounded-xl border border-[#3a1a1a] p-5 hover:border-[var(--admin-primary)]/50 transition-all"
                 >
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
                     {/* Event Info */}
                     <div className="md:col-span-4">
                       <Link href={`/events/${event._id}`} target="_blank">
-                        <h3 className="font-semibold text-gray-900 dark:text-white hover:text-yellow-600 cursor-pointer">
+                        <h3 className="font-semibold text-white hover:text-[var(--admin-primary)] cursor-pointer line-clamp-2 transition">
                           {event.name}
                         </h3>
                       </Link>
 
-                      <div className="space-y-1 mt-2 text-sm">
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                          <Users size={16} />
-                          <span>
-                            {event.organizer?.fullName || 'Unknown Organizer'}
+                      <div className="space-y-1.5 mt-3 text-sm">
+                        <div className="flex items-center gap-2 text-[#9ca3af]">
+                          <Users size={16} className="flex-shrink-0" />
+                          <span className="line-clamp-1">
+                            {getOrganizerName(event.organizerId)}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                          <MapPin size={16} />
-                          <span>{event.hall?.name || 'Unknown Hall'}</span>
+                        <div className="flex items-center gap-2 text-[#9ca3af]">
+                          <MapPin size={16} className="flex-shrink-0" />
+                          <span className="line-clamp-1">{event.hallId?.name || 'Unknown Hall'}</span>
                         </div>
 
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                          <Calendar size={16} />
+                        <div className="flex items-center gap-2 text-[#9ca3af]">
+                          <Calendar size={16} className="flex-shrink-0" />
                           <span>
-                            {new Date(event.eventDate).toLocaleDateString()}
+                            {formatDate(event.eventDate || event.startDateTime)}
                           </span>
                         </div>
                       </div>
@@ -313,12 +361,12 @@ export default function OrganizerEventsPage() {
 
                     {/* Trust Score */}
                     <div className="md:col-span-2">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                      <p className="text-xs text-[#9ca3af] mb-2 font-medium">
                         Organizer Trust
                       </p>
                       <TrustScoreBadge
                         score={
-                          event.organizer?.trustMetrics?.trustScore || 0
+                          event.organizerId?.trustMetrics?.trustScore || 3
                         }
                       />
                     </div>
@@ -326,57 +374,57 @@ export default function OrganizerEventsPage() {
                     {/* Status & Meta */}
                     <div className="md:col-span-2 space-y-2">
                       <div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        <p className="text-xs text-[#9ca3af] mb-1.5 font-medium">
                           Status
                         </p>
                         <EventStatusBadge status={event.status} />
                       </div>
 
                       <div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        <p className="text-xs text-[#9ca3af] mb-1.5 font-medium">
                           Created
                         </p>
-                        <p className="text-sm text-gray-900 dark:text-white">
-                          {new Date(event.createdAt).toLocaleDateString()}
+                        <p className="text-sm text-white">
+                          {formatDate(event.createdAt)}
                         </p>
                       </div>
                     </div>
 
                     {/* Actions */}
                     <div className="md:col-span-4 flex gap-2">
-                      {event.status === 'pending_review' && (
+                      {event.status === 'PENDING_REVIEW' && (
                         <>
                           <button
                             onClick={() => handleAction(event, 'approve')}
-                            className="flex-1 px-3 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-800 text-sm font-medium transition"
+                            className="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition flex items-center justify-center gap-1"
                           >
-                            <CheckCircle size={16} className="inline mr-1" />
+                            <CheckCircle size={16} />
                             Approve
                           </button>
 
                           <button
                             onClick={() => handleAction(event, 'reject')}
-                            className="flex-1 px-3 py-2 bg-red-600 dark:bg-red-700 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-800 text-sm font-medium transition"
+                            className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition flex items-center justify-center gap-1"
                           >
-                            <XCircle size={16} className="inline mr-1" />
+                            <XCircle size={16} />
                             Reject
                           </button>
                         </>
                       )}
 
-                      {event.status === 'published' && (
+                      {event.status === 'PUBLISHED' && (
                         <button
                           onClick={() => handleAction(event, 'suspend')}
-                          className="flex-1 px-3 py-2 bg-orange-600 dark:bg-orange-700 text-white rounded-lg hover:bg-orange-700 dark:hover:bg-orange-800 text-sm font-medium transition"
+                          className="flex-1 px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition flex items-center justify-center gap-1"
                         >
-                          <AlertTriangle size={16} className="inline mr-1" />
+                          <AlertTriangle size={16} />
                           Suspend
                         </button>
                       )}
 
                       <Link
                         href={`/admin/governance/flags?eventId=${event._id}`}
-                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium transition"
+                        className="px-3 py-2 border border-[#3a1a1a] hover:border-[var(--admin-primary)]/50 hover:bg-[#2a1010] rounded-lg text-sm font-medium transition text-[#9ca3af] hover:text-white"
                       >
                         Flags
                       </Link>
@@ -389,15 +437,15 @@ export default function OrganizerEventsPage() {
 
           {/* Pagination */}
           {eventsData?.totalPages > 1 && (
-            <div className="flex justify-center gap-2">
+            <div className="flex justify-center items-center gap-3">
               <button
                 onClick={() => setPage(Math.max(1, page - 1))}
                 disabled={page === 1}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50"
+                className="px-4 py-2 border border-[#3a1a1a] hover:border-[var(--admin-primary)]/50 hover:bg-[#2a1010] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-[#9ca3af] hover:text-white font-medium transition"
               >
-                Previous
+                ← Previous
               </button>
-              <span className="px-4 py-2 text-gray-600 dark:text-gray-400">
+              <span className="px-4 py-2 text-[#9ca3af] font-medium text-sm">
                 Page {page} of {eventsData?.totalPages}
               </span>
               <button
@@ -405,9 +453,9 @@ export default function OrganizerEventsPage() {
                   setPage(Math.min(eventsData?.totalPages, page + 1))
                 }
                 disabled={page === eventsData?.totalPages}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50"
+                className="px-4 py-2 border border-[#3a1a1a] hover:border-[var(--admin-primary)]/50 hover:bg-[#2a1010] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-[#9ca3af] hover:text-white font-medium transition"
               >
-                Next
+                Next →
               </button>
             </div>
           )}
@@ -415,40 +463,36 @@ export default function OrganizerEventsPage() {
           {/* Confirmation Modal */}
           {showModal && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-96 space-y-4">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  {modalAction === 'approve' && 'Approve Event?'}
-                  {modalAction === 'reject' && 'Reject Event?'}
-                  {modalAction === 'suspend' && 'Suspend Event?'}
-                </h3>
+              <div className="bg-[var(--admin-surface)] rounded-xl p-6 w-96 space-y-4 shadow-2xl border border-[#3a1a1a]">
+                <ActionBadge action={modalAction} />
 
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-white font-medium text-sm">
                   {selectedEvent?.name}
                 </p>
 
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-[#9ca3af] leading-relaxed">
                   {modalAction === 'approve' &&
-                    'Event will be published and visible to customers.'}
+                    'This event will be published immediately and become visible to all customers.'}
                   {modalAction === 'reject' &&
-                    'Event will be rejected and organizer will be notified.'}
+                    'This event will be rejected and the organizer will be notified. The booking will remain active.'}
                   {modalAction === 'suspend' &&
-                    'Event will be suspended and customers cannot book it.'}
+                    'This event will be suspended and customers cannot book it. The organizer will be notified.'}
                 </p>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 pt-4">
                   <button
                     onClick={() => setShowModal(false)}
                     disabled={approveMutation.isPending || rejectMutation.isPending || suspendMutation.isPending}
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                    className="flex-1 px-4 py-2.5 border border-[#3a1a1a] hover:border-[var(--admin-primary)]/50 hover:bg-[#2a1010] rounded-lg text-[#9ca3af] hover:text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={executeAction}
                     disabled={approveMutation.isPending || rejectMutation.isPending || suspendMutation.isPending}
-                    className={`flex-1 px-4 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+                    className={`flex-1 px-4 py-2.5 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed font-medium transition ${
                       modalAction === 'approve'
-                        ? 'bg-green-600 hover:bg-green-700'
+                        ? 'bg-emerald-600 hover:bg-emerald-700'
                         : modalAction === 'reject'
                           ? 'bg-red-600 hover:bg-red-700'
                           : 'bg-orange-600 hover:bg-orange-700'

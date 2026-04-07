@@ -10,7 +10,7 @@ const adminNotificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["organizer_request"],
+      enum: ["organizer_request", "event_pending_approval", "event_approved", "event_rejected"],
       required: true,
     },
     title: {
@@ -43,6 +43,14 @@ const adminNotificationSchema = new mongoose.Schema(
     actionPath: {
       type: String,
       trim: true,
+    },
+    eventId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "OrganizerEvent",
+    },
+    organizerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
     isRead: {
       type: Boolean,

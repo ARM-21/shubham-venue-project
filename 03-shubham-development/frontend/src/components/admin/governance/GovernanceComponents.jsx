@@ -1,17 +1,17 @@
-import { AlertTriangle, CheckCircle, Clock, Zap } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, Clock, Zap, AlertCircle, Info, Lightbulb } from 'lucide-react';
 
 const severityConfig = {
-  critical: { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5', icon: '🚨' },
-  high: { bg: '#fef3c7', text: '#92400e', border: '#fcd34d', icon: '⚠️' },
-  medium: { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', icon: 'ℹ️' },
-  low: { bg: '#dcfce7', text: '#166534', border: '#86efac', icon: '💡' },
+  critical: { bg: '#7f1d1d', text: '#fca5a5', border: '#f87171', icon: AlertCircle },
+  high: { bg: '#78350f', text: '#fcd34d', border: '#f59e0b', icon: AlertTriangle },
+  medium: { bg: '#1e3a8a', text: '#93c5fd', border: '#60a5fa', icon: Info },
+  low: { bg: '#064e3b', text: '#86efac', border: '#4ade80', icon: Lightbulb },
 };
 
 const statusConfig = {
-  open: { label: 'Open', color: '#ef4444', bg: '#fee2e2' },
-  investigating: { label: 'Investigating', color: '#f59e0b', bg: '#fef3c7' },
-  resolved: { label: 'Resolved', color: '#10b981', bg: '#dcfce7' },
-  dismissed: { label: 'Dismissed', color: '#8b5cf6', bg: '#ede9fe' },
+  open: { label: 'Open', color: '#f87171', bg: '#7f1d1d' },
+  investigating: { label: 'Investigating', color: '#f59e0b', bg: '#78350f' },
+  resolved: { label: 'Resolved', color: '#4ade80', bg: '#064e3b' },
+  dismissed: { label: 'Dismissed', color: '#a78bfa', bg: '#5b21b6' },
 };
 
 export function FlagCard({ flag, onClick, isSelected }) {
@@ -21,38 +21,38 @@ export function FlagCard({ flag, onClick, isSelected }) {
   return (
     <div
       onClick={onClick}
-      className={`p-4 rounded-lg border-l-4 cursor-pointer transition-all ${
+      className={`p-5 rounded-xl border-l-4 cursor-pointer transition-all ${
         isSelected
-          ? 'bg-blue-50 border-blue-500 shadow-md'
-          : 'bg-white border-gray-200 hover:bg-gray-50 border-l-4'
+          ? 'bg-[#1a0808] border-[var(--admin-primary)] shadow-md'
+          : 'bg-[var(--admin-surface)] border-[#3a1a1a] hover:border-[var(--admin-primary)]/50 border-l-4'
       }`}
       style={{ borderLeftColor: severity.border }}
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">{severity.icon}</span>
+          {severity.icon && <severity.icon className="w-6 h-6 mt-0.5 flex-shrink-0" style={{ color: severity.text }} />}
           <div>
-            <h4 className="font-semibold text-gray-900">{flag.eventId?.name || 'Unknown Event'}</h4>
-            <p className="text-sm text-gray-600 capitalize">{flag.reason.replace(/_/g, ' ')}</p>
+            <h4 className="font-semibold text-white">{flag.eventId?.name || 'Unknown Event'}</h4>
+            <p className="text-sm text-[#9ca3af] capitalize">{flag.reason.replace(/_/g, ' ')}</p>
           </div>
         </div>
         <div className="flex gap-2">
           <span
-            className="px-2 py-1 text-xs font-semibold rounded"
-            style={{ backgroundColor: severity.bg, color: severity.text }}
+            className="px-3 py-1.5 text-xs font-semibold rounded border"
+            style={{ backgroundColor: severity.bg, color: severity.text, borderColor: severity.border }}
           >
             {flag.severity.toUpperCase()}
           </span>
           <span
-            className="px-2 py-1 text-xs font-semibold rounded"
-            style={{ backgroundColor: status.bg, color: status.color }}
+            className="px-3 py-1.5 text-xs font-semibold rounded border"
+            style={{ backgroundColor: status.bg, color: status.color, borderColor: status.color + '50' }}
           >
             {status.label}
           </span>
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className="flex items-center justify-between text-xs text-[#9ca3af]">
         <span>By: {flag.flaggedBy?.email || 'Admin'}</span>
         <span>{new Date(flag.flaggedAt).toLocaleDateString()}</span>
       </div>
@@ -113,25 +113,25 @@ export function FlagInvestigationTimeline({ timeline = [] }) {
 
 export function GovStatCard({ icon: Icon, label, value, trend, color = 'blue' }) {
   const colorMap = {
-    red: 'from-red-500 to-red-600',
-    green: 'from-green-500 to-green-600',
-    yellow: 'from-yellow-500 to-yellow-600',
-    blue: 'from-blue-500 to-blue-600',
+    red: 'from-red-600 to-red-700 border-red-500/30 hover:border-red-400/60',
+    green: 'from-emerald-600 to-emerald-700 border-emerald-500/30 hover:border-emerald-400/60',
+    yellow: 'from-yellow-600 to-yellow-700 border-yellow-500/30 hover:border-yellow-400/60',
+    blue: 'from-blue-600 to-blue-700 border-blue-500/30 hover:border-blue-400/60',
   };
 
   return (
-    <div className={`bg-gradient-to-br ${colorMap[color]} rounded-lg p-6 text-white`}>
+    <div className={`bg-gradient-to-br ${colorMap[color]} rounded-xl p-6 text-white border transition-all group`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-white/80 text-sm font-medium mb-2">{label}</p>
-          <p className="text-3xl font-bold">{value}</p>
+          <p className="text-white/80 text-sm font-medium mb-2 group-hover:text-white/90 transition">{label}</p>
+          <p className="text-4xl font-bold">{value}</p>
           {trend && (
             <p className={`text-sm mt-2 ${trend > 0 ? 'text-green-200' : 'text-red-200'}`}>
               {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}% from last week
             </p>
           )}
         </div>
-        <Icon className="w-12 h-12 opacity-20" />
+        <Icon className="w-12 h-12 opacity-20 group-hover:opacity-30 transition" />
       </div>
     </div>
   );
@@ -139,18 +139,18 @@ export function GovStatCard({ icon: Icon, label, value, trend, color = 'blue' })
 
 export function TrustScoreBadge({ score, requiresApproval }) {
   const getColor = (score) => {
-    if (score >= 4) return 'text-green-600 bg-green-50';
-    if (score >= 3) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
+    if (score >= 4) return 'text-emerald-400 bg-emerald-500/20 border border-emerald-500/30';
+    if (score >= 3) return 'text-yellow-400 bg-yellow-500/20 border border-yellow-500/30';
+    return 'text-red-400 bg-red-500/20 border border-red-500/30';
   };
 
   return (
     <div className="flex items-center gap-2">
-      <div className={`px-2 py-1 rounded-full text-sm font-semibold ${getColor(score)}`}>
+      <div className={`px-3 py-1.5 rounded-full text-sm font-semibold ${getColor(score)}`}>
         {score.toFixed(1)} ⭐
       </div>
       {requiresApproval && (
-        <span className="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full">
+        <span className="px-3 py-1.5 bg-blue-500/20 text-blue-400 text-xs font-semibold rounded-full border border-blue-500/30">
           Requires Approval
         </span>
       )}
@@ -160,17 +160,17 @@ export function TrustScoreBadge({ score, requiresApproval }) {
 
 export function EventStatusBadge({ status }) {
   const statusMap = {
-    DRAFT: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Draft' },
-    PENDING_REVIEW: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Pending Review' },
-    PUBLISHED: { bg: 'bg-green-100', text: 'text-green-700', label: 'Published' },
-    SUSPENDED: { bg: 'bg-red-100', text: 'text-red-700', label: 'Suspended' },
-    CANCELLED: { bg: 'bg-gray-200', text: 'text-gray-700', label: 'Cancelled' },
+    DRAFT: { bg: 'bg-gray-500/20', text: 'text-gray-300', label: 'Draft', border: 'border-gray-500/30' },
+    PENDING_REVIEW: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Pending Review', border: 'border-blue-500/30' },
+    PUBLISHED: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Published', border: 'border-emerald-500/30' },
+    SUSPENDED: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Suspended', border: 'border-red-500/30' },
+    CANCELLED: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Cancelled', border: 'border-orange-500/30' },
   };
 
   const config = statusMap[status] || statusMap.DRAFT;
 
   return (
-    <span className={`${config.bg} ${config.text} px-2 py-1 rounded text-xs font-semibold`}>
+    <span className={`${config.bg} ${config.text} px-3 py-1.5 rounded-lg text-xs font-semibold border ${config.border}`}>
       {config.label}
     </span>
   );
@@ -197,6 +197,42 @@ export function SuspensionStatusBadge({ suspensionStatus, suspensionEndDate }) {
       {suspensionStatus === 'temporary' && daysLeft > 0 && (
         <span className="text-xs text-gray-600">({daysLeft} days left)</span>
       )}
+    </div>
+  );
+}
+
+export function ActionBadge({ action }) {
+  const actionConfig = {
+    approve: {
+      icon: CheckCircle,
+      bg: 'bg-emerald-50',
+      text: 'text-emerald-700',
+      borderText: 'border-emerald-300',
+      label: 'Approve Event',
+    },
+    reject: {
+      icon: XCircle,
+      bg: 'bg-red-50',
+      text: 'text-red-700',
+      borderText: 'border-red-300',
+      label: 'Reject Event',
+    },
+    suspend: {
+      icon: AlertTriangle,
+      bg: 'bg-orange-50',
+      text: 'text-orange-700',
+      borderText: 'border-orange-300',
+      label: 'Suspend Event',
+    },
+  };
+
+  const config = actionConfig[action] || actionConfig.approve;
+  const Icon = config.icon;
+
+  return (
+    <div className={`flex items-center gap-2 ${config.bg} px-3 py-2 rounded-lg border ${config.borderText}`}>
+      <Icon size={20} className={config.text} />
+      <span className={`font-semibold ${config.text}`}>{config.label}?</span>
     </div>
   );
 }
