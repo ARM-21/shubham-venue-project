@@ -19,6 +19,7 @@ import organizerRequestRoutes from "./organizer/organizer-requests.routes.js"
 import organizerRoutes from "./organizer/organizer.routes.js"
 import reviewRoutes from "./review/review.routes.js"
 import scannerRoutes from "./scanner/scanner.routes.js"
+import eventReportsRoutes from "./report/event-reports.routes.js"
 
 const router = express.Router();
 
@@ -49,5 +50,6 @@ router.use("/organizer", organizerRoutes)
 router.use("/admin", adminRoutes)
 router.use("/reviews", reviewRoutes)
 router.use("/scanner", scannerRoutes)
+router.use("/event-reports", eventReportsRoutes)
 
 export default router;

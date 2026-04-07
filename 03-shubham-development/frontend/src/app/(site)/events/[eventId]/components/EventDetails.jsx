@@ -1,5 +1,6 @@
-import { Calendar, Clock, Users, Building2, Tag, AlertCircle, ChefHat, Palette } from "lucide-react";
+import { Calendar, Clock, Users, Building2, Tag, AlertCircle, ChefHat, Palette, Flag } from "lucide-react";
 import { SLOT_TIMES } from "constants/slots";
+import ReportEventButton from "components/events/ReportEventButton";
 
 export function EventDetails({ event, formatDateTime, hallName }) {
   const calculateDuration = (start, end) => {
@@ -42,6 +43,17 @@ export function EventDetails({ event, formatDateTime, hallName }) {
 
   return (
     <div className="space-y-8">
+      {/* Action Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl lg:text-4xl font-display font-bold text-[#3a1224]">{event.name}</h2>
+          <p className="text-[#3a1224]/60 mt-2 text-sm">{event.description?.substring(0, 100)}...</p>
+        </div>
+        <div className="flex-shrink-0">
+          <ReportEventButton eventId={event._id} eventName={event.name} />
+        </div>
+      </div>
+
       {/* Main Details Card */}
       <div className="bg-gradient-to-br from-white to-[#fdfaf6] rounded-[2.5rem] shadow-[0_20px_50px_rgba(58,18,36,0.06)] border border-white/50 p-8 lg:p-12 xl:p-16">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">

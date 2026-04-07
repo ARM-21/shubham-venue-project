@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   useQueryOrganizerEventsReview,
 } from '@queries/admin/governance.queries';
@@ -25,6 +25,7 @@ import {
   XCircle,
   AlertTriangle,
   Zap,
+  RefreshCw,
 } from 'lucide-react';
 
 // Helper function to get organizer name
@@ -53,13 +54,18 @@ const formatDate = (dateString) => {
 };
 
 export default function OrganizerEventsPage() {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('PENDING_REVIEW'); // PENDING_REVIEW, PUBLISHED, CANCELLED, SUSPENDED
+  const [statusFilter, setStatusFilter] = useState('all'); // all, PENDING_REVIEW, PUBLISHED, CANCELLED, SUSPENDED
   const [sortBy, setSortBy] = useState('createdAt'); // createdAt, eventDate, organizer
   const [page, setPage] = useState(1);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [modalAction, setModalAction] = useState(''); // approve, reject, suspend
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Convert statusFilter to API parameter (undefined for 'all')
+  const statusParam = statusFilter === 'all' ? undefined : statusFilter;
 
   const {
     data: eventsData,
@@ -68,9 +74,34 @@ export default function OrganizerEventsPage() {
     refetch,
   } = useQueryOrganizerEventsReview({
     page,
-    status: statusFilter,
+    status: statusParam,
     search: searchTerm,
   });
+
+  // Calculate event stats by counting events by status
+  const eventStats = useMemo(() => {
+    if (!eventsData?.events) {
+      return {
+        pending: 0,
+        published: 0,
+        suspended: 0,
+        total: 0,
+      };
+    }
+
+    const events = eventsData.events;
+    const pending = events.filter((e) => e.status === 'PENDING_REVIEW' || e.status === 'DRAFT').length;
+    const published = events.filter((e) => e.status === 'PUBLISHED').length;
+    const suspended = events.filter((e) => e.status === 'SUSPENDED').length;
+    const total = events.length;
+
+    return {
+      pending,
+      published,
+      suspended,
+      total,
+    };
+  }, [eventsData?.events]);
 
   const approveMutation = useMutation({
     mutationFn: (eventId) => approveOrganizerEvent(eventId),
@@ -157,6 +188,19 @@ export default function OrganizerEventsPage() {
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        refetch(),
+        queryClient.invalidateQueries({ queryKey: ['organizerEventsReview'] }),
+      ]);
+      toast.success('Data refreshed successfully');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   if (error)
     return (
       <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-xl">
@@ -180,12 +224,31 @@ export default function OrganizerEventsPage() {
         <div className="max-w-7xl mx-auto space-y-6 pb-12">
           {/* Header */}
           <div>
-            <h1 className="text-4xl font-bold text-white">
-              Event Management
-            </h1>
-            <p className="text-[#9ca3af] mt-2">
-              Review organizer events pending approval or address flagged concerns
-            </p>
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-4xl font-bold text-white">
+                  Event Management
+                </h1>
+                <p className="text-[#9ca3af] mt-2">
+                  Review organizer events pending approval or address flagged concerns
+                </p>
+              </div>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className={`w-12 h-12 flex items-center justify-center rounded-full border border-[#3a1a1a] bg-[var(--admin-surface)] hover:border-[var(--admin-primary)]/50 transition-all ${
+                  isRefreshing ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[#1a0808]'
+                }`}
+                title="Refresh data"
+              >
+                <RefreshCw
+                  size={20}
+                  className={`text-[var(--admin-primary)] transition-transform ${
+                    isRefreshing ? 'animate-spin' : ''
+                  }`}
+                />
+              </button>
+            </div>
           </div>
 
           {/* Stats */}
@@ -197,7 +260,7 @@ export default function OrganizerEventsPage() {
                     Pending Review
                   </div>
                   <div className="text-4xl font-bold text-white mt-2">
-                    {eventsData?.stats?.pending || 0}
+                    {eventStats.pending}
                   </div>
                 </div>
                 <Clock className="w-12 h-12 opacity-20 group-hover:opacity-30 transition" />
@@ -211,7 +274,7 @@ export default function OrganizerEventsPage() {
                     Published
                   </div>
                   <div className="text-4xl font-bold text-white mt-2">
-                    {eventsData?.stats?.published || 0}
+                    {eventStats.published}
                   </div>
                 </div>
                 <CheckCircle className="w-12 h-12 opacity-20 group-hover:opacity-30 transition" />
@@ -225,7 +288,7 @@ export default function OrganizerEventsPage() {
                     Suspended
                   </div>
                   <div className="text-4xl font-bold text-white mt-2">
-                    {eventsData?.stats?.suspended || 0}
+                    {eventStats.suspended}
                   </div>
                 </div>
                 <AlertTriangle className="w-12 h-12 opacity-20 group-hover:opacity-30 transition" />
@@ -239,7 +302,7 @@ export default function OrganizerEventsPage() {
                     Total Events
                   </div>
                   <div className="text-4xl font-bold text-white mt-2">
-                    {eventsData?.totalCount || 0}
+                    {eventStats.total}
                   </div>
                 </div>
                 <Zap className="w-12 h-12 opacity-20 group-hover:opacity-30 transition" />
@@ -281,6 +344,7 @@ export default function OrganizerEventsPage() {
                   }}
                   className="w-full px-3 py-2.5 border border-[#3a1a1a] rounded-lg bg-[#1a0808] text-white focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)] focus:border-transparent transition cursor-pointer"
                 >
+                  <option value="all">All Events</option>
                   <option value="PENDING_REVIEW">Pending Review</option>
                   <option value="PUBLISHED">Published</option>
                   <option value="CANCELLED">Rejected</option>

@@ -26,6 +26,7 @@ export const ROUTES = {
       OVERVIEW: '/admin/governance',
       FLAGS: '/admin/governance/flags',
       FLAG_DETAIL: (id) => `/admin/governance/flags/${id}`,
+      REPORTS: '/admin/governance/reports',
       ORGANIZERS: '/admin/governance/organizers',
       ORGANIZER_DETAIL: (id) => `/admin/governance/organizers/${id}`,
       ORGANIZER_EVENTS: '/admin/governance/organizer-events',

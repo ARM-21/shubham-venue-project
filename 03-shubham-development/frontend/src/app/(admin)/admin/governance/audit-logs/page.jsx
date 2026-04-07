@@ -63,6 +63,32 @@ export default function AuditLogsPage() {
     return logsData.logs;
   }, [logsData?.logs]);
 
+  // Calculate stats from logs
+  const stats = useMemo(() => {
+    if (!logsData?.logs) {
+      return { today: 0, week: 0, total: 0 };
+    }
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    let todayCount = 0;
+    let weekCount = 0;
+
+    logsData.logs.forEach((log) => {
+      const logDate = new Date(log.createdAt);
+      if (logDate >= today) todayCount++;
+      if (logDate >= weekAgo) weekCount++;
+    });
+
+    return {
+      today: todayCount,
+      week: weekCount,
+      total: logsData?.pagination?.total || 0,
+    };
+  }, [logsData]);
+
   const handleExport = async () => {
     setIsExporting(true);
     try {
@@ -99,12 +125,14 @@ export default function AuditLogsPage() {
     ];
 
     const rows = filteredLogs.map((log) => [
-      new Date(log.timestamp).toLocaleString(),
+      new Date(log.createdAt).toLocaleString(),
       log.entityType,
       log.entityId,
       log.action,
-      log.performedBy?.fullName || 'Unknown',
-      log.performedByRole,
+      typeof log.performedBy === 'object'
+        ? (log.performedBy?.firstName + ' ' + log.performedBy?.lastName).trim()
+        : 'System',
+      log.performedByRole || 'system',
       log.ipAddress || 'N/A',
       JSON.stringify(log.changes || {}),
     ]);
@@ -170,7 +198,7 @@ export default function AuditLogsPage() {
             Total Actions
           </div>
           <div className="text-3xl font-bold text-white mt-2">
-            {logsData?.totalCount || 0}
+            {stats.total}
           </div>
         </div>
 
@@ -179,7 +207,7 @@ export default function AuditLogsPage() {
             Today
           </div>
           <div className="text-3xl font-bold text-emerald-400 mt-2">
-            {logsData?.stats?.today || 0}
+            {stats.today}
           </div>
         </div>
 
@@ -188,7 +216,7 @@ export default function AuditLogsPage() {
             This Week
           </div>
           <div className="text-3xl font-bold text-blue-400 mt-2">
-            {logsData?.stats?.week || 0}
+            {stats.week}
           </div>
         </div>
       </div>
@@ -281,6 +309,54 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Logs Table */}
+      {/* Column Legend */}
+      <div className="bg-[#1a0808]/50 rounded-xl border border-[#3a1a1a] p-4 mb-6">
+        <details className="cursor-pointer">
+          <summary className="flex items-center gap-2 text-sm font-semibold text-[#9ca3af] hover:text-white transition">
+            <Database size={16} className="text-[var(--admin-primary)]" />
+            <span>Column Legend & Field Descriptions</span>
+          </summary>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <div>
+                <p className="font-medium text-white text-sm">📅 Timestamp</p>
+                <p className="text-xs text-[#9ca3af]">Date and time when the action occurred</p>
+              </div>
+              <div>
+                <p className="font-medium text-white text-sm">📦 Entity Type</p>
+                <p className="text-xs text-[#9ca3af]">Type of resource affected (event, organizer, flag, user, admin, system)</p>
+              </div>
+              <div>
+                <p className="font-medium text-white text-sm">🆔 Entity ID</p>
+                <p className="text-xs text-[#9ca3af]">Unique identifier of the resource that was modified</p>
+              </div>
+              <div>
+                <p className="font-medium text-white text-sm">⚡ Action</p>
+                <p className="text-xs text-[#9ca3af]">What happened: created, updated, deleted, flagged, suspended, approved, rejected, status_changed, etc.</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="font-medium text-white text-sm">👤 Performed By</p>
+                <p className="text-xs text-[#9ca3af]">Name of the user or system that triggered the action</p>
+              </div>
+              <div>
+                <p className="font-medium text-white text-sm">🔐 Role</p>
+                <p className="text-xs text-[#9ca3af]">User's role when action was performed (admin, organizer, system, etc.)</p>
+              </div>
+              <div>
+                <p className="font-medium text-white text-sm">🌐 IP Address</p>
+                <p className="text-xs text-[#9ca3af]">Network address of the request origin (::1 = localhost/your machine)</p>
+              </div>
+              <div>
+                <p className="font-medium text-white text-sm">📝 Changes</p>
+                <p className="text-xs text-[#9ca3af]">Specific field values that were modified (empty if no data fields changed)</p>
+              </div>
+            </div>
+          </div>
+        </details>
+      </div>
+
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -298,111 +374,142 @@ export default function AuditLogsPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {filteredLogs.map((log) => (
             <div
               key={log._id}
-              className="bg-[var(--admin-surface)] rounded-xl border border-[#3a1a1a] p-3 hover:border-[var(--admin-primary)]/50 transition-all"
+              className="bg-[#0f0606] rounded-xl border border-[#3a1a1a] overflow-hidden hover:border-[var(--admin-primary)]/50 transition-all shadow-lg"
             >
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
-                {/* Timestamp */}
-                <div className="md:col-span-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="text-[#9ca3af]" size={16} />
-                    <div>
-                      <p className="font-medium text-white">
-                        {new Date(log.timestamp).toLocaleTimeString()}
-                      </p>
-                      <p className="text-xs text-[#9ca3af]">
-                        {new Date(log.timestamp).toLocaleDateString()}
-                      </p>
+              {/* Header Section */}
+              <div className="border-l-4 border-l-[var(--admin-primary)] bg-gradient-to-r from-[#1a0808] to-[var(--admin-surface)] px-6 py-4">
+                <div className="flex items-start justify-between gap-4">
+                  {/* Left: Time & Action */}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Clock className="text-[var(--admin-primary)]" size={14} />
+                        <span className="text-[#9ca3af]">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Entity & Action */}
-                <div className="md:col-span-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
                           ENTITY_COLORS[log.entityType] || ENTITY_COLORS.system
                         }`}
                       >
                         {log.entityType?.toUpperCase()}
                       </span>
                       <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
                           ACTION_COLORS[log.action] || ACTION_COLORS.updated
                         }`}
                       >
-                        {log.action}
+                        {log.action.replace(/_/g, ' ').toUpperCase()}
                       </span>
                     </div>
-                    <p className="text-sm text-[#9ca3af] truncate">
-                      ID: {log.entityId}
-                    </p>
                   </div>
-                </div>
 
-                {/* Actor */}
-                <div className="md:col-span-2">
-                  <div className="flex items-center gap-2">
-                    <User className="text-[#9ca3af]" size={16} />
-                    <div>
-                      <p className="text-sm font-medium text-white">
-                        {log.performedBy?.fullName || 'System'}
-                      </p>
-                      <p className="text-xs text-[#9ca3af]">
-                        {log.performedByRole}
-                      </p>
+                  {/* Right: Performer */}
+                  <div className="text-right">
+                    <p className="text-xs text-[#9ca3af] mb-1 uppercase tracking-wide">
+                      Performed By
+                    </p>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <User className="text-[var(--admin-primary)]" size={16} />
+                      <div>
+                        <p className="font-semibold text-white text-sm">
+                          {typeof log.performedBy === 'object'
+                            ? (log.performedBy?.firstName + ' ' + log.performedBy?.lastName).trim()
+                            : 'System'}
+                        </p>
+                        <p className="text-xs text-[#9ca3af] capitalize">
+                          {log.performedByRole || 'system'}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Changes */}
-                <div className="md:col-span-3">
-                  {log.changes && Object.keys(log.changes).length > 0 ? (
-                    <div className="text-xs space-y-1">
-                      {Object.entries(log.changes).slice(0, 2).map(([key, val]) => (
-                        <p
-                          key={key}
-                          className="text-[#9ca3af] truncate"
-                        >
-                          <span className="font-medium">{key}:</span>{' '}
-                          {JSON.stringify(val).substring(0, 30)}...
-                        </p>
-                      ))}
-                      {Object.keys(log.changes).length > 2 && (
-                        <p className="text-orange-400 font-medium">
-                          +{Object.keys(log.changes).length - 2} more
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-[#9ca3af]">
-                      No changes
-                    </p>
-                  )}
-                </div>
-
-                {/* IP Address */}
-                <div className="md:col-span-2">
-                  <p className="text-xs text-[#9ca3af] truncate">
-                    {log.ipAddress || 'N/A'}
-                  </p>
                 </div>
               </div>
 
-              {/* Details Row (Hidden by default) */}
-              {log.metadata && (
-                <details className="mt-2 text-xs text-[#9ca3af]">
-                  <summary className="cursor-pointer font-medium">
-                    View Details
+              {/* Details Section */}
+              <div className="px-6 py-4 bg-[#0f0606]/50">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Entity ID */}
+                  <div>
+                    <p className="text-xs text-[#9ca3af] mb-1.5 uppercase font-semibold tracking-wide">
+                      Entity ID
+                    </p>
+                    <p className="text-sm font-mono text-[#e0e0e0] break-all">
+                      {log.entityId}
+                    </p>
+                  </div>
+
+                  {/* IP Address */}
+                  <div>
+                    <p className="text-xs text-[#9ca3af] mb-1.5 uppercase font-semibold tracking-wide">
+                      IP Address
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-[var(--admin-primary)]/50"></div>
+                      <p className="text-sm font-mono text-[#e0e0e0]">
+                        {log.ipAddress === '::1' ? 'Localhost' : log.ipAddress || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Changes Count */}
+                  <div>
+                    <p className="text-xs text-[#9ca3af] mb-1.5 uppercase font-semibold tracking-wide">
+                      Changes
+                    </p>
+                    {log.changes && Object.keys(log.changes).length > 0 ? (
+                      <p className="text-sm font-medium text-[#10b981]">
+                        {Object.keys(log.changes).length} field{Object.keys(log.changes).length !== 1 ? 's' : ''} modified
+                      </p>
+                    ) : (
+                      <p className="text-sm text-[#9ca3af] italic">
+                        No field changes
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Metadata/Details Section */}
+              {(log.metadata || (log.changes && Object.keys(log.changes).length > 0)) && (
+                <details className="border-t border-[#3a1a1a]">
+                  <summary className="px-6 py-3 cursor-pointer text-sm font-semibold text-[var(--admin-primary)] hover:bg-[#1a0808] transition flex items-center gap-2">
+                    <span>▸</span> View Full Details
                   </summary>
-                  <pre className="mt-2 bg-[#0f0606] p-2 rounded overflow-auto max-h-40">
-                    {JSON.stringify(log.metadata, null, 2)}
-                  </pre>
+                  <div className="px-6 py-4 bg-[#0f0606]/30 space-y-4">
+                    {log.metadata && (
+                      <div>
+                        <p className="text-xs text-[#9ca3af] mb-2 uppercase font-semibold tracking-wide">
+                          Metadata
+                        </p>
+                        <div className="bg-[#1a0808] border border-[#3a1a1a] rounded-lg p-3">
+                          <p className="text-xs font-mono text-[#d1d5db] whitespace-pre-wrap">
+                            {JSON.stringify(log.metadata, null, 2)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {log.changes && Object.keys(log.changes).length > 0 && (
+                      <div>
+                        <p className="text-xs text-[#9ca3af] mb-2 uppercase font-semibold tracking-wide">
+                          Detailed Changes
+                        </p>
+                        <div className="bg-[#1a0808] border border-[#3a1a1a] rounded-lg p-3">
+                          <p className="text-xs font-mono text-[#d1d5db] whitespace-pre-wrap">
+                            {JSON.stringify(log.changes, null, 2)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </details>
               )}
             </div>
@@ -411,7 +518,7 @@ export default function AuditLogsPage() {
       )}
 
       {/* Pagination */}
-      {logsData?.totalPages > 1 && (
+      {logsData?.pagination?.pages > 1 && (
         <div className="flex justify-center gap-2">
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
@@ -421,13 +528,13 @@ export default function AuditLogsPage() {
             Previous
           </button>
           <span className="px-4 py-2 text-[#9ca3af]">
-            Page {page} of {logsData?.totalPages}
+            Page {page} of {logsData?.pagination?.pages}
           </span>
           <button
             onClick={() =>
-              setPage(Math.min(logsData?.totalPages, page + 1))
+              setPage(Math.min(logsData?.pagination?.pages, page + 1))
             }
-            disabled={page === logsData?.totalPages}
+            disabled={page === logsData?.pagination?.pages}
             className="px-4 py-2 border border-[#3a1a1a] rounded-lg text-white hover:bg-[#1a0808] disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             Next

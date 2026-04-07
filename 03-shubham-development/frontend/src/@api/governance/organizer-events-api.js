@@ -3,13 +3,17 @@ import { ROUTES } from "config/routes";
 
 // Get all organizer events for review
 export const fetchOrganizerEvents = async (filters = {}) => {
-  const { status = 'pending', page = 1, limit = 20 } = filters;
+  const { status, page = 1, limit = 20 } = filters;
   
   const params = new URLSearchParams({
-    status,
     page,
     limit,
   });
+
+  // Only add status if provided (for 'all' filter, status is undefined)
+  if (status) {
+    params.append('status', status);
+  }
   
   const res = await axiosInstance.get(
     `${ROUTES.API.ADMIN.GOVERNANCE.ORGANIZER_EVENTS}?${params}`,
@@ -31,7 +35,7 @@ export const fetchOrganizerEventDetail = async (eventId) => {
 // Approve an organizer event
 export const approveOrganizerEvent = async (eventId, approvalData = {}) => {
   if (!eventId) throw new Error("Event ID required");
-  const res = await axiosInstance.patch(
+  const res = await axiosInstance.post(
     ROUTES.API.ADMIN.GOVERNANCE.ORGANIZER_EVENT_APPROVE(eventId),
     approvalData,
     { withCredentials: true }
@@ -42,7 +46,7 @@ export const approveOrganizerEvent = async (eventId, approvalData = {}) => {
 // Reject an organizer event
 export const rejectOrganizerEvent = async (eventId, rejectionData = {}) => {
   if (!eventId) throw new Error("Event ID required");
-  const res = await axiosInstance.patch(
+  const res = await axiosInstance.post(
     ROUTES.API.ADMIN.GOVERNANCE.ORGANIZER_EVENT_REJECT(eventId),
     rejectionData,
     { withCredentials: true }
@@ -53,7 +57,7 @@ export const rejectOrganizerEvent = async (eventId, rejectionData = {}) => {
 // Suspend an organizer event
 export const suspendOrganizerEvent = async (eventId, suspensionData = {}) => {
   if (!eventId) throw new Error("Event ID required");
-  const res = await axiosInstance.patch(
+  const res = await axiosInstance.post(
     ROUTES.API.ADMIN.GOVERNANCE.ORGANIZER_EVENT_SUSPEND(eventId),
     suspensionData,
     { withCredentials: true }
