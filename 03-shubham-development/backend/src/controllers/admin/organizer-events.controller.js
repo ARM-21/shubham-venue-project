@@ -2,12 +2,18 @@ import mongoose from "mongoose";
 import OrganizerEvent from "../../models/OrganizerEvent.js";
 import User from "../../models/User.js";
 import Hall from "../../models/Hall.js";
+import AdminNotification from "../../models/AdminNotification.js";
 import {
   calculateTrustScore,
   onEventCreated,
   onEventApproved,
 } from "../../services/trustScore.service.js";
 import { createAuditLog } from "../../middleware/audit.middleware.js";
+import {
+  sendOrganizerEventApprovedEmail,
+  sendOrganizerEventRejectedEmail,
+  sendAdminEventPendingApprovalEmail,
+} from "../../services/email/email.service.js";
 import { success, httpError } from "../../utils/http.utils.js";
 
 /**
@@ -186,6 +192,38 @@ export const createOrganizerEvent = async (req, res, next) => {
         requiresApproval: trustCalculation.requiresApproval,
       },
     });
+
+    // Create admin notifications if event needs approval
+    if (initialStatus === "PENDING_REVIEW") {
+      const organizer = await User.findById(organizerId).select("firstName lastName email");
+      const admins = await User.find({ role: "admin" }).select("_id email");
+      
+      for (const admin of admins) {
+        await AdminNotification.create({
+          adminId: admin._id,
+          type: "event_pending_approval",
+          title: `Event Pending Review: ${name}`,
+          message: `${organizer?.firstName} ${organizer?.lastName} submitted "${name}" for approval (Trust Score: ${trustCalculation.trustScore.toFixed(1)}/5)`,
+          eventId: newEvent._id,
+          organizerId: organizerId,
+          requestUserId: organizerId,
+          requestUserName: `${organizer?.firstName} ${organizer?.lastName}`,
+          requestUserEmail: organizer?.email,
+          actionPath: `/admin/governance/organizer-events?status=PENDING_REVIEW`,
+        });
+      }
+
+      // Send email to all admins
+      const adminEmails = admins.map(admin => admin.email).filter(Boolean);
+      if (adminEmails.length > 0) {
+        await sendAdminEventPendingApprovalEmail(adminEmails, {
+          eventName: name,
+          organizerName: `${organizer?.firstName} ${organizer?.lastName}`,
+          trustScore: trustCalculation.trustScore,
+          eventId: newEvent._id,
+        });
+      }
+    }
 
     return success(
       res,
@@ -374,6 +412,30 @@ export const approveEvent = async (req, res, next) => {
       metadata: { notes },
     });
 
+    // Create notification for organizer
+    const organizer = await User.findById(event.organizerId).select("_id");
+    if (organizer) {
+      await AdminNotification.create({
+        adminId: organizer._id,
+        type: "event_approved",
+        title: `Event Approved: ${event.name}`,
+        message: `Your event "${event.name}" has been approved and is now published.`,
+        eventId: eventId,
+        organizerId: event.organizerId,
+        actionPath: `/organizer/events/${eventId}`,
+      });
+    }
+
+    // Send email to organizer
+    const organizerData = await User.findById(event.organizerId).select("email firstName lastName");
+    if (organizerData?.email) {
+      await sendOrganizerEventApprovedEmail(organizerData.email, {
+        eventName: event.name,
+        organizerName: `${organizerData.firstName} ${organizerData.lastName}`.trim(),
+        eventId: eventId,
+      });
+    }
+
     return success(res, event, "Event approved and published");
   } catch (err) {
     next(err);
@@ -421,6 +483,30 @@ export const rejectEvent = async (req, res, next) => {
       relatedOrganizerId: event.organizerId,
       metadata: { reason },
     });
+
+    // Create notification for organizer
+    const organizer = await User.findById(event.organizerId).select("_id");
+    if (organizer) {
+      await AdminNotification.create({
+        adminId: organizer._id,
+        type: "event_rejected",
+        title: `Event Rejected: ${event.name}`,
+        message: `Your event "${event.name}" has been rejected. Reason: ${reason}`,
+        eventId: eventId,
+        organizerId: event.organizerId,
+        actionPath: `/organizer/events/${eventId}`,
+      });
+    }
+
+    // Send email to organizer
+    const organizerData = await User.findById(event.organizerId).select("email firstName lastName");
+    if (organizerData?.email) {
+      await sendOrganizerEventRejectedEmail(organizerData.email, {
+        eventName: event.name,
+        organizerName: `${organizerData.firstName} ${organizerData.lastName}`.trim(),
+        rejectionReason: reason,
+      });
+    }
 
     return success(res, event, "Event rejected");
   } catch (err) {

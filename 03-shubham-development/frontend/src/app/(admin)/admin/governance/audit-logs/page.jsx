@@ -123,13 +123,13 @@ export default function AuditLogsPage() {
 
   if (error)
     return (
-      <div className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded-lg">
-        <p className="text-red-800 dark:text-red-200">
+      <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-xl">
+        <p className="text-red-400">
           Failed to load audit logs. Try again.
         </p>
         <button
           onClick={() => refetch()}
-          className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
         >
           Retry
         </button>
@@ -145,10 +145,10 @@ export default function AuditLogsPage() {
           {/* Header */}
           <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-4xl font-bold text-white">
             Audit Trail
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-[#9ca3af] mt-1">
             Complete forensic log of all system actions
           </p>
         </div>
@@ -156,7 +156,7 @@ export default function AuditLogsPage() {
         <button
           onClick={handleExport}
           disabled={isExporting || filteredLogs.length === 0}
-          className="flex items-center gap-2 px-4 py-2 bg-yellow-500 dark:bg-yellow-600 text-white rounded-lg hover:bg-yellow-600 dark:hover:bg-yellow-700 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--admin-primary)] hover:bg-[var(--admin-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
         >
           <FileDown size={18} />
           {isExporting ? 'Exporting...' : 'Export CSV'}
@@ -165,43 +165,43 @@ export default function AuditLogsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+        <div className="bg-[var(--admin-surface)] rounded-xl p-5 border border-[#3a1a1a] hover:border-[var(--admin-primary)]/50 transition-all">
+          <div className="text-sm font-medium text-[#9ca3af]">
             Total Actions
           </div>
-          <div className="text-3xl font-bold text-blue-600 mt-2">
+          <div className="text-3xl font-bold text-white mt-2">
             {logsData?.totalCount || 0}
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+        <div className="bg-[var(--admin-surface)] rounded-xl p-5 border border-[#3a1a1a] hover:border-[var(--admin-primary)]/50 transition-all">
+          <div className="text-sm font-medium text-[#9ca3af]">
             Today
           </div>
-          <div className="text-3xl font-bold text-green-600 mt-2">
+          <div className="text-3xl font-bold text-emerald-400 mt-2">
             {logsData?.stats?.today || 0}
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+        <div className="bg-[var(--admin-surface)] rounded-xl p-5 border border-[#3a1a1a] hover:border-[var(--admin-primary)]/50 transition-all">
+          <div className="text-sm font-medium text-[#9ca3af]">
             This Week
           </div>
-          <div className="text-3xl font-bold text-purple-600 mt-2">
+          <div className="text-3xl font-bold text-blue-400 mt-2">
             {logsData?.stats?.week || 0}
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 space-y-4">
+      <div className="bg-[var(--admin-surface)] rounded-xl p-6 border border-[#3a1a1a] space-y-4">
         <div className="flex gap-4 flex-wrap">
           <div className="flex-1 min-w-xs">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Search
             </label>
             <div className="relative">
-              <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+              <Search className="absolute left-3 top-3 text-[#9ca3af]" size={18} />
               <input
                 type="text"
                 placeholder="Search by entity ID, user, IP..."
@@ -210,13 +210,13 @@ export default function AuditLogsPage() {
                   setSearchTerm(e.target.value);
                   setPage(1);
                 }}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                className="w-full pl-10 pr-4 py-2 border border-[#3a1a1a] rounded-lg bg-[#1a0808] text-white placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)] focus:border-transparent"
               />
             </div>
           </div>
 
           <div className="w-40">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Entity Type
             </label>
             <select
@@ -225,7 +225,7 @@ export default function AuditLogsPage() {
                 setEntityTypeFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              className="w-full px-3 py-2 border border-[#3a1a1a] rounded-lg bg-[#1a0808] text-white focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)] focus:border-transparent"
             >
               <option value="all">All</option>
               <option value="event">Event</option>
@@ -237,7 +237,7 @@ export default function AuditLogsPage() {
           </div>
 
           <div className="w-40">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Action
             </label>
             <select
@@ -246,7 +246,7 @@ export default function AuditLogsPage() {
                 setActionFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              className="w-full px-3 py-2 border border-[#3a1a1a] rounded-lg bg-[#1a0808] text-white focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)] focus:border-transparent"
             >
               <option value="all">All</option>
               <option value="created">Created</option>
@@ -260,7 +260,7 @@ export default function AuditLogsPage() {
           </div>
 
           <div className="w-40">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Date Range
             </label>
             <select
@@ -269,7 +269,7 @@ export default function AuditLogsPage() {
                 setDateRange(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              className="w-full px-3 py-2 border border-[#3a1a1a] rounded-lg bg-[#1a0808] text-white focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)] focus:border-transparent"
             >
               <option value="all">All Time</option>
               <option value="today">Today</option>
@@ -286,14 +286,14 @@ export default function AuditLogsPage() {
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"
+              className="h-20 bg-[#3a1a1a] rounded-xl animate-pulse"
             />
           ))}
         </div>
       ) : filteredLogs.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <Filter className="mx-auto text-gray-400 mb-3" size={48} />
-          <p className="text-gray-600 dark:text-gray-400">
+        <div className="text-center py-12 bg-[var(--admin-surface)] rounded-xl border border-[#3a1a1a]">
+          <Filter className="mx-auto text-[#9ca3af] mb-3" size={48} />
+          <p className="text-[#9ca3af]">
             No logs found matching your filters
           </p>
         </div>
@@ -302,18 +302,18 @@ export default function AuditLogsPage() {
           {filteredLogs.map((log) => (
             <div
               key={log._id}
-              className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 hover:shadow-lg transition"
+              className="bg-[var(--admin-surface)] rounded-xl border border-[#3a1a1a] p-3 hover:border-[var(--admin-primary)]/50 transition-all"
             >
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
                 {/* Timestamp */}
                 <div className="md:col-span-2">
                   <div className="flex items-center gap-2 text-sm">
-                    <Clock className="text-gray-400" size={16} />
+                    <Clock className="text-[#9ca3af]" size={16} />
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
+                      <p className="font-medium text-white">
                         {new Date(log.timestamp).toLocaleTimeString()}
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-[#9ca3af]">
                         {new Date(log.timestamp).toLocaleDateString()}
                       </p>
                     </div>
@@ -339,7 +339,7 @@ export default function AuditLogsPage() {
                         {log.action}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                    <p className="text-sm text-[#9ca3af] truncate">
                       ID: {log.entityId}
                     </p>
                   </div>
@@ -348,12 +348,12 @@ export default function AuditLogsPage() {
                 {/* Actor */}
                 <div className="md:col-span-2">
                   <div className="flex items-center gap-2">
-                    <User className="text-gray-400" size={16} />
+                    <User className="text-[#9ca3af]" size={16} />
                     <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      <p className="text-sm font-medium text-white">
                         {log.performedBy?.fullName || 'System'}
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-[#9ca3af]">
                         {log.performedByRole}
                       </p>
                     </div>
@@ -367,20 +367,20 @@ export default function AuditLogsPage() {
                       {Object.entries(log.changes).slice(0, 2).map(([key, val]) => (
                         <p
                           key={key}
-                          className="text-gray-600 dark:text-gray-400 truncate"
+                          className="text-[#9ca3af] truncate"
                         >
                           <span className="font-medium">{key}:</span>{' '}
                           {JSON.stringify(val).substring(0, 30)}...
                         </p>
                       ))}
                       {Object.keys(log.changes).length > 2 && (
-                        <p className="text-yellow-600 dark:text-yellow-400 font-medium">
+                        <p className="text-orange-400 font-medium">
                           +{Object.keys(log.changes).length - 2} more
                         </p>
                       )}
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-[#9ca3af]">
                       No changes
                     </p>
                   )}
@@ -388,7 +388,7 @@ export default function AuditLogsPage() {
 
                 {/* IP Address */}
                 <div className="md:col-span-2">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                  <p className="text-xs text-[#9ca3af] truncate">
                     {log.ipAddress || 'N/A'}
                   </p>
                 </div>
@@ -396,11 +396,11 @@ export default function AuditLogsPage() {
 
               {/* Details Row (Hidden by default) */}
               {log.metadata && (
-                <details className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                <details className="mt-2 text-xs text-[#9ca3af]">
                   <summary className="cursor-pointer font-medium">
                     View Details
                   </summary>
-                  <pre className="mt-2 bg-gray-50 dark:bg-gray-900 p-2 rounded overflow-auto max-h-40">
+                  <pre className="mt-2 bg-[#0f0606] p-2 rounded overflow-auto max-h-40">
                     {JSON.stringify(log.metadata, null, 2)}
                   </pre>
                 </details>
@@ -416,11 +416,11 @@ export default function AuditLogsPage() {
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50"
+            className="px-4 py-2 border border-[#3a1a1a] rounded-lg text-white hover:bg-[#1a0808] disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             Previous
           </button>
-          <span className="px-4 py-2 text-gray-600 dark:text-gray-400">
+          <span className="px-4 py-2 text-[#9ca3af]">
             Page {page} of {logsData?.totalPages}
           </span>
           <button
@@ -428,7 +428,7 @@ export default function AuditLogsPage() {
               setPage(Math.min(logsData?.totalPages, page + 1))
             }
             disabled={page === logsData?.totalPages}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50"
+            className="px-4 py-2 border border-[#3a1a1a] rounded-lg text-white hover:bg-[#1a0808] disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             Next
           </button>

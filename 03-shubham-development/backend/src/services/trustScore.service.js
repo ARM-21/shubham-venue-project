@@ -46,7 +46,7 @@ export async function calculateTrustScore(organizerId) {
 
     const metrics = organizer.trustMetrics || {};
     const trustScore = calculateTrustScoreFromMetrics(metrics);
-    const requiresApproval = trustScore < 3.5;
+    const requiresApproval = trustScore < 4; // Low trust needs admin approval
 
     return {
       trustScore,
