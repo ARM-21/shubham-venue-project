@@ -48,3 +48,36 @@ export const fetchOrganizerAuditTrail = async (organizerId) => {
   );
   return res.data;
 };
+
+// Suspend organizer
+export const suspendOrganizer = async (organizerId, data = {}) => {
+  if (!organizerId) throw new Error("Organizer ID required");
+  const res = await axiosInstance.post(
+    `${ROUTES.API.ADMIN.GOVERNANCE.ORGANIZERS}/${organizerId}/suspend`,
+    data,
+    { withCredentials: true }
+  );
+  return res.data;
+};
+
+// Unsuspend organizer
+export const unsuspendOrganizer = async (organizerId) => {
+  if (!organizerId) throw new Error("Organizer ID required");
+  const res = await axiosInstance.post(
+    `${ROUTES.API.ADMIN.GOVERNANCE.ORGANIZERS}/${organizerId}/unsuspend`,
+    {},
+    { withCredentials: true }
+  );
+  return res.data;
+};
+
+// Recalculate metrics for organizer(s)
+export const recalculateMetrics = async (organizerId = null) => {
+  const data = organizerId ? { organizerId } : {};
+  const res = await axiosInstance.post(
+    `${ROUTES.API.ADMIN.GOVERNANCE.ORGANIZERS}/../stats/recalculate`,
+    data,
+    { withCredentials: true }
+  );
+  return res.data;
+};

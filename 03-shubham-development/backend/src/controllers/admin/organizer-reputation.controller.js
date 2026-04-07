@@ -7,6 +7,10 @@ import {
   liftSuspension,
   updateTrustScore,
 } from "../../services/trustScore.service.js";
+import {
+  recalculateOrganizerMetrics,
+  recalculateAllOrganizerMetrics,
+} from "../../services/metrics.service.js";
 import { createAuditLog } from "../../middleware/audit.middleware.js";
 import { success, httpError } from "../../utils/http.utils.js";
 
@@ -446,6 +450,62 @@ export const getAuditLogs = async (req, res, next) => {
         perPage: parseInt(limit),
       },
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Admin: Recalculate metrics for a specific organizer or all organizers
+ * POST /api/v1/admin/governance/stats/recalculate
+ * Body: { organizerId?: string } - if omitted, recalculates all organizers
+ */
+export const recalculateMetrics = async (req, res, next) => {
+  try {
+    const { organizerId } = req.body;
+    const adminId = req.currentUser._id;
+
+    if (organizerId) {
+      // Recalculate single organizer
+      const organizer = await User.findById(organizerId);
+      if (!organizer) {
+        return httpError(res, "Organizer not found", 404);
+      }
+
+      const metrics = await recalculateOrganizerMetrics(organizerId);
+
+      // Audit log
+      await createAuditLog({
+        entityType: "organizer",
+        entityId: organizerId,
+        action: "metrics_recalculated",
+        performedBy: adminId,
+        performedByRole: "admin",
+        metadata: { type: "single", newMetrics: metrics },
+        relatedOrganizerId: organizerId,
+      });
+
+      return success(
+        res,
+        { organizerId, metrics },
+        "Metrics recalculated for organizer"
+      );
+    } else {
+      // Recalculate all organizers
+      const result = await recalculateAllOrganizerMetrics();
+
+      // Audit log
+      await createAuditLog({
+        entityType: "system",
+        entityId: "metrics_bulk_recalculation",
+        action: "bulk_metrics_recalculation",
+        performedBy: adminId,
+        performedByRole: "admin",
+        metadata: result,
+      });
+
+      return success(res, result, "Metrics recalculated for all organizers");
+    }
   } catch (err) {
     next(err);
   }

@@ -1,6 +1,7 @@
 import express from "express";
 import { isAuthenticated } from "../../middleware/auth.middleware.js";
 import { initiatePayment, completePayment } from "../../services/payment/payment.service.js";
+import { createAuditLog } from "../../middleware/audit.middleware.js";
 
 const router = express.Router();
 
@@ -23,6 +24,28 @@ router.post("/verify", isAuthenticated, async (req, res, next) => {
     if (!target) return res.status(400).json({ message: "pidx or transactionUuid is required" });
 
     const payment = await completePayment({ paymentId: target });
+    
+    // Audit log for successful payment
+    if (payment && payment.status === "COMPLETED") {
+      await createAuditLog({
+        entityType: "payment",
+        entityId: payment._id,
+        action: "completed",
+        performedBy: req.currentUser._id,
+        performedByRole: "user",
+        changes: {
+          before: { status: "INITIATED" },
+          after: { status: "COMPLETED" },
+          fields: ["status"],
+        },
+        metadata: {
+          gateway: payment.gateway,
+          transactionId: payment.transactionId,
+          amount: payment.amount,
+        },
+      });
+    }
+    
     return res.json({ message: "Payment verified", payment });
   } catch (err) {
     return next(err);

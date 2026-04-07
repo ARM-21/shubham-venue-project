@@ -58,3 +58,14 @@ export const resolveFlag = async (flagId, resolution) => {
   );
   return res.data;
 };
+
+// Add comment to flag investigation
+export const addFlagComment = async (flagId, commentData) => {
+  if (!flagId) throw new Error("Flag ID required");
+  const res = await axiosInstance.post(
+    `${ROUTES.API.ADMIN.GOVERNANCE.FLAGS}/${flagId}/comments`,
+    commentData,
+    { withCredentials: true }
+  );
+  return res.data;
+};

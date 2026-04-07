@@ -96,6 +96,9 @@ router.post("/organizers/:organizerId/warning", isAuthenticated, isAdmin, reputa
 // Get suspension statistics
 router.get("/stats/suspensions", isAuthenticated, isAdmin, reputationController.getSuspensionStats);
 
+// Recalculate metrics for organizer(s)
+router.post("/stats/recalculate", isAuthenticated, isAdmin, reputationController.recalculateMetrics);
+
 // ============================================
 // AUDIT LOGS ROUTES
 // ============================================

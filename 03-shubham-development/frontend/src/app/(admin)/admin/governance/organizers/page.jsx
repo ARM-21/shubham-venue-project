@@ -1,35 +1,37 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useMutation } from '@tanstack/react-query';
-import {
-  useQueryOrganizersReputation,
-} from '@queries/admin/governance.queries';
-import { suspendOrganizerEvent } from '@api/governance/organizer-events-api';
 import AdminTopbar from 'components/admin/dashboard/AdminTopbar';
 import {
   TrustScoreBadge,
 } from 'components/admin/governance/GovernanceComponents';
+import { useQueryOrganizersReputation } from '@queries/admin/governance.queries';
+import { suspendOrganizer, unsuspendOrganizer, recalculateMetrics } from '@api/governance/organizers-api';
 import { toast } from 'sonner';
-import { Search, Filter, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Search, Filter, AlertTriangle, CheckCircle, Clock, Star, Zap, RefreshCw } from 'lucide-react';
 
 export default function OrganizersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // all, active, suspended
   const [trustFilter, setTrustFilter] = useState('all'); // all, excellent(4+), good(3-3.9), fair(2-2.9), poor(<2)
-  const [sortBy, setSortBy] = useState('trustScore'); // trustScore, eventsCreated, flags, name
+  const [sortBy, setSortBy] = useState('eventsCreated'); // trustScore, eventsCreated, flags, name
   const [page, setPage] = useState(1);
 
+  // Convert statusFilter to API parameter
+  const suspendedParam = statusFilter === 'all' ? undefined : statusFilter === 'suspended';
+
+  // Fetch data from API
   const { data: organizersData, isLoading, error, refetch } = useQueryOrganizersReputation({
+    suspended: suspendedParam,
     page,
-    search: searchTerm,
-    status: statusFilter,
+    limit: 20,
   });
 
+  // Suspend organizer mutation
   const suspendMutation = useMutation({
-    mutationFn: (organizerId) => suspendOrganizerEvent(organizerId),
+    mutationFn: (organizerId) => suspendOrganizer(organizerId, { reason: 'Policy violation' }),
     onSuccess: () => {
       toast.success('Organizer suspended successfully');
       refetch();
@@ -39,16 +41,79 @@ export default function OrganizersPage() {
     },
   });
 
+  // Unsuspend organizer mutation
+  const unsuspendMutation = useMutation({
+    mutationFn: (organizerId) => unsuspendOrganizer(organizerId),
+    onSuccess: () => {
+      toast.success('Organizer unsuspended successfully');
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || 'Failed to unsuspend organizer');
+    },
+  });
+
+  // Recalculate metrics mutation
+  const recalculateMutation = useMutation({
+    mutationFn: () => recalculateMetrics(),
+    onSuccess: (data) => {
+      toast.success(`Metrics recalculated successfully! (${data.result?.succeeded || 0} organizers updated)`);
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || 'Failed to recalculate metrics');
+    },
+  });
+
+  // Helper function to get full name and safe data access
+  const getOrganizerFullName = (org) => {
+    if (org.firstName && org.lastName) {
+      return `${org.firstName} ${org.lastName}`;
+    }
+    return org.email || 'Unknown Organizer';
+  };
+
+  const getOrganizerMetrics = (org) => {
+    return {
+      trustScore: org.trustMetrics?.trustScore || 0,
+      eventsCreated: org.trustMetrics?.eventsCreated || 0,
+      eventsApproved: org.trustMetrics?.eventsApproved || 0,
+      currentFlags: org.trustMetrics?.currentFlags || 0,
+      suspensions: org.trustMetrics?.suspensionCount || 0,
+    };
+  };
+
+  const isSuspended = (org) => {
+    return org.suspensionStatus && org.suspensionStatus !== 'none';
+  };
+
   // Filter and sort organizers
   const filteredOrganizers = useMemo(() => {
     if (!organizersData?.organizers) return [];
 
     let filtered = [...organizersData.organizers];
 
+    // Search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter((org) => 
+        getOrganizerFullName(org).toLowerCase().includes(searchLower) ||
+        org.email.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((org) => {
+        const suspended = isSuspended(org);
+        return statusFilter === 'suspended' ? suspended : !suspended;
+      });
+    }
+
     // Trust score filter
     if (trustFilter !== 'all') {
       filtered = filtered.filter((org) => {
-        const score = org.trustMetrics?.trustScore || 0;
+        const score = getOrganizerMetrics(org).trustScore;
         switch (trustFilter) {
           case 'excellent':
             return score >= 4;
@@ -66,33 +131,25 @@ export default function OrganizersPage() {
 
     // Sort
     filtered.sort((a, b) => {
+      const aMetrics = getOrganizerMetrics(a);
+      const bMetrics = getOrganizerMetrics(b);
+      
       switch (sortBy) {
         case 'trustScore':
-          return (
-            (b.trustMetrics?.trustScore || 0) -
-            (a.trustMetrics?.trustScore || 0)
-          );
+          return bMetrics.trustScore - aMetrics.trustScore;
         case 'eventsCreated':
-          return (
-            (b.trustMetrics?.eventsCreated || 0) -
-            (a.trustMetrics?.eventsCreated || 0)
-          );
+          return bMetrics.eventsCreated - aMetrics.eventsCreated;
         case 'flags':
-          return (
-            (b.trustMetrics?.currentFlags || 0) -
-            (a.trustMetrics?.currentFlags || 0)
-          );
+          return bMetrics.currentFlags - aMetrics.currentFlags;
         case 'name':
-          return (a.fullName || 'Unknown').localeCompare(
-            b.fullName || 'Unknown'
-          );
+          return getOrganizerFullName(a).localeCompare(getOrganizerFullName(b));
         default:
           return 0;
       }
     });
 
     return filtered;
-  }, [organizersData?.organizers, trustFilter, sortBy]);
+  }, [organizersData?.organizers, searchTerm, statusFilter, trustFilter, sortBy]);
 
   const handleSuspend = (organizerId, organizerName) => {
     if (
@@ -106,18 +163,24 @@ export default function OrganizersPage() {
     suspendMutation.mutate(organizerId);
   };
 
+  const handleUnsuspend = (organizerId, organizerName) => {
+    if (
+      !confirm(
+        `Are you sure you want to unsuspend ${organizerName}? They will be able to create events again.`
+      )
+    ) {
+      return;
+    }
+
+    unsuspendMutation.mutate(organizerId);
+  };
+
   if (error)
     return (
-      <div className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded-lg">
-        <p className="text-red-800 dark:text-red-200">
+      <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-xl">
+        <p className="text-red-400">
           Failed to load organizers. Try again.
         </p>
-        <button
-          onClick={() => refetch()}
-          className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-        >
-          Retry
-        </button>
       </div>
     );
 
@@ -129,74 +192,86 @@ export default function OrganizersPage() {
         <div className="max-w-7xl mx-auto space-y-6 pb-12">
           {/* Header */}
           <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Organizers
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Manage event organizers and their trust scores
-        </p>
-      </div>
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-4xl font-bold text-white">
+                  Organizers
+                </h1>
+                <p className="text-[#9ca3af] mt-1">
+                  Manage event organizers and their trust scores
+                </p>
+              </div>
+              <button
+                onClick={() => recalculateMutation.mutate()}
+                disabled={recalculateMutation.isPending}
+                className="px-4 py-2 bg-[var(--admin-primary)] hover:bg-[var(--admin-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium text-sm transition flex items-center gap-2"
+              >
+                <RefreshCw size={16} className={recalculateMutation.isPending ? 'animate-spin' : ''} />
+                {recalculateMutation.isPending ? 'Recalculating...' : 'Recalculate Metrics'}
+              </button>
+            </div>
+          </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-            Total Organizers
-          </div>
-          <div className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-            {organizersData?.totalCount || 0}
-          </div>
-        </div>
+          {/* Stats Row */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-[var(--admin-surface)] rounded-xl p-5 border border-[#3a1a1a] hover:border-[var(--admin-primary)]/50 transition-all">
+              <div className="text-sm font-medium text-[#9ca3af]">
+                Total Organizers
+              </div>
+              <div className="text-3xl font-bold text-white mt-2">
+                {organizersData?.pagination?.total || 0}
+              </div>
+            </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-            Excellent Trust (4+)
-          </div>
-          <div className="text-3xl font-bold text-green-600 mt-2">
-            {
-              filteredOrganizers.filter(
-                (o) => (o.trustMetrics?.trustScore || 0) >= 4
-              ).length
-            }
-          </div>
-        </div>
+            <div className="bg-[var(--admin-surface)] rounded-xl p-5 border border-[#3a1a1a] hover:border-[var(--admin-primary)]/50 transition-all">
+              <div className="text-sm font-medium text-[#9ca3af]">
+                Excellent Trust (4+)
+              </div>
+              <div className="text-3xl font-bold text-green-400 mt-2">
+                {
+                  organizersData?.organizers?.filter(
+                    (o) => getOrganizerMetrics(o).trustScore >= 4
+                  ).length || 0
+                }
+              </div>
+            </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-            Low Trust (&lt;2)
-          </div>
-          <div className="text-3xl font-bold text-red-600 mt-2">
-            {
-              filteredOrganizers.filter(
-                (o) => (o.trustMetrics?.trustScore || 0) < 2
-              ).length
-            }
-          </div>
-        </div>
+            <div className="bg-[var(--admin-surface)] rounded-xl p-5 border border-[#3a1a1a] hover:border-[var(--admin-primary)]/50 transition-all">
+              <div className="text-sm font-medium text-[#9ca3af]">
+                Low Trust (&lt;2)
+              </div>
+              <div className="text-3xl font-bold text-red-400 mt-2">
+                {
+                  organizersData?.organizers?.filter(
+                    (o) => getOrganizerMetrics(o).trustScore < 2
+                  ).length || 0
+                }
+              </div>
+            </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-            Currently Suspended
+            <div className="bg-[var(--admin-surface)] rounded-xl p-5 border border-[#3a1a1a] hover:border-[var(--admin-primary)]/50 transition-all">
+              <div className="text-sm font-medium text-[#9ca3af]">
+                Currently Suspended
+              </div>
+              <div className="text-3xl font-bold text-orange-400 mt-2">
+                {
+                  organizersData?.organizers?.filter(
+                    (o) => isSuspended(o)
+                  ).length || 0
+                }
+              </div>
+            </div>
           </div>
-          <div className="text-3xl font-bold text-orange-600 mt-2">
-            {
-              filteredOrganizers.filter(
-                (o) => o.suspendedUntil && new Date(o.suspendedUntil) > new Date()
-              ).length
-            }
-          </div>
-        </div>
-      </div>
 
       {/* Search & Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 space-y-4">
+      <div className="bg-[var(--admin-surface)] rounded-xl p-6 border border-[#3a1a1a] space-y-4">
         <div className="flex gap-4 flex-wrap">
           <div className="flex-1 min-w-xs">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Search
             </label>
             <div className="relative">
-              <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+              <Search className="absolute left-3 top-3 text-[#9ca3af]" size={18} />
               <input
                 type="text"
                 placeholder="Search by name or email..."
@@ -205,19 +280,19 @@ export default function OrganizersPage() {
                   setSearchTerm(e.target.value);
                   setPage(1);
                 }}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                className="w-full pl-10 pr-4 py-2 border border-[#3a1a1a] rounded-lg bg-[#1a0808] text-white placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)] focus:border-transparent"
               />
             </div>
           </div>
 
           <div className="w-40">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Trust Level
             </label>
             <select
               value={trustFilter}
               onChange={(e) => setTrustFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              className="w-full px-3 py-2 border border-[#3a1a1a] rounded-lg bg-[#1a0808] text-white focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)] focus:border-transparent"
             >
               <option value="all">All</option>
               <option value="excellent">Excellent (4+)</option>
@@ -228,7 +303,7 @@ export default function OrganizersPage() {
           </div>
 
           <div className="w-40">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Status
             </label>
             <select
@@ -237,7 +312,7 @@ export default function OrganizersPage() {
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              className="w-full px-3 py-2 border border-[#3a1a1a] rounded-lg bg-[#1a0808] text-white focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)] focus:border-transparent"
             >
               <option value="all">All</option>
               <option value="active">Active</option>
@@ -246,16 +321,16 @@ export default function OrganizersPage() {
           </div>
 
           <div className="w-40">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Sort By
             </label>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              className="w-full px-3 py-2 border border-[#3a1a1a] rounded-lg bg-[#1a0808] text-white focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)] focus:border-transparent"
             >
-              <option value="trustScore">Trust Score</option>
               <option value="eventsCreated">Events Created</option>
+              <option value="trustScore">Trust Score</option>
               <option value="flags">Flags</option>
               <option value="name">Name</option>
             </select>
@@ -264,98 +339,98 @@ export default function OrganizersPage() {
       </div>
 
       {/* Organizers Table */}
-      {isLoading ? (
+      {isLoading || recalculateMutation.isPending ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="h-24 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"
+              className="h-24 bg-[#3a1a1a] rounded-xl animate-pulse"
             />
           ))}
         </div>
       ) : filteredOrganizers.length === 0 ? (
-        <div className="text-center py-12">
-          <Filter className="mx-auto text-gray-400 mb-3" size={48} />
-          <p className="text-gray-600 dark:text-gray-400">
+        <div className="text-center py-12 bg-[var(--admin-surface)] rounded-xl border border-[#3a1a1a]">
+          <Filter className="mx-auto text-[#9ca3af] mb-3" size={48} />
+          <p className="text-[#9ca3af]">
             No organizers found matching your filters
           </p>
         </div>
       ) : (
         <div className="space-y-4">
           {filteredOrganizers.map((organizer) => {
-            const isSuspended =
-              organizer.suspendedUntil &&
-              new Date(organizer.suspendedUntil) > new Date();
+            const suspended = isSuspended(organizer);
+            const metrics = getOrganizerMetrics(organizer);
+            const fullName = getOrganizerFullName(organizer);
 
             return (
               <div
                 key={organizer._id}
-                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-lg transition"
+                className="bg-[var(--admin-surface)] rounded-xl border border-[#3a1a1a] p-6 hover:border-[var(--admin-primary)]/50 transition-all"
               >
                 <div className="flex justify-between items-start gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white">
-                          {organizer.fullName || 'Unknown'}
+                        <h3 className="font-semibold text-white text-lg">
+                          {fullName}
                         </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-[#9ca3af]">
                           {organizer.email}
                         </p>
                       </div>
 
-                      {isSuspended && (
-                        <div className="px-3 py-1 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-xs font-medium">
+                      {suspended && (
+                        <div className="px-3 py-1 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs font-medium">
                           Suspended
                         </div>
                       )}
                     </div>
 
-                    <div className="mt-3 grid grid-cols-5 gap-3 text-sm">
+                    <div className="mt-4 grid grid-cols-5 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400">
+                        <span className="text-[#9ca3af] block mb-2">
                           Trust Score
                         </span>
-                        <div className="mt-1">
+                        <div>
                           <TrustScoreBadge
-                            score={organizer.trustMetrics?.trustScore || 0}
+                            score={metrics.trustScore}
                           />
                         </div>
                       </div>
 
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400">
+                        <span className="text-[#9ca3af] block mb-2">
                           Events Created
                         </span>
-                        <p className="text-lg font-semibold text-gray-900 dark:text-white mt-1">
-                          {organizer.trustMetrics?.eventsCreated || 0}
+                        <p className="text-lg font-semibold text-white">
+                          {metrics.eventsCreated}
                         </p>
                       </div>
 
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400">
+                        <span className="text-[#9ca3af] block mb-2">
                           Events Approved
                         </span>
-                        <p className="text-lg font-semibold text-green-600 mt-1">
-                          {organizer.trustMetrics?.eventsApproved || 0}
+                        <p className="text-lg font-semibold text-green-400">
+                          {metrics.eventsApproved}
                         </p>
                       </div>
 
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400">
+                        <span className="text-[#9ca3af] block mb-2">
                           Current Flags
                         </span>
-                        <p className="text-lg font-semibold text-red-600 mt-1">
-                          {organizer.trustMetrics?.currentFlags || 0}
+                        <p className="text-lg font-semibold text-red-400">
+                          {metrics.currentFlags}
                         </p>
                       </div>
 
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400">
+                        <span className="text-[#9ca3af] block mb-2">
                           Suspensions
                         </span>
-                        <p className="text-lg font-semibold text-orange-600 mt-1">
-                          {organizer.trustMetrics?.suspensions || 0}
+                        <p className="text-lg font-semibold text-orange-400">
+                          {metrics.suspensions}
                         </p>
                       </div>
                     </div>
@@ -364,22 +439,31 @@ export default function OrganizersPage() {
                   <div className="flex gap-2">
                     <Link
                       href={`/admin/governance/organizers/${organizer._id}`}
-                      className="px-4 py-2 bg-yellow-500 dark:bg-yellow-600 text-white rounded-lg hover:bg-yellow-600 dark:hover:bg-yellow-700 text-sm font-medium transition"
+                      className="px-4 py-2 bg-[var(--admin-primary)] text-white rounded-lg hover:bg-[var(--admin-primary)]/90 text-sm font-medium transition"
                     >
                       View Profile
                     </Link>
 
                     <button
                       onClick={() =>
-                        handleSuspend(
-                          organizer._id,
-                          organizer.fullName || 'Organizer'
-                        )
+                        suspended
+                          ? handleUnsuspend(
+                              organizer._id,
+                              fullName
+                            )
+                          : handleSuspend(
+                              organizer._id,
+                              fullName
+                            )
                       }
-                      disabled={suspendMutation.isPending || isSuspended}
-                      className="px-4 py-2 bg-red-600 dark:bg-red-700 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-800 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={suspendMutation.isPending || unsuspendMutation.isPending}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition"
                     >
-                      {isSuspended ? 'Suspended' : 'Suspend'}
+                      {suspendMutation.isPending || unsuspendMutation.isPending
+                        ? 'Processing...'
+                        : suspended
+                          ? 'Unsuspend'
+                          : 'Suspend'}
                     </button>
                   </div>
                 </div>
@@ -390,22 +474,22 @@ export default function OrganizersPage() {
       )}
 
       {/* Pagination */}
-      {organizersData?.totalPages > 1 && (
+      {organizersData?.pagination?.pages > 1 && (
         <div className="flex justify-center gap-2">
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50"
+            className="px-4 py-2 border border-[#3a1a1a] rounded-lg hover:bg-[#1a0808] disabled:opacity-50 disabled:cursor-not-allowed text-white transition"
           >
             Previous
           </button>
-          <span className="px-4 py-2 text-gray-600 dark:text-gray-400">
-            Page {page} of {organizersData?.totalPages}
+          <span className="px-4 py-2 text-[#9ca3af]">
+            Page {page} of {organizersData?.pagination?.pages}
           </span>
           <button
-            onClick={() => setPage(Math.min(organizersData?.totalPages, page + 1))}
-            disabled={page === organizersData?.totalPages}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50"
+            onClick={() => setPage(Math.min(organizersData?.pagination?.pages, page + 1))}
+            disabled={page === organizersData?.pagination?.pages}
+            className="px-4 py-2 border border-[#3a1a1a] rounded-lg hover:bg-[#1a0808] disabled:opacity-50 disabled:cursor-not-allowed text-white transition"
           >
             Next
           </button>

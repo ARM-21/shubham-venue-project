@@ -3,12 +3,40 @@ import OrganizerEvent from "../models/OrganizerEvent.js";
 import Flag from "../models/Flag.js";
 
 /**
+ * Pure trust score calculation (no DB calls)
+ * Can be used in metrics service and elsewhere
+ */
+export function calculateTrustScoreFromMetrics(metrics) {
+  // 1. Approval Rate (30%)
+  const approvalRate =
+    metrics.eventsCreated > 0
+      ? (metrics.eventsApproved / metrics.eventsCreated) * 0.3
+      : 0.3; // Give credit for trying
+
+  // 2. Event Activity (25%) - reward creating events
+  const eventActivityScore = Math.min(metrics.eventsCreated / 10, 0.5);
+
+  // 3. Flag History (25%)
+  const flagPenalty = Math.min(metrics.currentFlags / 3, 1);
+  const flagFactor = (1 - flagPenalty) * 0.25;
+
+  // 4. User Ratings (15%)
+  const ratingFactor = (metrics.averageRating / 5) * 0.15;
+
+  // 5. Suspension History (5%)
+  const suspensionPenalty = Math.min((metrics.suspensionCount || 0) * 0.25, 1);
+  const suspensionFactor = (1 - suspensionPenalty) * 0.05;
+
+  // Total: 0.3 baseline + active components
+  let trustScore = approvalRate + eventActivityScore + flagFactor + ratingFactor + suspensionFactor;
+  trustScore = trustScore * 3 + 1; // Scale to 1-5
+  trustScore = Math.max(1, Math.min(5, parseFloat(trustScore.toFixed(1))));
+
+  return trustScore;
+}
+
+/**
  * Calculate trust score for organizer (1-5 scale)
- * Factors:
- * - Approval rate (40%)
- * - Flag history (30%)
- * - User ratings (20%)
- * - Suspension history (10%)
  */
 export async function calculateTrustScore(organizerId) {
   try {
@@ -17,41 +45,18 @@ export async function calculateTrustScore(organizerId) {
     if (!organizer) return 3; // default neutral
 
     const metrics = organizer.trustMetrics || {};
-
-    // Factor 1: Approval rate (40%)
-    const approvalRate =
-      metrics.eventsCreated > 0
-        ? (metrics.eventsApproved / metrics.eventsCreated) * 0.4
-        : 0.4; // give benefit of doubt if new
-
-    // Factor 2: Flag history (30%)
-    const unflaggedPenalty = Math.min(metrics.currentFlags, 5) * 0.1; // max -0.5 from flags
-    const flagFactor = (5 - unflaggedPenalty - 2.5) * 0.3;
-
-    // Factor 3: User ratings (20%)
-    const ratingFactor = (metrics.averageRating / 5) * 0.2;
-
-    // Factor 4: Suspension history (10%)
-    const suspensionPenalty = metrics.suspensionCount * 0.2; // -0.2 per suspension
-    const suspensionFactor = Math.max(1 - suspensionPenalty, 0) * 0.1;
-
-    // Calculate total
-    let trustScore = approvalRate + flagFactor + ratingFactor + suspensionFactor + 1;
-
-    // Clamp between 1 and 5
-    trustScore = Math.max(1, Math.min(5, parseFloat(trustScore.toFixed(1))));
-
-    // Determine if requires approval
+    const trustScore = calculateTrustScoreFromMetrics(metrics);
     const requiresApproval = trustScore < 3.5;
 
     return {
       trustScore,
       requiresApproval,
       breakdown: {
-        approvalRate: parseFloat(approvalRate.toFixed(2)),
-        flagFactor: parseFloat(flagFactor.toFixed(2)),
-        ratingFactor: parseFloat(ratingFactor.toFixed(2)),
-        suspensionFactor: parseFloat(suspensionFactor.toFixed(2)),
+        approvalRate: parseFloat(((metrics.eventsCreated > 0 ? (metrics.eventsApproved / metrics.eventsCreated) * 0.3 : 0.3).toFixed(2))),
+        eventActivity: parseFloat(Math.min(metrics.eventsCreated / 10, 0.5).toFixed(2)),
+        flagFactor: parseFloat(((1 - Math.min(metrics.currentFlags / 3, 1)) * 0.25).toFixed(2)),
+        ratingFactor: parseFloat(((metrics.averageRating / 5) * 0.15).toFixed(2)),
+        suspensionFactor: parseFloat(((1 - Math.min((metrics.suspensionCount || 0) * 0.25, 1)) * 0.05).toFixed(2)),
       },
     };
   } catch (error) {
