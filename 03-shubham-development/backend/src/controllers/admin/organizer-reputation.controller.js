@@ -434,6 +434,7 @@ export const getAuditLogs = async (req, res, next) => {
 
     const skip = (page - 1) * limit;
     const logs = await AuditLog.find(query)
+      .populate('performedBy', 'firstName lastName email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit))

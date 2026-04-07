@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, Users, CheckCircle, Clock, TrendingDown } from 'lucide-react';
+import { AlertTriangle, Users, CheckCircle, Clock, TrendingDown, Flag } from 'lucide-react';
 import { useQueryFlagDashboard, useQuerySuspensionStats, useQueryPendingReviewEvents } from '@queries/admin/governance.queries';
+import { useQueryReportStats } from '@queries/admin/event-reports.queries';
 import { GovStatCard, FlagCard } from 'components/admin/governance/GovernanceComponents';
 import AdminTopbar from 'components/admin/dashboard/AdminTopbar';
 
@@ -11,6 +12,7 @@ export default function GovernanceDashboard() {
   const { data: flagStats, isLoading: flagsLoading } = useQueryFlagDashboard();
   const { data: suspensionStats, isLoading: statsLoading } = useQuerySuspensionStats();
   const { data: pendingEvents, isLoading: pendingLoading } = useQueryPendingReviewEvents(1, 5);
+  const { data: reportStats, isLoading: reportStatsLoading } = useQueryReportStats();
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -104,6 +106,12 @@ export default function GovernanceDashboard() {
                     className="block px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 transition text-sm font-medium"
                   >
                     → View All Flags
+                  </Link>
+                  <Link
+                    href="/admin/governance/reports"
+                    className="block px-4 py-2 bg-orange-500/10 border border-orange-500/30 text-orange-400 rounded-lg hover:bg-orange-500/20 transition text-sm font-medium"
+                  >
+                    → Event Reports
                   </Link>
                   <Link
                     href="/admin/governance/organizer-events"
@@ -219,6 +227,67 @@ export default function GovernanceDashboard() {
                     <p className="text-gray-500 text-center py-8">No pending events</p>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Recent Reports */}
+            {reportStatsLoading ? (
+              <div className="bg-[var(--admin-surface)] rounded-xl p-6 border border-[#3a1a1a] animate-pulse h-64"></div>
+            ) : (
+              <div className="bg-[var(--admin-surface)] rounded-xl border border-[#3a1a1a] p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Flag className="w-5 h-5 text-orange-400" />
+                    Community Reports ({reportStats?.total || 0})
+                  </h3>
+                  <Link href="/admin/governance/reports" className="text-[var(--admin-primary)] hover:text-[var(--admin-primary)]/80 text-sm font-medium">
+                    View All →
+                  </Link>
+                </div>
+                <div className="grid grid-cols-4 gap-4 mb-6">
+                  <div className="bg-[#1a0808] border border-[#3a1a1a] rounded-lg p-3">
+                    <p className="text-xs text-[#9ca3af] mb-1">Pending</p>
+                    <p className="text-2xl font-bold text-yellow-400">{reportStats?.pending || 0}</p>
+                  </div>
+                  <div className="bg-[#1a0808] border border-[#3a1a1a] rounded-lg p-3">
+                    <p className="text-xs text-[#9ca3af] mb-1">Reviewing</p>
+                    <p className="text-2xl font-bold text-blue-400">{reportStats?.reviewing || 0}</p>
+                  </div>
+                  <div className="bg-[#1a0808] border border-[#3a1a1a] rounded-lg p-3">
+                    <p className="text-xs text-[#9ca3af] mb-1">Resolved</p>
+                    <p className="text-2xl font-bold text-emerald-400">{reportStats?.resolved || 0}</p>
+                  </div>
+                  <div className="bg-[#1a0808] border border-[#3a1a1a] rounded-lg p-3">
+                    <p className="text-xs text-[#9ca3af] mb-1">Critical</p>
+                    <p className="text-2xl font-bold text-red-400">{reportStats?.critical || 0}</p>
+                  </div>
+                </div>
+                {!reportStats?.recentReports || reportStats.recentReports.length === 0 ? (
+                  <p className="text-[#9ca3af] text-center py-8">No recent reports</p>
+                ) : (
+                  <div className="space-y-3">
+                    {reportStats?.recentReports?.slice(0, 5).map((report) => (
+                      <Link
+                        key={report._id}
+                        href="/admin/governance/reports"
+                        className="flex items-center justify-between p-3 bg-[#1a0808] border border-[#3a1a1a] rounded-lg hover:border-[var(--admin-primary)]/50 transition"
+                      >
+                        <div className="flex-1">
+                          <p className="text-white font-medium">{report.eventId?.title || 'Event'}</p>
+                          <p className="text-xs text-[#9ca3af] mt-1">{report.reason}</p>
+                        </div>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
+                          report.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                          report.status === 'reviewing' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                          report.status === 'resolved' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                          'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                        }`}>
+                          {report.status}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
         </div>

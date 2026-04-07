@@ -10,7 +10,7 @@ const adminNotificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["organizer_request", "event_pending_approval", "event_approved", "event_rejected"],
+      enum: ["organizer_request", "event_pending_approval", "event_approved", "event_rejected", "event_report_submitted"],
       required: true,
     },
     title: {

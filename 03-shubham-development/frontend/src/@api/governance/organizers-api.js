@@ -3,13 +3,20 @@ import { ROUTES } from "config/routes";
 
 // Get all organizers with filters and pagination
 export const fetchOrganizers = async (filters = {}) => {
-  const { status, page = 1, limit = 20, search } = filters;
+  const { suspended, page = 1, limit = 20, search } = filters;
   
   const params = new URLSearchParams({
     page,
     limit,
   });
-  if (status) params.append('status', status);
+  
+  // Convert suspended boolean to status parameter
+  if (suspended === true) {
+    params.append('suspended', 'true');
+  } else if (suspended === false) {
+    params.append('suspended', 'false');
+  }
+  
   if (search) params.append('search', search);
   
   const res = await axiosInstance.get(

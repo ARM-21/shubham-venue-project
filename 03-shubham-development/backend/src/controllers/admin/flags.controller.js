@@ -131,6 +131,7 @@ export const getAllFlags = async (req, res, next) => {
       status = "open",
       severity,
       organizerId,
+      eventId,
       page = 1,
       limit = 20,
     } = req.query;
@@ -139,6 +140,7 @@ export const getAllFlags = async (req, res, next) => {
     if (status) query.status = status;
     if (severity) query.severity = severity;
     if (organizerId) query.organizerId = organizerId;
+    if (eventId) query.eventId = eventId;
 
     const skip = (page - 1) * limit;
 

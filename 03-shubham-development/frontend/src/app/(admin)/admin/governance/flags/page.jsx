@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Search, Filter, AlertTriangle, AlertCircle, AlertOctagon, Check } from 'lucide-react';
 import {
@@ -25,15 +26,25 @@ const statusConfig = {
 };
 
 export default function FlagsPage() {
+  const searchParams = useSearchParams();
+  const eventId = searchParams.get('eventId');
+  const organizerId = searchParams.get('organizerId');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
   const [page, setPage] = useState(1);
 
+  // Convert 'all' to undefined for API
+  const statusParam = statusFilter === 'all' ? undefined : statusFilter;
+  const severityParam = severityFilter === 'all' ? undefined : severityFilter;
+
   const { data: flagsData, isLoading, error, refetch } = useQueryFlags({
     page,
-    status: statusFilter,
-    severity: severityFilter,
+    status: statusParam,
+    severity: severityParam,
+    eventId,
+    organizerId,
     search: searchTerm,
   });
 

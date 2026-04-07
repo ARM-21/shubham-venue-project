@@ -22,6 +22,7 @@ function buildNavItems(pathname) {
       submenu: [
         { key: "governance-overview", label: "Overview", href: ROUTES.ADMIN.GOVERNANCE.OVERVIEW },
         { key: "governance-flags", label: "Flags", href: ROUTES.ADMIN.GOVERNANCE.FLAGS },
+        { key: "governance-reports", label: "Reports", href: ROUTES.ADMIN.GOVERNANCE.REPORTS },
         { key: "governance-organizers", label: "Organizers", href: ROUTES.ADMIN.GOVERNANCE.ORGANIZERS },
         { key: "governance-events", label: "Events Review", href: ROUTES.ADMIN.GOVERNANCE.ORGANIZER_EVENTS },
         { key: "governance-audit", label: "Audit Logs", href: ROUTES.ADMIN.GOVERNANCE.AUDIT_LOGS },

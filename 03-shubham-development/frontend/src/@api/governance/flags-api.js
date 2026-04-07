@@ -3,7 +3,7 @@ import { ROUTES } from "config/routes";
 
 // Get all flags with filters and pagination
 export const fetchFlags = async (filters = {}) => {
-  const { status = 'open', severity, page = 1, limit = 20 } = filters;
+  const { status = 'open', severity, eventId, organizerId, page = 1, limit = 20 } = filters;
   
   const params = new URLSearchParams({
     status,
@@ -11,6 +11,8 @@ export const fetchFlags = async (filters = {}) => {
     limit,
   });
   if (severity) params.append('severity', severity);
+  if (eventId) params.append('eventId', eventId);
+  if (organizerId) params.append('organizerId', organizerId);
   
   const res = await axiosInstance.get(
     `${ROUTES.API.ADMIN.GOVERNANCE.FLAGS}?${params}`,

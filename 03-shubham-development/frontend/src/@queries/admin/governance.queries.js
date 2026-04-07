@@ -24,11 +24,11 @@ import {
  * Get all flags with filters and pagination
  */
 export const useQueryFlags = (options = {}) => {
-  const { status = 'open', severity, page = 1, limit = 20 } = options;
+  const { status, severity, eventId, organizerId, page = 1, limit = 20 } = options;
 
   return useQuery({
-    queryKey: ['flags', status, severity, page, limit],
-    queryFn: () => fetchFlags({ status, severity, page, limit }),
+    queryKey: ['flags', status, severity, eventId, organizerId, page, limit],
+    queryFn: () => fetchFlags({ status: status || 'open', severity, eventId, organizerId, page, limit }),
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
