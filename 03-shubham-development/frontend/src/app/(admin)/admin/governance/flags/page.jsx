@@ -2,8 +2,9 @@
 
 import { useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Search, Filter, AlertTriangle, AlertCircle, AlertOctagon, Check } from 'lucide-react';
+import { Search, Filter, AlertTriangle, AlertCircle, AlertOctagon, Check, RefreshCw } from 'lucide-react';
 import {
   useQueryFlags,
 } from '@queries/admin/governance.queries';
@@ -53,6 +54,7 @@ function FlagsPageLoading() {
 
 function FlagsPageContent() {
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const eventId = searchParams.get('eventId');
   const organizerId = searchParams.get('organizerId');
 
@@ -60,6 +62,7 @@ function FlagsPageContent() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
   const [page, setPage] = useState(1);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Convert 'all' to undefined for API
   const statusParam = statusFilter === 'all' ? undefined : statusFilter;
@@ -75,7 +78,26 @@ function FlagsPageContent() {
   });
 
   const flags = flagsData?.flags || [];
-  const totalPages = flagsData?.totalPages || 1;
+  const totalPages = flagsData?.pagination?.pages || 1;
+  const totalCount = flagsData?.pagination?.total || 0;
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    const toastId = toast.loading('Refreshing data...');
+    try {
+      await Promise.all([
+        refetch(),
+        queryClient.invalidateQueries({ queryKey: ['flags'] }),
+      ]);
+      toast.dismiss(toastId);
+      toast.success('Data refreshed successfully');
+    } catch (error) {
+      toast.dismiss(toastId);
+      toast.error('Failed to refresh data');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (error)
     return (
@@ -107,12 +129,31 @@ function FlagsPageContent() {
         <div className="max-w-7xl mx-auto space-y-6 pb-12">
           {/* Header */}
           <div>
-            <h1 className="text-4xl font-bold text-white">
-              Event Flags
-            </h1>
-            <p className="text-[#9ca3af] mt-1">
-              Review and investigate flagged events
-            </p>
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-4xl font-bold text-white">
+                  Event Flags
+                </h1>
+                <p className="text-[#9ca3af] mt-1">
+                  Review and investigate flagged events
+                </p>
+              </div>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className={`w-12 h-12 flex items-center justify-center rounded-full border border-[#3a1a1a] bg-[var(--admin-surface)] hover:border-[var(--admin-primary)]/50 transition-all ${
+                  isRefreshing ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[#1a0808]'
+                }`}
+                title="Refresh data"
+              >
+                <RefreshCw
+                  size={20}
+                  className={`text-[var(--admin-primary)] transition-transform ${
+                    isRefreshing ? 'animate-spin' : ''
+                  }`}
+                />
+              </button>
+            </div>
           </div>
 
           {/* Stats */}
@@ -123,7 +164,7 @@ function FlagsPageContent() {
                 Total Flags
               </div>
               <div className="text-3xl font-bold text-white mt-2">
-                {flagsData?.totalCount || 0}
+                {totalCount}
               </div>
             </div>
 

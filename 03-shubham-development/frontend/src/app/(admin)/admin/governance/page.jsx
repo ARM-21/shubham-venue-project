@@ -20,20 +20,25 @@ export default function GovernanceDashboard() {
 
       <div className="flex-1 overflow-y-auto admin-scroll p-6 lg:p-8 mt-10">
         <div className="max-w-7xl mx-auto space-y-8 pb-12">
-            {/* Page Header */}
-            <div>
-              <h1 className="text-4xl font-bold text-white">Governance Dashboard</h1>
-              <p className="text-[#9ca3af] mt-1">Monitor organizer events, flag suspicious activity, and manage reputation</p>
+            {/* Page Header - Professional */}
+            <div className="mb-8">
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <h1 className="text-5xl font-bold text-white mb-2">Governance</h1>
+                  <p className="text-[#d1d5db] text-sm">Monitor compliance, manage flags, and protect platform integrity</p>
+                </div>
+                <div className="h-1 flex-1 mx-6 bg-gradient-to-r from-[var(--gold-accent)]/20 to-transparent rounded-full"></div>
+              </div>
             </div>
 
-            {/* Key Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Key Stats - Enhanced */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
               {flagsLoading ? (
                 <>
-                  <div className="bg-[var(--admin-surface)] rounded-xl p-6 animate-pulse h-40 border border-[#3a1a1a]"></div>
-                  <div className="bg-[var(--admin-surface)] rounded-xl p-6 animate-pulse h-40 border border-[#3a1a1a]"></div>
-                  <div className="bg-[var(--admin-surface)] rounded-xl p-6 animate-pulse h-40 border border-[#3a1a1a]"></div>
-                  <div className="bg-[var(--admin-surface)] rounded-xl p-6 animate-pulse h-40 border border-[#3a1a1a]"></div>
+                  <div className="bg-gradient-to-br from-[var(--admin-surface)] to-[#1a0808] rounded-xl p-6 animate-pulse h-40 border border-[#3a1a1a]"></div>
+                  <div className="bg-gradient-to-br from-[var(--admin-surface)] to-[#1a0808] rounded-xl p-6 animate-pulse h-40 border border-[#3a1a1a]"></div>
+                  <div className="bg-gradient-to-br from-[var(--admin-surface)] to-[#1a0808] rounded-xl p-6 animate-pulse h-40 border border-[#3a1a1a]"></div>
+                  <div className="bg-gradient-to-br from-[var(--admin-surface)] to-[#1a0808] rounded-xl p-6 animate-pulse h-40 border border-[#3a1a1a]"></div>
                 </>
               ) : (
                 <>
@@ -67,82 +72,97 @@ export default function GovernanceDashboard() {
 
             {/* Suspension Stats & Quick Actions */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Suspension Stats Card */}
+              {/* Suspension Stats Card - Professional */}
               {statsLoading ? (
-                <div className="bg-[var(--admin-surface)] rounded-xl p-6 animate-pulse h-40\"></div>
+                <div className="bg-gradient-to-br from-[var(--admin-surface)] to-[#1a0808] rounded-xl p-6 animate-pulse h-48 border border-[#3a1a1a]"></div>
               ) : (
-                <div className="bg-[var(--admin-surface)] rounded-xl border border-[#3a1a1a] p-6\">
-                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2\">
-                    <Users className="w-5 h-5 text-red-400\" />
-                    Suspension Status
-                  </h3>
-                  <div className="space-y-3\">
-                    <div className="flex justify-between\">
-                      <span className="text-[#9ca3af]\">Total Suspended:</span>
-                      <span className="font-bold text-red-400\">{suspensionStats?.stats?.totalSuspended || 0}</span>
+                <div className="bg-gradient-to-br from-[var(--admin-surface)] to-[#1a0808] rounded-xl border border-[#3a1a1a] p-6 hover:border-[var(--gold-accent)]/30 transition-all">
+                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#3a1a1a]">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Users className="w-5 h-5 text-[var(--gold-accent)]" />
+                      Suspension Status
+                    </h3>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between group cursor-default">
+                      <span className="text-[#9ca3af] text-sm font-medium">Total Suspended</span>
+                      <span className="text-2xl font-bold text-red-400">{suspensionStats?.stats?.totalSuspended || 0}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#9ca3af]\">Temporary:</span>
-                      <span className="font-bold text-yellow-400\">{suspensionStats?.stats?.temporary || 0}</span>
+                    <div className="h-px bg-[#3a1a1a]"></div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#9ca3af] text-sm">Active Temporary</span>
+                      <span className="font-bold text-yellow-400">{suspensionStats?.stats?.temporary || 0}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#9ca3af]\">Permanent:</span>
-                      <span className="font-bold text-red-500\">{suspensionStats?.stats?.permanent || 0}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#9ca3af] text-sm">Permanent</span>
+                      <span className="font-bold text-red-500">{suspensionStats?.stats?.permanent || 0}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#9ca3af]\">Expiring Soon (7 days):</span>
-                      <span className="font-bold text-orange-400\">{suspensionStats?.stats?.expiringSoon || 0}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#9ca3af] text-sm">Expiring Soon</span>
+                      <span className="font-bold text-orange-400">{suspensionStats?.stats?.expiringSoon || 0}</span>
                     </div>
+                    {suspensionStats?.stats?.expiredTemporary > 0 && (
+                      <>
+                        <div className="h-px bg-[#3a1a1a]"></div>
+                        <div className="flex items-center justify-between pt-2">
+                          <span className="text-[#9ca3af] text-sm">Needs Action</span>
+                          <span className="font-bold text-[var(--gold-accent)] bg-[var(--gold-accent)]/10 px-2.5 py-1 rounded-full text-sm">{suspensionStats?.stats?.expiredTemporary}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Quick Actions */}
-              <div className="bg-[var(--admin-surface)] rounded-xl border border-[#3a1a1a] p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Quick Links</h3>
-                <div className="space-y-2">
+              {/* Quick Actions - Professional */}
+              <div className="bg-gradient-to-br from-[var(--admin-surface)] to-[#1a0808] rounded-xl border border-[#3a1a1a] p-6">
+                <h3 className="text-lg font-semibold text-white mb-5 pb-4 border-b border-[#3a1a1a] flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-[var(--gold-accent)]" />
+                  Quick Links
+                </h3>
+                <div className="space-y-2.5">
                   <Link
                     href="/admin/governance/flags"
-                    className="block px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 transition text-sm font-medium"
+                    className="block px-4 py-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 hover:border-red-400/50 transition text-sm font-medium"
                   >
                     → View All Flags
                   </Link>
                   <Link
                     href="/admin/governance/reports"
-                    className="block px-4 py-2 bg-orange-500/10 border border-orange-500/30 text-orange-400 rounded-lg hover:bg-orange-500/20 transition text-sm font-medium"
+                    className="block px-4 py-3 bg-orange-500/10 border border-orange-500/30 text-orange-400 rounded-lg hover:bg-orange-500/20 hover:border-orange-400/50 transition text-sm font-medium"
                   >
                     → Event Reports
                   </Link>
                   <Link
                     href="/admin/governance/organizer-events"
-                    className="block px-4 py-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-lg hover:bg-blue-500/20 transition text-sm font-medium"
+                    className="block px-4 py-3 bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-lg hover:bg-blue-500/20 hover:border-blue-400/50 transition text-sm font-medium"
                   >
-                    → Review Pending Events
+                    → Pending Review
                   </Link>
                   <Link
                     href="/admin/governance/organizers"
-                    className="block px-4 py-2 bg-purple-500/10 border border-purple-500/30 text-purple-400 rounded-lg hover:bg-purple-500/20 transition text-sm font-medium"
+                    className="block px-4 py-3 bg-[var(--gold-accent)]/10 border border-[var(--gold-accent)]/30 text-[var(--gold-accent)] rounded-lg hover:bg-[var(--gold-accent)]/20 hover:border-[var(--gold-accent)]/50 transition text-sm font-medium"
                   >
                     → Manage Organizers
                   </Link>
                 </div>
               </div>
 
-              {/* Recent Activity */}
-              <div className="bg-[var(--admin-surface)] rounded-xl border border-[#3a1a1a] p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">System Health</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
-                    <span className="text-[#9ca3af] text-sm">All systems operational</span>
+              {/* Summary */}
+              <div className="bg-gradient-to-br from-[var(--admin-surface)] to-[#1a0808] rounded-xl border border-[#3a1a1a] p-6">
+                <h3 className="text-lg font-semibold text-white mb-5 pb-4 border-b border-[#3a1a1a] flex items-center gap-2">
+                  <TrendingDown className="w-5 h-5 text-[var(--gold-accent)]" />
+                  Overview
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs text-[#9ca3af] uppercase font-semibold mb-1">Total Flags</p>
+                    <p className="text-3xl font-bold text-white">{flagStats?.stats?.activeFlags || 0}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
-                    <span className="text-[#9ca3af] text-sm">Audit logging active</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
-                    <span className="text-[#9ca3af] text-sm">API responding normally</span>
+                  <div className="h-px bg-[#3a1a1a]"></div>
+                  <div>
+                    <p className="text-xs text-[#9ca3af] uppercase font-semibold mb-1">Pending Reports</p>
+                    <p className="text-2xl font-bold text-orange-400">{reportStats?.pending || 0}</p>
                   </div>
                 </div>
               </div>
@@ -273,7 +293,7 @@ export default function GovernanceDashboard() {
                         className="flex items-center justify-between p-3 bg-[#1a0808] border border-[#3a1a1a] rounded-lg hover:border-[var(--admin-primary)]/50 transition"
                       >
                         <div className="flex-1">
-                          <p className="text-white font-medium">{report.eventId?.title || 'Event'}</p>
+                          <p className="text-white font-medium">{report.eventId?.name || 'Event'}</p>
                           <p className="text-xs text-[#9ca3af] mt-1">{report.reason}</p>
                         </div>
                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${

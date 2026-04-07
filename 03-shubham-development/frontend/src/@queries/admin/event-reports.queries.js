@@ -9,21 +9,16 @@ import {
  * Get all event reports (admin only) with filters
  */
 export const useQueryEventReports = (filters = {}) => {
-  const { status = 'pending', priority, page = 1, limit = 20, search } = filters;
-  
-  // Handle empty string filters - treat as undefined so API uses all
-  const finalStatus = status || 'pending';
-  const finalPriority = priority || undefined;
-  const finalSearch = search || undefined;
+  const { status, priority, page = 1, limit = 20, search } = filters;
 
   return useQuery({
-    queryKey: ['eventReports', finalStatus, finalPriority, page, limit, finalSearch],
+    queryKey: ['eventReports', status, priority, page, limit, search],
     queryFn: () => fetchEventReports({ 
-      status: finalStatus, 
-      priority: finalPriority, 
+      status, 
+      priority, 
       page, 
       limit, 
-      search: finalSearch 
+      search
     }),
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes

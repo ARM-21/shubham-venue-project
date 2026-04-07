@@ -73,7 +73,8 @@ export const flagEvent = async (req, res, next) => {
       ],
     });
 
-    // Update event
+    // Update event - Mark as flagged but DO NOT auto-suspend
+    // Event stays public during investigation. Admin decides suspension after review.
     await OrganizerEvent.findByIdAndUpdate(eventId, {
       isFlagged: true,
       $push: {
@@ -87,15 +88,6 @@ export const flagEvent = async (req, res, next) => {
         },
       },
     });
-
-    // Auto-suspend if high severity
-    if (newFlag.severity === "critical" || newFlag.severity === "high") {
-      await OrganizerEvent.findByIdAndUpdate(eventId, {
-        status: "SUSPENDED",
-        suspendedAt: new Date(),
-        suspensionReason: `Critical flag: ${reason}`,
-      });
-    }
 
     // Update organizer metrics
     await onEventFlagged(event.organizerId);
@@ -128,7 +120,7 @@ export const flagEvent = async (req, res, next) => {
 export const getAllFlags = async (req, res, next) => {
   try {
     const {
-      status = "open",
+      status,
       severity,
       organizerId,
       eventId,
@@ -137,14 +129,16 @@ export const getAllFlags = async (req, res, next) => {
     } = req.query;
 
     const query = {};
-    if (status) query.status = status;
-    if (severity) query.severity = severity;
+    // Only filter by status if explicitly provided (not "all" or undefined)
+    if (status && status !== 'all') query.status = status;
+    if (severity && severity !== 'all') query.severity = severity;
     if (organizerId) query.organizerId = organizerId;
     if (eventId) query.eventId = eventId;
 
     const skip = (page - 1) * limit;
 
     const flags = await Flag.find(query)
+      .populate("eventId", "name startDateTime eventDate status type hallId")
       .populate("organizerId", "email username firstName lastName")
       .populate("flaggedBy", "email username")
       .sort({ severity: -1, createdAt: -1 })
@@ -177,18 +171,44 @@ export const getFlagResolution = async (req, res, next) => {
   try {
     const { flagId } = req.params;
 
-    const resolution = await FlagResolution.findOne({ flagId })
-      .populate("timeline.performedBy", "email username role")
-      .populate("decidedBy", "email username");
+    // Check if flag exists first
+    const flag = await Flag.findById(flagId)
+      .populate("eventId", "name startDateTime eventDate status type hallId createdAt")
+      .populate("flaggedBy", "email username")
+      .populate("organizerId", "email username firstName lastName");
 
-    if (!resolution) {
-      return httpError(res, "Resolution thread not found", 404);
+    if (!flag) {
+      return httpError(res, "Flag not found", 404);
     }
 
-    const flag = await Flag.findById(flagId).populate(
-      "flaggedBy organizerId",
-      "email username firstName lastName"
-    );
+    let resolution = await FlagResolution.findOne({ flagId })
+      .populate("timeline.performedBy", "email username role")
+      .populate("decidedBy", "email username");
+    
+    // If resolution doesn't exist, create it (data consistency fix for flags created before resolution logic)
+    if (!resolution) {
+      resolution = await FlagResolution.create({
+        flagId,
+        eventId: flag.eventId._id,
+        organizerId: flag.organizerId._id,
+        initialSeverity: flag.severity,
+        status: "open",
+        timeline: [
+          {
+            action: "flagged",
+            performedBy: flag.flaggedBy._id,
+            performedByRole: "admin",
+            message: flag.description,
+            evidence: flag.evidence || [],
+            timestamp: flag.flaggedAt,
+          },
+        ],
+      });
+      // Populate the new resolution
+      resolution = await FlagResolution.findById(resolution._id)
+        .populate("timeline.performedBy", "email username role")
+        .populate("decidedBy", "email username");
+    }
 
     return success(
       res,
@@ -209,19 +229,49 @@ export const addFlagComment = async (req, res, next) => {
     const { message, evidence } = req.body;
     const adminId = req.currentUser._id;
 
+    // Get current flag status
+    const flag = await Flag.findById(flagId);
+    if (!flag) {
+      return httpError(res, "Flag not found", 404);
+    }
+
+    // Auto-move to investigating if currently open
+    const timelineEntries = [];
+    
+    if (flag.status === "open") {
+      // Update flag status to investigating
+      await Flag.findByIdAndUpdate(flagId, {
+        status: "investigating",
+      });
+
+      // Add status change to timeline
+      timelineEntries.push({
+        action: "status_changed",
+        performedBy: adminId,
+        performedByRole: "admin",
+        message: "Investigation started",
+        timestamp: new Date(),
+      });
+    }
+
+    // Add the comment
+    timelineEntries.push({
+      action: "commented",
+      performedBy: adminId,
+      performedByRole: "admin",
+      message,
+      evidence: evidence || [],
+      timestamp: new Date(),
+    });
+
     const thread = await FlagResolution.findOneAndUpdate(
       { flagId },
       {
         $push: {
-          timeline: {
-            action: "commented",
-            performedBy: adminId,
-            performedByRole: "admin",
-            message,
-            evidence: evidence || [],
-            timestamp: new Date(),
-          },
+          timeline: { $each: timelineEntries },
         },
+        // Update resolution status if it was open
+        ...(flag.status === "open" && { status: "investigating" }),
       },
       { new: true }
     ).populate("timeline.performedBy", "email username");
@@ -230,7 +280,7 @@ export const addFlagComment = async (req, res, next) => {
       return httpError(res, "Resolution thread not found", 404);
     }
 
-    return success(res, thread, "Comment added");
+    return success(res, thread, "Comment added and investigation started");
   } catch (err) {
     next(err);
   }
@@ -242,10 +292,25 @@ export const addFlagComment = async (req, res, next) => {
 export const resolveFlag = async (req, res, next) => {
   try {
     const { flagId } = req.params;
-    const { decision, reason, suspensionDays } = req.body;
+    const { resolution, decision, reason, suspensionDays } = req.body;
     const adminId = req.currentUser._id;
 
-    // Valid decisions: "warning", "suspended_7days", "suspended_30days", "permanent_suspension", "dismissed"
+    // Accept both "resolution" and "decision" for flexibility
+    const finalDecision = resolution || decision;
+
+    // Validate decision
+    if (!finalDecision) {
+      return httpError(res, "Resolution/Decision is required", 400);
+    }
+
+    const validDecisions = ["warning", "suspended_7days", "suspended_30days", "permanent_suspension", "dismissed"];
+    if (!validDecisions.includes(finalDecision)) {
+      return httpError(res, `Invalid decision. Must be one of: ${validDecisions.join(", ")}`, 400);
+    }
+
+    if (!reason || !reason.trim()) {
+      return httpError(res, "Reason is required", 400);
+    }
 
     const flag = await Flag.findById(flagId);
     if (!flag) {
@@ -259,11 +324,11 @@ export const resolveFlag = async (req, res, next) => {
 
     // Update flag
     await Flag.findByIdAndUpdate(flagId, {
-      status: decision === "dismissed" ? "dismissed" : "resolved",
+      status: finalDecision === "dismissed" ? "dismissed" : "resolved",
       resolution:
-        decision === "dismissed"
+        finalDecision === "dismissed"
           ? "dismissed"
-          : decision === "warning"
+          : finalDecision === "warning"
           ? "warned_organizer"
           : "suspended_event",
       resolvedBy: adminId,
@@ -275,28 +340,28 @@ export const resolveFlag = async (req, res, next) => {
     const actions = [];
     const suspensionDaysNum = suspensionDays
       ? parseInt(suspensionDays)
-      : decision === "suspended_7days"
+      : finalDecision === "suspended_7days"
       ? 7
-      : decision === "suspended_30days"
+      : finalDecision === "suspended_30days"
       ? 30
       : null;
 
-    if (decision === "warning") {
+    if (finalDecision === "warning") {
       actions.push("organizer_warned");
-    } else if (decision.includes("suspended")) {
+    } else if (finalDecision.includes("suspended")) {
       actions.push("event_suspended");
       if (suspensionDaysNum) {
         actions.push("organizer_suspended");
       }
-    } else if (decision === "dismissed") {
+    } else if (finalDecision === "dismissed") {
       actions.push("event_restored");
     }
 
     await FlagResolution.findByIdAndUpdate(
       thread._id,
       {
-        status: decision === "dismissed" ? "dismissed" : "resolved",
-        decision,
+        status: finalDecision === "dismissed" ? "dismissed" : "resolved",
+        decision: finalDecision,
         decisionReason: reason,
         decidedBy: adminId,
         decidedAt: new Date(),
@@ -306,15 +371,15 @@ export const resolveFlag = async (req, res, next) => {
     );
 
     // Take action on organizer
-    if (decision === "warning") {
+    if (finalDecision === "warning") {
       await updateTrustScore(flag.organizerId);
-    } else if (decision.includes("suspended")) {
+    } else if (finalDecision.includes("suspended")) {
       await suspendOrganizer(
         flag.organizerId,
         `Flagged: ${flag.reason}`,
         suspensionDaysNum
       );
-    } else if (decision === "dismissed") {
+    } else if (finalDecision === "dismissed") {
       await onFlagResolved(flag.organizerId, "dismissed");
 
       // Restore event if was suspended
@@ -333,7 +398,7 @@ export const resolveFlag = async (req, res, next) => {
       performedBy: adminId,
       performedByRole: "admin",
       metadata: {
-        decision,
+        decision: finalDecision,
         reason,
         suspensionDays: suspensionDaysNum,
       },
@@ -342,8 +407,14 @@ export const resolveFlag = async (req, res, next) => {
 
     return success(
       res,
-      { flag: await Flag.findById(flagId), thread },
-      `Flag ${decision}`
+      { 
+        flag: await Flag.findById(flagId)
+          .populate("eventId", "name startDateTime eventDate status type hallId")
+          .populate("flaggedBy", "email username")
+          .populate("organizerId", "email username firstName lastName"), 
+        thread 
+      },
+      `Flag ${finalDecision}`
     );
   } catch (err) {
     next(err);
@@ -359,7 +430,7 @@ export const dismissFlag = async (req, res, next) => {
     const { reason } = req.body;
     const adminId = req.currentUser._id;
 
-    const flag = await Flag.findByIdAndUpdate(
+    await Flag.findByIdAndUpdate(
       flagId,
       {
         status: "dismissed",
@@ -367,9 +438,14 @@ export const dismissFlag = async (req, res, next) => {
         resolvedBy: adminId,
         resolvedAt: new Date(),
         resolutionNotes: reason,
-      },
-      { new: true }
+      }
     );
+
+    // Fetch flag with populated fields
+    const flag = await Flag.findById(flagId)
+      .populate("eventId", "name startDateTime eventDate status type hallId")
+      .populate("flaggedBy", "email username")
+      .populate("organizerId", "email username firstName lastName");
 
     if (!flag) {
       return httpError(res, "Flag not found", 404);
@@ -389,13 +465,13 @@ export const dismissFlag = async (req, res, next) => {
     );
 
     // Restore event
-    await OrganizerEvent.findByIdAndUpdate(flag.eventId, {
+    await OrganizerEvent.findByIdAndUpdate(flag.eventId._id, {
       isFlagged: false,
       suspendedAt: null,
     });
 
     // Update organizer score
-    await onFlagResolved(flag.organizerId, "dismissed");
+    await onFlagResolved(flag.organizerId._id, "dismissed");
 
     return success(res, { flag, thread }, "Flag dismissed");
   } catch (err) {
@@ -448,6 +524,7 @@ export const getFlagDashboard = async (req, res, next) => {
     const resolvedTotal = await Flag.countDocuments({ status: "resolved" });
 
     const recentFlags = await Flag.find({})
+      .populate("eventId", "name description startDateTime")
       .populate("organizerId", "email firstName lastName")
       .sort({ createdAt: -1 })
       .limit(10);

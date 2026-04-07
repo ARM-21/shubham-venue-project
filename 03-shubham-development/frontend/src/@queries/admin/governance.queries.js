@@ -28,7 +28,7 @@ export const useQueryFlags = (options = {}) => {
 
   return useQuery({
     queryKey: ['flags', status, severity, eventId, organizerId, page, limit],
-    queryFn: () => fetchFlags({ status: status || 'open', severity, eventId, organizerId, page, limit }),
+    queryFn: () => fetchFlags({ status, severity, eventId, organizerId, page, limit }),
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
   });

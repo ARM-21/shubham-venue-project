@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { submitEventReport } from '@api/governance/event-reports-api';
 import { toast } from 'sonner';
-import { AlertCircle, X } from 'lucide-react';
+import { AlertCircle, X, CheckCircle, ChevronLeft } from 'lucide-react';
 
 const REPORT_REASONS = [
   { value: 'suspicious_activity', label: 'Suspicious Activity' },
@@ -29,6 +29,7 @@ export default function ReportEventModal({ eventId, eventName, isOpen, onClose, 
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('medium');
   const [evidence, setEvidence] = useState('');
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const reportMutation = useMutation({
     mutationFn: () =>
@@ -44,7 +45,7 @@ export default function ReportEventModal({ eventId, eventName, isOpen, onClose, 
       ),
     onSuccess: () => {
       toast.success('Event reported successfully. Our team will review it shortly.');
-      handleClose();
+      setShowConfirmation(true);
       onReportSuccess?.();
     },
     onError: (error) => {
@@ -57,7 +58,12 @@ export default function ReportEventModal({ eventId, eventName, isOpen, onClose, 
     setDescription('');
     setPriority('medium');
     setEvidence('');
+    setShowConfirmation(false);
     onClose();
+  };
+
+  const handleBackToEvent = () => {
+    handleClose();
   };
 
   const handleSubmit = (e) => {
@@ -78,6 +84,74 @@ export default function ReportEventModal({ eventId, eventName, isOpen, onClose, 
 
   if (!isOpen) return null;
 
+  // Confirmation screen
+  if (showConfirmation) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-[2.5rem] border border-gray-200 w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-[#3a1224] to-[#5a2a3c] border-b border-[#C0A04C]/20 p-6 flex items-center justify-between rounded-t-[2.5rem] flex-shrink-0">
+            <h2 className="text-2xl font-bold text-white">Report Submitted</h2>
+            <button
+              onClick={handleClose}
+              className="p-2 hover:bg-white/10 rounded-lg transition text-white/70 hover:text-white"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="p-8 space-y-6 overflow-y-auto flex-1 flex flex-col items-center justify-center text-center">
+            <CheckCircle className="w-16 h-16 text-emerald-500 flex-shrink-0" />
+            
+            <div>
+              <h3 className="text-2xl font-bold text-[#3a1224] mb-3">Thank You!</h3>
+              <p className="text-gray-600 mb-4">
+                Your report has been successfully submitted.
+              </p>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 w-full">
+              <p className="text-sm text-[#3a1224]">
+                <strong className="text-blue-600">📋 What happens next:</strong>
+              </p>
+              <ul className="text-sm text-gray-600 mt-3 space-y-2 text-left">
+                <li>✓ Our admin team will review your report</li>
+                <li>✓ The event will remain visible during investigation</li>
+                <li>✓ Admin will take action if violations are confirmed</li>
+                <li>✓ You'll see updates on the event page</li>
+              </ul>
+            </div>
+
+            <div className="w-full">
+              <p className="text-xs text-gray-500">
+                Report ID: {reportMutation.data?.reportId || 'Pending...'}
+              </p>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="p-6 border-t border-gray-200 flex gap-4">
+            <button
+              onClick={handleBackToEvent}
+              className="flex-1 px-4 py-3 flex items-center justify-center gap-2 bg-[#C0A04C] hover:bg-[#b8942d] text-[#3a1224] rounded-lg font-semibold transition"
+            >
+              <ChevronLeft size={20} />
+              Back to Event
+            </button>
+            <button
+              onClick={handleClose}
+              className="flex-1 px-4 py-3 border-2 border-[#3a1224]/20 hover:border-[#3a1224]/50 hover:bg-[#fdfaf6] rounded-lg text-[#3a1224] font-semibold transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Report form
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-[2.5rem] border border-gray-200 w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
