@@ -5,7 +5,7 @@ const auditLogSchema = new mongoose.Schema(
     // Entity info
     entityType: {
       type: String,
-      enum: ["event", "organizer", "user"],
+      enum: ["event", "organizer", "user", "system"],
       required: true,
       index: true,
     },
@@ -30,6 +30,7 @@ const auditLogSchema = new mongoose.Schema(
         "rejected",
         "deleted",
         "status_changed",
+        "bulk_metrics_recalculation",
       ],
       required: true,
       index: true,

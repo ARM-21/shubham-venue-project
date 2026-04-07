@@ -336,15 +336,23 @@ export const getSuspensionStats = async (req, res, next) => {
       suspensionStatus: { $ne: "none" },
     });
 
+    // Count active temporary suspensions (status = temporary AND end date in future)
     const temporarySuspended = await User.countDocuments({
       suspensionStatus: "temporary",
       suspensionEndDate: { $gt: new Date() },
+    });
+
+    // Count expired temporary suspensions (status = temporary BUT end date has passed)
+    const expiredTemporarySuspensions = await User.countDocuments({
+      suspensionStatus: "temporary",
+      suspensionEndDate: { $lte: new Date() },
     });
 
     const permanentSuspended = await User.countDocuments({
       suspensionStatus: "permanent",
     });
 
+    // Count temporary suspensions expiring within 7 days
     const expiringSoon = await User.countDocuments({
       suspensionStatus: "temporary",
       suspensionEndDate: {
@@ -358,7 +366,8 @@ export const getSuspensionStats = async (req, res, next) => {
         totalSuspended,
         temporary: temporarySuspended,
         permanent: permanentSuspended,
-        expiringSoon: expiringSoon,
+        expiringSoon,
+        expiredTemporary: expiredTemporarySuspensions,
       },
     });
   } catch (err) {

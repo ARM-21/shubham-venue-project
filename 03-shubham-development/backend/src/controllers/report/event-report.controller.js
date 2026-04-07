@@ -108,12 +108,13 @@ export const submitEventReport = async (req, res) => {
  */
 export const getEventReports = async (req, res) => {
   try {
-    const { status = 'pending', priority, page = 1, limit = 20, search } = req.query;
+    const { status, priority, page = 1, limit = 20, search } = req.query;
 
     let query = {};
 
-    if (status) query.status = status;
-    if (priority) query.priority = priority;
+    // Only filter by status if provided
+    if (status && status !== 'all') query.status = status;
+    if (priority && priority !== 'all') query.priority = priority;
 
     // Search by event name or reporter email
     if (search) {

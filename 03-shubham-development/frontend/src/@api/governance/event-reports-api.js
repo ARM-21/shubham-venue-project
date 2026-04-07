@@ -23,12 +23,12 @@ export const submitEventReport = async (eventId, reason, description, evidence =
  */
 export const fetchEventReports = async (filters = {}) => {
   try {
-    const { status = 'pending', priority, page = 1, limit = 20, search } = filters;
+    const { status, priority, page = 1, limit = 20, search } = filters;
     
     const params = new URLSearchParams({
-      status,
       page,
       limit,
+      ...(status && { status }),
       ...(priority && { priority }),
       ...(search && { search }),
     });
@@ -97,7 +97,12 @@ export const dismissEventReport = async (reportId, adminNotes) => {
 export const fetchReportStats = async () => {
   try {
     const response = await axiosInstance.get('/api/v1/event-reports/admin/stats');
-    return response.data.data.stats || {};
+    const data = response.data.data || { stats: {}, recentReports: [] };
+    // Flatten stats to top level for component access
+    return {
+      ...data.stats,
+      recentReports: data.recentReports || []
+    };
   } catch (error) {
     throw error.response?.data || error;
   }

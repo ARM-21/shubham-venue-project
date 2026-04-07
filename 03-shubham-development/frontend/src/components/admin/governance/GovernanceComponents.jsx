@@ -63,24 +63,24 @@ export function FlagCard({ flag, onClick, isSelected }) {
 export function FlagInvestigationTimeline({ timeline = [] }) {
   return (
     <div className="space-y-4 mt-6">
-      <h3 className="text-lg font-semibold text-gray-900">Investigation Timeline</h3>
+      <h3 className="text-lg font-semibold text-white">Investigation Timeline</h3>
       <div className="relative">
-        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-[#3a1a1a]"></div>
         <div className="space-y-6 pl-16">
           {timeline.map((entry, idx) => (
             <div key={idx} className="relative">
-              <div className="absolute -left-11 top-0 w-8 h-8 bg-white border-4 border-blue-500 rounded-full flex items-center justify-center">
-                <Clock className="w-4 h-4 text-blue-500" />
+              <div className="absolute -left-11 top-0 w-8 h-8 bg-[var(--admin-surface)] border-4 border-[var(--gold-accent)] rounded-full flex items-center justify-center">
+                <Clock className="w-4 h-4 text-[var(--gold-accent)]" />
               </div>
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <div className="bg-[var(--admin-surface)] p-4 rounded-lg border border-[#3a1a1a]">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-gray-900 capitalize">{entry.action}</span>
-                  <span className="text-sm text-gray-500">
+                  <span className="font-semibold text-white capitalize">{entry.action}</span>
+                  <span className="text-sm text-[#9ca3af]">
                     {new Date(entry.timestamp).toLocaleString()}
                   </span>
                 </div>
                 {entry.message && (
-                  <p className="text-gray-700 mb-2">{entry.message}</p>
+                  <p className="text-[#d1d5db] mb-2">{entry.message}</p>
                 )}
                 {entry.evidence && entry.evidence.length > 0 && (
                   <div className="flex gap-2 flex-wrap">
@@ -90,7 +90,7 @@ export function FlagInvestigationTimeline({ timeline = [] }) {
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+                        className="text-xs bg-[var(--admin-surface-strong)] text-[var(--gold-accent)] px-2 py-1 rounded hover:bg-[#2a1010] border border-[#3a1a1a] transition"
                       >
                         Evidence {i + 1}
                       </a>
@@ -98,7 +98,7 @@ export function FlagInvestigationTimeline({ timeline = [] }) {
                   </div>
                 )}
                 {entry.performedBy && (
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-[#9ca3af] mt-2">
                     By: {entry.performedBy?.email || 'System'}
                   </p>
                 )}
