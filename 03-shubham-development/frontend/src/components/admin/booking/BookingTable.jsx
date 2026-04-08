@@ -66,7 +66,7 @@ export default function BookingTable({
                   <td className="p-4 text-sm text-white whitespace-nowrap">{row.eventDate}</td>
                   <td className="p-4 text-sm text-gray-300 text-center whitespace-nowrap">{row.guests}</td>
                   <td className="p-4 whitespace-nowrap">
-                    <PaymentPill tone={row.payment.tone}>{row.payment.label}</PaymentPill>
+                    <PaymentPill tone={row.payment.tone}>{(row.payment.label || "INITIATED").toUpperCase()}</PaymentPill>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <StatusPill tone={row.status.tone}>{row.status.label}</StatusPill>

@@ -9,6 +9,7 @@ import { useAuth } from "contexts/AuthProvider";
 import ProfessionalEventForm from "components/organizer/ProfessionalEventForm";
 import { Fingerprint, Zap } from "lucide-react";
 import { motion } from "framer-motion";
+import { AlertCircle } from "lucide-react";
 
 function formatDate(value) {
   try {
