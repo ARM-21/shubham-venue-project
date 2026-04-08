@@ -34,11 +34,11 @@ function isSlotTimeBlocked(dateValue, slot) {
 
   const start = new Date(today);
   if (slot === "evening") {
-    start.setHours(17, 0, 0, 0);
+    start.setHours(19, 0, 0, 0);
   } else if (slot === "afternoon") {
     start.setHours(13, 0, 0, 0);
   } else {
-    start.setHours(9, 0, 0, 0);
+    start.setHours(7, 0, 0, 0);
   }
 
   if (today >= start) {

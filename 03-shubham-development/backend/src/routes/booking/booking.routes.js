@@ -13,7 +13,16 @@ const router = express.Router();
 const HOLD_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 function calculateHallPrice(hall, slot) {
-  const multiplier = slot === "wholeday" ? 15 : 5;
+  let multiplier;
+  if (slot === "morning") {
+    multiplier = 5; // 7 AM - 12 PM
+  } else if (slot === "afternoon") {
+    multiplier = 5; // 1 PM - 6 PM
+  } else if (slot === "evening") {
+    multiplier = 3.5; // 7 PM - 10:30 PM
+  } else {
+    multiplier = 15.5; // 7 AM - 10:30 PM (wholeday)
+  }
   return (Number(hall?.pricePerHour) || 0) * multiplier;
 }
 

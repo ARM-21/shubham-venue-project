@@ -58,7 +58,8 @@ export default function OrganizersPage() {
     mutationFn: () => recalculateMetrics(),
     onSuccess: (data) => {
       toast.success(`Metrics recalculated successfully! (${data.result?.succeeded || 0} organizers updated)`);
-      refetch();
+      // Invalidate and immediately refetch to show fresh trust scores
+      setTimeout(() => refetch(), 100); // Small delay to ensure backend is ready
     },
     onError: (error) => {
       toast.error(error?.response?.data?.message || 'Failed to recalculate metrics');

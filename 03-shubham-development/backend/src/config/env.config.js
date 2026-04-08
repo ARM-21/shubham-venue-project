@@ -44,6 +44,20 @@ const ENV = Object.freeze({
   ESEWA_BOOKING_FAILURE_URL: process.env.ESEWA_BOOKING_FAILURE_URL,
   ESEWA_TICKET_SUCCESS_URL: process.env.ESEWA_TICKET_SUCCESS_URL,
   ESEWA_TICKET_FAILURE_URL: process.env.ESEWA_TICKET_FAILURE_URL,
+
+  // Email Configuration
+  SMTP_HOST: process.env.SMTP_HOST || "smtp.gmail.com",
+  SMTP_PORT: Number(process.env.SMTP_PORT || 587),
+  SMTP_SECURE: process.env.SMTP_SECURE === "true" || false,
+  SMTP_USER: process.env.SMTP_USER || process.env.EMAIL_USER,
+  SMTP_PASSWORD: process.env.SMTP_PASSWORD || process.env.EMAIL_PASSWORD,
+  EMAIL_USER: process.env.EMAIL_USER,
+  EMAIL_PASSWORD: process.env.EMAIL_PASSWORD,
+  SUPPORT_EMAIL: process.env.SUPPORT_EMAIL || "support@shubham-venue.me",
+  RESEND_KEY: process.env.RESEND_KEY,
+
+  // Event Configuration
+  REFUND_FORM_URL: process.env.REFUND_FORM_URL || "https://forms.google.com/refund",
 });
 
 export default ENV;

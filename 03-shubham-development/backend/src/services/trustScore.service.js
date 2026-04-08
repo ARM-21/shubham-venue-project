@@ -45,6 +45,24 @@ export async function calculateTrustScore(organizerId) {
     if (!organizer) return 3; // default neutral
 
     const metrics = organizer.trustMetrics || {};
+    
+    // NEW ORGANIZERS must have at least 1 approved event to auto-publish
+    // This ensures all new organizers go through admin review for their first event
+    if (metrics.eventsCreated === 0) {
+      return {
+        trustScore: 2.0, // Low score forces PENDING_REVIEW
+        requiresApproval: true,
+        breakdown: {
+          approvalRate: 0.0,
+          eventActivity: 0.0,
+          flagFactor: 0.25,
+          ratingFactor: 0.0,
+          suspensionFactor: 0.0,
+        },
+        reason: "new_organizer_first_event"
+      };
+    }
+    
     const trustScore = calculateTrustScoreFromMetrics(metrics);
     const requiresApproval = trustScore < 4; // Low trust needs admin approval
 
@@ -61,7 +79,7 @@ export async function calculateTrustScore(organizerId) {
     };
   } catch (error) {
     console.error("Error calculating trust score:", error);
-    return { trustScore: 3, requiresApproval: true };
+    return { trustScore: 3, requiresApproval: true, reason: "calculation_error" };
   }
 }
 

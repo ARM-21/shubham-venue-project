@@ -128,9 +128,10 @@ export default function NewBookingModal({ isOpen, onClose, onSave, halls, loadin
                   onChange={handleChange}
                   className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:border-[var(--admin-primary)] outline-none appearance-none cursor-pointer"
                 >
-                  <option value="morning" className="bg-[#121212]">Morning</option>
-                  <option value="evening" className="bg-[#121212]">Evening</option>
-                  <option value="full_day" className="bg-[#121212]">Full Day</option>
+                  <option value="morning" className="bg-[#121212]">Morning (07:00 AM - 12:00 PM)</option>
+                  <option value="afternoon" className="bg-[#121212]">Afternoon (01:00 PM - 06:00 PM)</option>
+                  <option value="evening" className="bg-[#121212]">Evening (07:00 PM - 10:30 PM)</option>
+                  <option value="wholeday" className="bg-[#121212]">Whole Day (07:00 AM - 10:30 PM)</option>
                 </select>
                 <Clock className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-white/20 pointer-events-none" />
               </div>

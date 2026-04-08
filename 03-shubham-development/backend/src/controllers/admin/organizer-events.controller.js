@@ -151,6 +151,32 @@ export const createOrganizerEvent = async (req, res, next) => {
       validatedCateringMenus = existingMenus.map((menu) => menu._id);
     }
 
+    // Validate attendees don't exceed hall capacity
+    if (maxAttendees && maxAttendees > hall.capacity) {
+      return httpError(
+        res,
+        `Maximum attendees (${maxAttendees}) cannot exceed hall capacity (${hall.capacity})`,
+        400
+      );
+    }
+
+    if (expectedAttendees && expectedAttendees > hall.capacity) {
+      return httpError(
+        res,
+        `Expected attendees (${expectedAttendees}) cannot exceed hall capacity (${hall.capacity})`,
+        400
+      );
+    }
+
+    // Validate expected attendees <= max attendees
+    if (maxAttendees && expectedAttendees && expectedAttendees > maxAttendees) {
+      return httpError(
+        res,
+        "Expected attendees cannot exceed maximum attendees",
+        400
+      );
+    }
+
     // Check organizer trust score
     const trustCalculation = await calculateTrustScore(organizerId);
     const initialStatus =

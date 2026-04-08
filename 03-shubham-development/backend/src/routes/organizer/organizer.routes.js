@@ -1,6 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import { isAuthenticated, isOrganizer } from "../../middleware/auth.middleware.js";
+import { formatHourTo12 } from "../../utils/time.utils.js";
 import Booking from "../../models/Booking.js";
 import Hall from "../../models/Hall.js";
 import OrganizerEvent from "../../models/OrganizerEvent.js";
@@ -10,11 +11,25 @@ import TicketPayment from "../../models/TicketPayment.js";
 import User from "../../models/User.js";
 import Flag from "../../models/Flag.js";
 import Review from "../../models/Review.js";
+import AdminNotification from "../../models/AdminNotification.js";
+import { onEventApproved } from "../../services/trustScore.service.js";
+import { sendEventCancellationEmail } from "../../services/email/nodemailer.service.js";
+import ENV from "../../config/env.config.js";
 
 const router = express.Router();
 
 const BOOKING_ELIGIBLE_STATUSES = ["CONFIRMED", "COMPLETED"];
 const EVENT_STATUSES = ["DRAFT", "PUBLISHED", "CANCELLED"];
+const ORGANIZER_UPDATABLE_STATUSES = ["DRAFT", "PUBLISHED", "CANCELLED"];
+
+// Status transition rules for organizers
+const ALLOWED_STATUS_TRANSITIONS = {
+  "DRAFT": ["PUBLISHED", "CANCELLED"],          // Can publish or cancel draft
+  "PUBLISHED": ["DRAFT", "CANCELLED"],          // Can unpublish or cancel
+  "CANCELLED": [],                              // Cannot change from cancelled
+  "PENDING_REVIEW": [],                         // Cannot change - admin only
+  "SUSPENDED": []                               // Cannot change - admin only
+};
 
 function startOfToday() {
   const today = new Date();
@@ -39,14 +54,18 @@ function deriveEventTimeRange(dateValue, slot) {
   const end = new Date(base);
 
   if (slot === "morning") {
-    start.setHours(9, 0, 0, 0);
-    end.setHours(13, 0, 0, 0);
+    start.setHours(7, 0, 0, 0);
+    end.setHours(12, 0, 0, 0);
+  } else if (slot === "afternoon") {
+    start.setHours(13, 0, 0, 0);
+    end.setHours(18, 0, 0, 0);
   } else if (slot === "evening") {
-    start.setHours(17, 0, 0, 0);
-    end.setHours(21, 0, 0, 0);
+    start.setHours(19, 0, 0, 0);
+    end.setHours(22, 30, 0, 0);
   } else {
-    start.setHours(9, 0, 0, 0);
-    end.setHours(21, 0, 0, 0);
+    // wholeday
+    start.setHours(7, 0, 0, 0);
+    end.setHours(22, 30, 0, 0);
   }
 
   return { startDateTime: start, endDateTime: end };
@@ -183,13 +202,16 @@ router.post("/events", isAuthenticated, isOrganizer, async (req, res, next) => {
       const derivedStartHour = derived.startDateTime.getHours();
       const derivedEndHour = derived.endDateTime.getHours();
 
-      if (startHour !== derivedStartHour || endHour !== derivedEndHour) {
+      // Check if event times are within the slot range (not exact match)
+      if (startHour < derivedStartHour || endHour > derivedEndHour) {
         return res.status(400).json({ 
-          message: `Event times must match the ${booking.slot} slot timing`,
+          message: `Event times must be within the ${booking.slot} slot timing (${formatHourTo12(derivedStartHour)} to ${formatHourTo12(derivedEndHour)})`,
           slotTiming: {
             slot: booking.slot,
-            requiredStart: `${derivedStartHour}:00`,
-            requiredEnd: `${derivedEndHour}:00`
+            requiredStart: formatHourTo12(derivedStartHour),
+            requiredEnd: formatHourTo12(derivedEndHour),
+            receivedStart: formatHourTo12(startHour),
+            receivedEnd: formatHourTo12(endHour)
           }
         });
       }
@@ -201,31 +223,6 @@ router.post("/events", isAuthenticated, isOrganizer, async (req, res, next) => {
 
     if (startValue && startValue < startOfToday()) {
       return res.status(400).json({ message: "Event cannot start in the past" });
-    }
-
-    // Validate that registration times are before or on the event date
-    if (startValue && booking.date) {
-      const eventDate = new Date(booking.date);
-      eventDate.setHours(0, 0, 0, 0);
-      
-      if (startValue > eventDate) {
-        return res.status(400).json({ 
-          message: "Registration start time must be before the event date",
-          eventDate: eventDate.toISOString()
-        });
-      }
-    }
-
-    if (endValue && booking.date) {
-      const eventDate = new Date(booking.date);
-      eventDate.setHours(23, 59, 59, 999);
-      
-      if (endValue > eventDate) {
-        return res.status(400).json({ 
-          message: "Registration end time must be on or before the event date",
-          eventDate: booking.date
-        });
-      }
     }
 
     const conflictingEvents = await OrganizerEvent.findOne({
@@ -316,6 +313,8 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
       startDateTime,
       endDateTime,
       status,
+      maxAttendees,
+      expectedAttendees,
     } = req.body || {};
 
     const update = {};
@@ -361,10 +360,99 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
     }
 
     if (typeof status !== "undefined") {
+      // Validate status is in allowed list
       if (!EVENT_STATUSES.includes(status)) {
-        return res.status(400).json({ message: "Invalid status" });
+        return res.status(400).json({ message: "Invalid status value" });
       }
-      update.status = status;
+      
+      // Cannot manually change PENDING_REVIEW or SUSPENDED (admin only)
+      if (event.status === "PENDING_REVIEW") {
+        return res.status(403).json({ 
+          message: "Cannot modify events pending admin review. Awaiting admin approval.",
+          currentStatus: event.status
+        });
+      }
+      
+      if (event.status === "SUSPENDED") {
+        return res.status(403).json({ 
+          message: "Cannot modify suspended events. Contact admin support.",
+          currentStatus: event.status
+        });
+      }
+      
+      // Check if transition is allowed
+      const allowedTransitions = ALLOWED_STATUS_TRANSITIONS[event.status] || [];
+      if (!allowedTransitions.includes(status)) {
+        return res.status(400).json({ 
+          message: `Cannot change status from ${event.status} to ${status}. Allowed: ${allowedTransitions.join(", ") || "none"}`,
+          currentStatus: event.status,
+          requestedStatus: status,
+          allowedTransitions
+        });
+      }
+      
+      // When transitioning to PUBLISHED, check trust score
+      if (status === "PUBLISHED" && event.status !== "PUBLISHED") {
+        // Import trustScore service dynamically
+        const { calculateTrustScore } = await import("../../services/trustScore.service.js");
+        const trustScoreResult = await calculateTrustScore(req.currentUser._id);
+        const trustScore = trustScoreResult.trustScore || trustScoreResult; // Handle both object and number returns
+        
+        // If trust score < 4, send to PENDING_REVIEW instead
+        if (trustScore < 4) {
+          update.status = "PENDING_REVIEW";
+          update.trustScoreLowNotified = true;  // Flag for notification
+        } else {
+          update.status = "PUBLISHED";
+        }
+      } else if (event.status === "PUBLISHED" && status !== "PUBLISHED") {
+        // Unpublishing: status is set to requested status
+        update.status = status;
+      } else {
+        update.status = status;
+      }
+    }
+
+    // Handle attendees update
+    if (typeof maxAttendees !== "undefined") {
+      const maxNum = maxAttendees ? parseInt(maxAttendees) : null;
+      if (maxNum !== null) {
+        if (maxNum <= 0) {
+          return res.status(400).json({ message: "Maximum attendees must be greater than 0" });
+        }
+        // Check against hall capacity
+        const hallCapacity = event.hallId?.capacity || null;
+        if (hallCapacity && maxNum > hallCapacity) {
+          return res.status(400).json({ 
+            message: `Maximum attendees (${maxNum}) cannot exceed hall capacity (${hallCapacity})` 
+          });
+        }
+      }
+      update.maxAttendees = maxNum;
+    }
+
+    if (typeof expectedAttendees !== "undefined") {
+      const expectedNum = expectedAttendees ? parseInt(expectedAttendees) : null;
+      if (expectedNum !== null) {
+        if (expectedNum < 0) {
+          return res.status(400).json({ message: "Expected attendees cannot be negative" });
+        }
+        // Check against hall capacity
+        const hallCapacity = event.hallId?.capacity || null;
+        if (hallCapacity && expectedNum > hallCapacity) {
+          return res.status(400).json({ 
+            message: `Expected attendees (${expectedNum}) cannot exceed hall capacity (${hallCapacity})` 
+          });
+        }
+        // Check against max attendees
+        const maxNum = update.maxAttendees !== undefined ? update.maxAttendees : event.maxAttendees;
+        if (maxNum && expectedNum > maxNum) {
+          return res.status(400).json({ 
+            message: "Expected attendees cannot exceed maximum attendees" 
+          });
+        }
+      }
+      update.expectedAttendees = expectedNum;
     }
 
     const nextStart = update.startDateTime || event.startDateTime;
@@ -389,83 +477,138 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
           const derivedStartHour = derived.startDateTime.getHours();
           const derivedEndHour = derived.endDateTime.getHours();
 
-          if (startHour !== derivedStartHour || endHour !== derivedEndHour) {
+          // Check if event times are within the slot range (not exact match)
+          if (startHour < derivedStartHour || endHour > derivedEndHour) {
             return res.status(400).json({ 
-              message: `Event times must match the ${booking.slot} slot timing`,
+              message: `Event times must be within the ${booking.slot} slot timing (${formatHourTo12(derivedStartHour)} to ${formatHourTo12(derivedEndHour)})`,
               slotTiming: {
                 slot: booking.slot,
-                requiredStart: `${derivedStartHour}:00`,
-                requiredEnd: `${derivedEndHour}:00`
+                requiredStart: formatHourTo12(derivedStartHour),
+                requiredEnd: formatHourTo12(derivedEndHour),
+                receivedStart: formatHourTo12(startHour),
+                receivedEnd: formatHourTo12(endHour)
               }
             });
           }
         }
 
-        // Validate that registration times are before or on the event date
-        if (booking.date) {
-          if (nextStart) {
-            const eventDate = new Date(booking.date);
-            eventDate.setHours(0, 0, 0, 0);
-            
-            if (nextStart > eventDate) {
-              return res.status(400).json({ 
-                message: "Registration start time must be before the event date",
-                eventDate: eventDate.toISOString()
-              });
-            }
-          }
+        if (update.startDateTime || update.endDateTime) {
+          const conflictingEvents = await OrganizerEvent.findOne({
+            hallId: event.hallId,
+            _id: { $ne: event._id },
+            $or: [
+              { startDateTime: { $lt: nextEnd }, endDateTime: { $gt: nextStart } }
+            ],
+            status: { $in: ["DRAFT", "PUBLISHED"] }
+          }).select("_id name startDateTime endDateTime");
 
-          if (nextEnd) {
-            const eventDate = new Date(booking.date);
-            eventDate.setHours(23, 59, 59, 999);
-            
-            if (nextEnd > eventDate) {
-              return res.status(400).json({ 
-                message: "Registration end time must be on or before the event date",
-                eventDate: booking.date
-              });
-            }
+          if (conflictingEvents) {
+            return res.status(409).json({ 
+              message: "Hall is already booked for this time slot. Please choose different times.",
+              conflict: {
+                eventName: conflictingEvents.name,
+                start: conflictingEvents.startDateTime,
+                end: conflictingEvents.endDateTime
+              }
+            });
           }
         }
-      }
-    }
-
-    if (update.startDateTime || update.endDateTime) {
-      const conflictingEvents = await OrganizerEvent.findOne({
-        hallId: event.hallId,
-        _id: { $ne: event._id },
-        $or: [
-          { startDateTime: { $lt: nextEnd }, endDateTime: { $gt: nextStart } }
-        ],
-        status: { $in: ["DRAFT", "PUBLISHED"] }
-      }).select("_id name startDateTime endDateTime");
-
-      if (conflictingEvents) {
-        return res.status(409).json({ 
-          message: "Hall is already booked for this time slot. Please choose different times.",
-          conflict: {
-            eventName: conflictingEvents.name,
-            start: conflictingEvents.startDateTime,
-            end: conflictingEvents.endDateTime
-          }
-        });
       }
     }
 
     const nextPublic = typeof update.isPublic === "boolean" ? update.isPublic : event.isPublic;
     const nextStatus = update.status || event.status;
 
-    if (nextStatus === "PUBLISHED" && nextPublic) {
-      const typeCount = await TicketType.countDocuments({ eventId: event._id });
-      if (typeCount < 1) {
-        return res.status(400).json({ message: "Add at least one ticket type before publishing" });
+    // If transitioning to PUBLISHED, validate requirements
+    if (nextStatus === "PUBLISHED" && nextStatus !== event.status) {
+      // Require at least 1 ticket type if public
+      if (nextPublic) {
+        const typeCount = await TicketType.countDocuments({ eventId: event._id });
+        if (typeCount < 1) {
+          return res.status(400).json({ 
+            message: "Cannot publish public events without at least one ticket type",
+            hint: "Add ticket types in 'Ticket Inventory' section first"
+          });
+        }
       }
+      
+      // Set published metadata when first publishing
+      update.publishedAt = new Date();
+      update.publishedBy = req.currentUser._id;
+    }
+    
+    // If transitioning FROM PUBLISHED (unpublishing), clear published metadata
+    if (event.status === "PUBLISHED" && nextStatus !== "PUBLISHED" && update.status) {
+      update.publishedAt = null;
+      update.publishedBy = null;
+    }
+
+    // Send admin notification if status being set to PENDING_REVIEW due to low trust score
+    if (update.trustScoreLowNotified && nextStatus === "PENDING_REVIEW") {
+      const organizer = await User.findById(req.currentUser._id).select("firstName lastName email");
+      const admins = await User.find({ role: "admin" }).select("_id email");
+      const { calculateTrustScore } = await import("../../services/trustScore.service.js");
+      const trustScoreResult = await calculateTrustScore(req.currentUser._id);
+      const trustScore = trustScoreResult.trustScore || trustScoreResult;
+      
+      for (const admin of admins) {
+        await AdminNotification.create({
+          adminId: admin._id,
+          type: "event_pending_approval",
+          title: `Event Pending Review: ${event.name}`,
+          message: `${organizer?.firstName} ${organizer?.lastName} submitted "${event.name}" for approval (Trust Score: ${trustScore.toFixed(1)}/5)`,
+          eventId: event._id,
+          organizerId: req.currentUser._id,
+          requestUserId: req.currentUser._id,
+          requestUserName: `${organizer?.firstName} ${organizer?.lastName}`,
+          requestUserEmail: organizer?.email,
+          actionPath: `/admin/governance/organizer-events?status=PENDING_REVIEW`,
+        });
+      }
+      
+      // Delete the flag after notification sent
+      delete update.trustScoreLowNotified;
     }
 
     const updated = await OrganizerEvent.findByIdAndUpdate(event._id, update, { new: true })
       .populate({ path: "hallId", select: "name slug capacity" })
       .populate({ path: "bookingId", select: "date slot status" })
       .lean();
+
+    // When event is successfully published, increment eventsApproved counter
+    if (updated.status === "PUBLISHED" && event.status !== "PUBLISHED") {
+      await onEventApproved(req.currentUser._id).catch((err) => {
+        console.warn("Warning: Failed to update approval metrics:", err.message);
+        // Don't block response if metrics update fails
+      });
+    }
+
+    // When event is cancelled, send cancellation emails to all ticket holders
+    if (updated.status === "CANCELLED" && event.status !== "CANCELLED") {
+      const cancellationReason = req.body?.cancellationReason || "";
+      const refundFormUrl = ENV.REFUND_FORM_URL;
+      
+      // Get all tickets for this event to find attendees
+      const tickets = await Ticket.find({ eventId: event._id }).select("attendeeEmail").lean();
+      
+      if (tickets.length > 0) {
+        // Get unique attendee emails
+        const attendeeEmails = [...new Set(tickets.map(t => t.attendeeEmail).filter(email => email))];
+        
+        // Send cancellation emails (non-blocking)
+        attendeeEmails.forEach((email) => {
+          sendEventCancellationEmail(
+            email,
+            event.name,
+            cancellationReason,
+            event.eventDate,
+            refundFormUrl
+          ).catch((err) => {
+            console.warn(`Failed to send cancellation email to ${email}:`, err.message);
+          });
+        });
+      }
+    }
 
     return res.json({ message: "Event updated", event: updated });
   } catch (err) {

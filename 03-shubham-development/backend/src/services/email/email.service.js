@@ -1,7 +1,8 @@
 import { Resend } from "resend";
 import { httpError } from "../../utils/http.utils.js";
+import ENV from "../../config/env.config.js";
 
-const resend = new Resend(process.env.RESEND_KEY);
+const resend = new Resend(ENV.RESEND_KEY);
 
 // Send OTP verification email
 export const sendOTPEmail = async (email, otp, username) => {

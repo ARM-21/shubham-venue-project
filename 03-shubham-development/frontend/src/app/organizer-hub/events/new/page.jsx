@@ -79,8 +79,18 @@ export default function OrganizerEventCreatePage() {
       return;
     }
 
+    // Get hallId from selected booking
+    const booking = bookings.find((b) => String(b._id) === String(selectedBookingId));
+    const hallId = booking?.hallId?._id || booking?.hallId;
+    
+    if (!hallId) {
+      toast.error("Hall information not found in booking");
+      return;
+    }
+
     const payload = {
       bookingId: selectedBookingId,
+      hallId: hallId,  // Now explicitly sending hallId
       name: formData.name?.trim(),
       type: formData.type?.trim(),
       description: formData.description?.trim(),
@@ -113,7 +123,17 @@ export default function OrganizerEventCreatePage() {
     try {
       setIsCreating(true);
       const res = await axiosInstance.post(ROUTES.API.ORGANIZER.EVENTS, payload);
-      toast.success("Event created successfully");
+      
+      // Check if event is pending approval or published
+      const eventStatus = res.data?.event?.status;
+      if (eventStatus === "PENDING_REVIEW") {
+        toast.success("Event created! Awaiting admin approval before publication.");
+      } else if (eventStatus === "PUBLISHED") {
+        toast.success("Event created and published successfully!");
+      } else {
+        toast.success("Event created successfully");
+      }
+      
       const id = res.data?.event?._id;
       if (id) {
         router.push(ROUTES.SITE.ORGANIZER_EVENT_DETAIL(id));

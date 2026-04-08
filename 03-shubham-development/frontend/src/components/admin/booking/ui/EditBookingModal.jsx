@@ -88,10 +88,10 @@ export default function EditBookingModal({ editModal, setEditModal, saveEdit, ac
             onChange={(e) => setEditModal((prev) => ({ ...prev, slot: e.target.value }))}
             className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]"
           >
-            <option value="morning">Morning (08:00 AM - 01:00 PM)</option>
-            <option value="afternoon">Afternoon (01:00 PM - 05:00 PM)</option>
-            <option value="evening">Evening (05:00 PM - 11:00 PM)</option>
-            <option value="wholeday">Whole Day (08:00 AM - 11:00 PM)</option>
+            <option value="morning">Morning (07:00 AM - 12:00 PM)</option>
+            <option value="afternoon">Afternoon (01:00 PM - 06:00 PM)</option>
+            <option value="evening">Evening (07:00 PM - 10:30 PM)</option>
+            <option value="wholeday">Whole Day (07:00 AM - 10:30 PM)</option>
           </select>
           <label className="block text-sm text-[var(--admin-muted)]">Guests</label>
           <input

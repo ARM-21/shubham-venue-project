@@ -133,6 +133,14 @@ const organizerEventSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+
+    // Cancellation metadata
+    cancelledAt: Date,
+    cancelledBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    cancellationReason: { type: String, trim: true },
   },
   { timestamps: true }
 );

@@ -12,6 +12,170 @@ import { sendBookingConfirmationEmail, sendAdminBookingNotificationEmail } from 
 
 const router = express.Router();
 
+// POST / -> Create booking for offline customers (admin only)
+router.post("/", async (req, res, next) => {
+  try {
+    const { userEmail, hallId, date, slot, guests } = req.body || {};
+
+    // Validation
+    if (!userEmail || !userEmail.includes("@")) {
+      return res.status(400).json({ message: "Valid email is required" });
+    }
+    if (!hallId || !mongoose.Types.ObjectId.isValid(hallId)) {
+      return res.status(400).json({ message: "Valid hallId is required" });
+    }
+    if (!date || typeof date !== "string") {
+      return res.status(400).json({ message: "Date is required (yyyy-mm-dd format)" });
+    }
+    if (!["morning", "afternoon", "evening", "wholeday"].includes(slot)) {
+      return res.status(400).json({ message: "Invalid slot" });
+    }
+
+    const guestsNum = Number(guests);
+    if (!Number.isFinite(guestsNum) || guestsNum < 1) {
+      return res.status(400).json({ message: "Guests must be a positive number" });
+    }
+
+    // Find or create user
+    let user = await User.findOne({ email: userEmail }).select("_id");
+    if (!user) {
+      user = await User.create({
+        email: userEmail,
+        role: "customer",
+        isActive: true,
+      });
+    }
+
+    // Validate hall
+    const hall = await Hall.findById(hallId).select("_id capacity pricePerHour").lean();
+    if (!hall || hall.isDeleted) {
+      return res.status(404).json({ message: "Hall not found" });
+    }
+
+    if (guestsNum > hall.capacity) {
+      return res.status(400).json({ message: "Guest count exceeds hall capacity" });
+    }
+
+    // Parse date and check for conflicts
+    const dateObj = new Date(`${date}T00:00:00.000Z`);
+    if (Number.isNaN(dateObj.getTime())) {
+      return res.status(400).json({ message: "Invalid date format (use yyyy-mm-dd)" });
+    }
+
+    // Define conflict slots
+    const conflictSlots = slot === "wholeday"
+      ? ["morning", "afternoon", "evening", "wholeday"]
+      : slot === "morning"
+        ? ["morning", "wholeday"]
+        : slot === "afternoon"
+          ? ["afternoon", "wholeday"]
+          : ["evening", "wholeday"];
+
+    // Check for booking conflicts
+    const rangeStart = dateObj;
+    const rangeEnd = new Date(rangeStart);
+    rangeEnd.setUTCDate(rangeEnd.getUTCDate() + 1);
+
+    const blocking = await Booking.findOne({
+      hallId,
+      date: { $gte: rangeStart, $lt: rangeEnd },
+      slot: { $in: conflictSlots },
+      status: { $in: ["PENDING", "CONFIRMED", "COMPLETED"] },
+    }).select("_id slot status").lean();
+
+    if (blocking) {
+      return res.status(400).json({ 
+        message: "Hall is not available for the selected date and slot" 
+      });
+    }
+
+    // Calculate hall price
+    let multiplier;
+    if (slot === "morning") {
+      multiplier = 5; // 7 AM - 12 PM
+    } else if (slot === "afternoon") {
+      multiplier = 5; // 1 PM - 6 PM
+    } else if (slot === "evening") {
+      multiplier = 3.5; // 7 PM - 10:30 PM
+    } else {
+      multiplier = 15.5; // 7 AM - 10:30 PM (wholeday)
+    }
+    const hallPrice = (Number(hall.pricePerHour) || 0) * multiplier;
+
+    // Create booking
+    const booking = new Booking({
+      userId: user._id,
+      hallId,
+      date: dateObj,
+      slot,
+      guests: guestsNum,
+      bookingPurpose: "customer",
+      hallPrice,
+      totalAmount: hallPrice,
+      status: "CONFIRMED", // Admin-created bookings start as confirmed
+      menuMode: "package",
+      selectedMenu: [],
+      menuTotal: 0,
+      decorationTotal: 0,
+    });
+
+    await booking.save();
+
+    // Send confirmation emails
+    try {
+      const [userDoc, admins] = await Promise.all([
+        User.findById(user._id).select("first_name last_name email").lean(),
+        User.find({ role: "admin", isActive: true, notifyBookings: { $ne: false } }).select("email").lean(),
+      ]);
+
+      const userName = `${userDoc?.first_name || ""} ${userDoc?.last_name || ""}`.trim() || userDoc?.email;
+      const bookingDateStr = booking.date.toISOString().slice(0, 10);
+
+      if (userDoc?.email) {
+        await sendBookingConfirmationEmail(userDoc.email, userName, {
+          bookingId: booking._id,
+          date: bookingDateStr,
+          venue: hall?._id || "Hall",
+          amount: booking.totalAmount,
+        });
+      }
+
+      const adminEmails = admins.map((a) => a.email).filter(Boolean);
+      if (adminEmails.length) {
+        await sendAdminBookingNotificationEmail(adminEmails, {
+          bookingId: booking._id,
+          userName,
+          userEmail: userDoc?.email,
+          date: bookingDateStr,
+          slot: booking.slot,
+          hallName: hall?._id || "Hall",
+          status: booking.status,
+          totalAmount: booking.totalAmount,
+        });
+      }
+    } catch (emailError) {
+      console.error("Email notification error:", emailError);
+      // Don't fail the booking if emails fail
+    }
+
+    return res.status(201).json({
+      message: "Booking created successfully",
+      booking: {
+        id: booking._id,
+        userId: booking.userId,
+        hallId: booking.hallId,
+        date: booking.date,
+        slot: booking.slot,
+        guests: booking.guests,
+        totalAmount: booking.totalAmount,
+        status: booking.status,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.patch("/:id/status", async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -142,7 +306,9 @@ router.patch("/:id", async (req, res, next) => {
       ? ["morning", "afternoon", "evening", "wholeday"]
       : nextSlot === "morning"
         ? ["morning", "wholeday"]
-        : ["evening", "wholeday"];
+        : nextSlot === "afternoon"
+          ? ["afternoon", "wholeday"]
+          : ["evening", "wholeday"];
 
     const rangeStart = dateObj;
     const rangeEnd = new Date(rangeStart);
