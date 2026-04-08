@@ -69,10 +69,10 @@ export const BookingWidget = ({
   }, [date, venueData?._id, guests, shift, setValue]);
 
   const slotOptions = [
-    { id: 'morning', label: 'Morning (08:00-13:00)' },
-    { id: 'afternoon', label: 'Afternoon (13:00-17:00)' },
-    { id: 'evening', label: 'Evening (17:00-23:00)' },
-    { id: 'wholeday', label: 'Whole Day (08:00-23:00)' }
+    { id: 'morning', label: 'Morning (08:00 AM - 01:00 PM)' },
+    { id: 'afternoon', label: 'Afternoon (01:00 PM - 05:00 PM)' },
+    { id: 'evening', label: 'Evening (05:00 PM - 11:00 PM)' },
+    { id: 'wholeday', label: 'Whole Day (08:00 AM - 11:00 PM)' }
   ];
 
   return (

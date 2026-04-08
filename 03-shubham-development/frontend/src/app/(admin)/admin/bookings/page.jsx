@@ -15,7 +15,6 @@ import {
   AlertCircle, 
   Loader2, 
   Download, 
-  FilterX,
   RefreshCw
 } from "lucide-react";
 
@@ -109,13 +108,6 @@ export default function AdminBookingsPage() {
   });
 
   // --- Handlers ---
-  const handleClearFilters = () => {
-    setFilters(defaultFilters);
-    setSearchInput("");
-    setSearchTerm("");
-    setPage(1);
-  };
-
   const handleRefresh = useCallback(() => {
     toast.promise(
       refetchBookings(),
@@ -234,16 +226,11 @@ export default function AdminBookingsPage() {
           <StatCards stats={stats} />
 
           <div className="space-y-6">
-            <div className="flex flex-col gap-2">
-              <FiltersBar 
-                filters={filters} setFilters={setFilters} halls={halls} setPage={setPage}
-                fromDateRef={fromDateRef} toDateRef={toDateRef} 
-                searchInput={searchInput} setSearchInput={setSearchInput} onSearch={() => { setPage(1); setSearchTerm(searchInput.trim()); }} 
-              />
-              {(searchTerm || filters.status !== "ALL") && (
-                <button onClick={handleClearFilters} className="flex items-center gap-1 text-xs text-[var(--admin-primary)] w-fit"><FilterX className="size-3"/> Reset</button>
-              )}
-            </div>
+            <FiltersBar 
+              filters={filters} setFilters={setFilters} halls={halls} setPage={setPage}
+              fromDateRef={fromDateRef} toDateRef={toDateRef} 
+              searchInput={searchInput} setSearchInput={setSearchInput} onSearch={() => { setPage(1); setSearchTerm(searchInput.trim()); }} 
+            />
             
             <BookingTable 
               rows={rows} bookingsLoading={bookingsLoading} bookingsTotal={bookingsData?.total || 0}

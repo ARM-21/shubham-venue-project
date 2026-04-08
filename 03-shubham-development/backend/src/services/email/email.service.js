@@ -55,16 +55,16 @@ export const sendOTPEmail = async (email, otp, username) => {
 export const sendWelcomeEmail = async (email, username) => {
   const html = `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-      <h2 style="text-align: center; color: #2c3e50;">Welcome to Shubham Party Palace!</h2>
+      <h2 style="text-align: center; color: #2c3e50;">Welcome to Shubham Venue!</h2>
       <p>Dear ${username},</p>
       <p>Your email has been verified successfully. Thank you for joining us!</p>
       <p>You can now enjoy all our services including venue booking, event management, and more.</p>
       
-      <p>Warm regards,<br/>The Shubham Party Palace Team</p>
+      <p>Warm regards,<br/>The Shubham Venue Team</p>
       
       <hr style="margin: 20px 0;"/>
       <footer style="text-align: center; font-size: 12px; color: #888;">
-        Shubham Party Palace, Waling BP Road, Syangja <br/>
+        Shubham Venue, Waling BP Road, Syangja <br/>
         📞 9849320765 | ✉️ contact@shubham-venue.me
       </footer>
     </div>
@@ -102,7 +102,7 @@ export const sendBookingConfirmationEmail = async (email, username, bookingDetai
       
       <p>We look forward to hosting your event!</p>
       
-      <p>Warm regards,<br/>The Shubham Party Palace Team</p>
+      <p>Warm regards,<br/>The Shubham Venue Team</p>
       
       <hr style="margin: 20px 0;"/>
       <footer style="text-align: center; font-size: 12px; color: #888;">
@@ -116,7 +116,7 @@ export const sendBookingConfirmationEmail = async (email, username, bookingDetai
     const { data } = await resend.emails.send({
       from: 'Shubham Venue <info@shubham-venue.me>',
       to: [email],
-      subject: 'Booking Confirmation - Shubham Party Palace',
+      subject: 'Booking Confirmation - Shubham Venue',
       html
     });
 
@@ -165,7 +165,7 @@ export const sendAdminBookingNotificationEmail = async (adminEmails, payload) =>
 
   try {
     await resend.emails.send({
-      from: "Shubham Venue <info@shubhampartypalacewaling.live>",
+      from: "Shubham Venue <info@shubham-venue.me>",
       to: recipients,
       subject: "New Booking Notification",
       html,
@@ -203,7 +203,7 @@ export const sendAdminOrganizerRequestEmail = async (adminEmails, payload) => {
 
   try {
     await resend.emails.send({
-      from: "Shubham Venue <info@shubhampartypalacewaling.live>",
+      from: "Shubham Venue <info@shubham-venue.me>",
       to: recipients,
       subject: "Organizer Request Submitted",
       html,

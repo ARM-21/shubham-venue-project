@@ -17,10 +17,10 @@ import { VenueResultCard } from '../../app/(site)/search-availability/components
 import { BookingSummary } from '../../app/(site)/search-availability/components/modern/BookingSummary';
 
 const SLOT_LABELS = {
-  morning: 'Morning Cycle (08:00-13:00)',
-  afternoon: 'Afternoon Cycle (13:00-17:00)',
-  evening: 'Evening Cycle (17:00-23:00)',
-  wholeday: 'Full Day Cycle (08:00-23:00)',
+  morning: 'Morning Cycle (08:00 AM - 01:00 PM)',
+  afternoon: 'Afternoon Cycle (01:00 PM - 05:00 PM)',
+  evening: 'Evening Cycle (05:00 PM - 11:00 PM)',
+  wholeday: 'Full Day Cycle (08:00 AM - 11:00 PM)',
 };
 
 export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapacity, showAllHalls }) {

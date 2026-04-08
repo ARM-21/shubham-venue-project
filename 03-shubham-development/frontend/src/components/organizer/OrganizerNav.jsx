@@ -2,18 +2,21 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { 
   LayoutGrid, 
   CalendarCheck, 
   PlusCircle, 
   ChevronRight, 
   ShieldCheck,
-  ArrowLeft,
+  LogOut,
   Menu,
   X,
   Settings,
-  BarChart3
+  BarChart3,
+  User,
+  Bell,
+  ChevronDown
 } from "lucide-react";
 import { ROUTES } from "config/routes";
 import axiosInstance from "lib/axios";
@@ -29,13 +32,29 @@ const navItems = [
 function statusTone(status) {
   switch (status) {
     case "approved":
-      return "text-emerald-600 bg-emerald-50 border-emerald-100";
+      return {
+        badge: "text-emerald-700 bg-emerald-50 border-emerald-200 shadow-sm shadow-emerald-100",
+        dot: "bg-emerald-500",
+        label: "Active"
+      };
     case "pending":
-      return "text-amber-600 bg-amber-50 border-amber-100";
+      return {
+        badge: "text-amber-700 bg-amber-50 border-amber-200 shadow-sm shadow-amber-100",
+        dot: "bg-amber-500",
+        label: "Verification Pending"
+      };
     case "rejected":
-      return "text-rose-600 bg-rose-50 border-rose-100";
+      return {
+        badge: "text-rose-700 bg-rose-50 border-rose-200 shadow-sm shadow-rose-100",
+        dot: "bg-rose-500",
+        label: "Action Required"
+      };
     default:
-      return "text-[#3a1224]/40 bg-[#3a1224]/5 border-[#3a1224]/10";
+      return {
+        badge: "text-slate-600 bg-slate-50 border-slate-200",
+        dot: "bg-slate-400",
+        label: "Awaiting Verification"
+      };
   }
 }
 
@@ -44,6 +63,8 @@ export default function OrganizerNav({ user }) {
   const router = useRouter();
   const [status, setStatus] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
 
   useEffect(() => {
     let ignore = false;
@@ -61,53 +82,92 @@ export default function OrganizerNav({ user }) {
     };
   }, [user]);
 
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setIsProfileMenuOpen(false);
+      }
+    }
+
+    if (isProfileMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isProfileMenuOpen]);
+
   const statusValue = String(status?.organizerStatus || (user?.isOrganizerEligible ? "approved" : user?.organizerStatus || "none")).toLowerCase();
   const isApproved = status?.isOrganizerEligible || statusValue === "approved" || user?.isOrganizerEligible;
+  const statusInfo = statusTone(statusValue);
+
+  const handleLogout = async () => {
+    try {
+      // Call logout API endpoint
+      const response = await axiosInstance.post(ROUTES.API.AUTH.LOGOUT);
+      
+      // Clear auth context
+      await logout();
+      
+      // Redirect to login
+      router.push(ROUTES.AUTH.LOGIN);
+      
+      toast.success("Logged out successfully");
+    } catch (err) {
+      console.error('Logout error:', err);
+      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to logout';
+      toast.error(errorMessage);
+    }
+  };
+
+  const getInitials = (user) => {
+    if (!user) return "?";
+    const first = user.first_name?.[0] || "";
+    const last = user.last_name?.[0] || "";
+    return (first + last).toUpperCase() || "U";
+  };
 
   return (
     <>
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 border-b border-[#3a1224]/5 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 h-20 flex items-center justify-between">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
           {/* Logo/Brand */}
           <Link 
             href={ROUTES.SITE.ORGANIZER}
-            className="flex items-center gap-3 group"
+            className="flex items-center gap-2 sm:gap-3 group flex-shrink-0"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#3a1224] to-[#4a172d] flex items-center justify-center">
-              <LayoutGrid className="w-5 h-5 text-[#C0A04C]" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-[#3a1224] to-[#4a172d] flex items-center justify-center shadow-md hover:shadow-lg transition-shadow">
+              <LayoutGrid className="w-4 sm:w-5 h-4 sm:h-5 text-[#C0A04C]" />
             </div>
             <div className="hidden sm:block">
-              <p className="text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest">Organizer</p>
-              <p className="text-[11px] font-bold text-[#3a1224]">Hub</p>
+              <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide">Producer Hub</p>
+              <p className="text-xs font-black text-[#3a1224] leading-none">Dashboard</p>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-2">
+          <nav className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => {
               const isExact = pathname === item.href;
               let isSubPath = pathname?.startsWith(item.href + "/") && item.href !== ROUTES.SITE.ORGANIZER;
               
-              // Exclude /new route from "My Events" subpath matching
               if (item.label === "My Events" && pathname?.includes("/events/new")) {
                 isSubPath = false;
               }
               
               const active = isExact || isSubPath;
               const Icon = item.icon;
-              
               const disabled = !isApproved && item.href !== ROUTES.SITE.ORGANIZER;
 
               if (disabled) {
                 return (
                   <button 
                     key={item.href}
-                    onClick={() => toast.error("Verification Required", { icon: '🔒' })}
-                    className="h-10 px-4 flex items-center gap-2 rounded-lg hover:bg-gray-100 text-[#3a1224]/40 text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer opacity-50"
+                    onClick={() => toast.error("Complete verification to access", { icon: '🔒' })}
+                    className="h-9 px-3 flex items-center gap-2 rounded-lg text-slate-400 text-xs font-semibold uppercase tracking-wide transition-all opacity-50 cursor-not-allowed"
                   >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">{item.label}</span>
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
                   </button>
                 );
               }
@@ -116,64 +176,123 @@ export default function OrganizerNav({ user }) {
                 <Link 
                   key={item.href}
                   href={item.href}
-                  className={`h-10 px-4 flex items-center gap-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${
+                  className={`h-9 px-3 flex items-center gap-2 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all ${
                     active 
-                      ? "bg-[#3a1224] text-white" 
-                      : "hover:bg-gray-100 text-[#3a1224]"
+                      ? "bg-[#3a1224] text-white shadow-md" 
+                      : "text-slate-700 hover:bg-slate-100"
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span className="hidden md:inline">{item.label}</span>
+                  <Icon className="w-4 h-4" />
+                  <span>{item.label}</span>
                 </Link>
               );
             })}
           </nav>
 
           {/* Right Section */}
-          <div className="flex items-center gap-3">
-            {/* Status Badge */}
-            <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest ${statusTone(statusValue)}`}>
-              <span className="w-1.5 h-1.5 rounded-full bg-current" />
-              {statusValue === "approved" ? "Active" : statusValue === "pending" ? "Pending" : "Awaiting"}
+          <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+            {/* Status Badge - Desktop Only */}
+            <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold uppercase tracking-wide ${statusInfo.badge}`}>
+              <span className={`w-2 h-2 rounded-full ${statusInfo.dot}`} />
+              <span className="hidden sm:inline">{statusInfo.label}</span>
             </div>
+
+            {/* Notifications Button */}
+            <button
+              className="h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-all hover:shadow-sm"
+              title="Notifications"
+            >
+              <Bell className="w-4 sm:w-4.5 h-4 sm:h-4.5" />
+              <span className="absolute w-2 h-2 bg-red-500 rounded-full -top-1 -right-1" />
+            </button>
 
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg hover:bg-gray-100 text-[#3a1224] transition-all cursor-pointer"
+              className="lg:hidden h-9 w-9 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-all"
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
 
-            {/* Settings Button */}
-            <Link
-              href="/organizer-hub/settings"
-              className="h-10 w-10 flex items-center justify-center rounded-lg border border-[#3a1224]/10 hover:bg-[#C0A04C]/10 text-[#3a1224] transition-all cursor-pointer"
-              title="Settings"
-            >
-              <Settings className="w-4 h-4" />
-            </Link>
+            {/* User Profile Menu */}
+            <div ref={profileMenuRef} className="relative">
+              <button
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className={`h-9 sm:h-10 flex items-center gap-2 px-2 sm:px-3 rounded-lg border transition-all ${
+                  isProfileMenuOpen
+                    ? "border-[#C0A04C] bg-[#C0A04C]/5 shadow-md"
+                    : "border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-[#3a1224] to-[#4a172d] flex items-center justify-center text-white text-xs font-bold">
+                  {getInitials(user)}
+                </div>
+                <div className="hidden sm:flex flex-col items-start">
+                  <span className="text-xs font-semibold text-slate-900 leading-none">{user?.first_name || "User"}</span>
+                  <span className="text-[10px] text-slate-500">Organizer</span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-            {/* Exit Button */}
-            <Link
-              href={ROUTES.SITE.PROFILE}
-              className="h-10 w-10 flex items-center justify-center rounded-lg border border-[#3a1224]/10 hover:bg-gray-50 text-[#3a1224] transition-all cursor-pointer"
-              title="Back to Profile"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
+              {/* Dropdown Menu */}
+              {isProfileMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                  {/* User Info */}
+                  <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+                    <p className="text-sm font-semibold text-slate-900">{user?.first_name} {user?.last_name}</p>
+                    <p className="text-xs text-slate-500">{user?.email}</p>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="py-2">
+                    <Link
+                      href="/organizer-hub/settings"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
+                      <Settings className="w-4 h-4 text-slate-500" />
+                      Settings & Profile
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        router.push(ROUTES.SITE.PROFILE);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"
+                    >
+                      <User className="w-4 h-4 text-slate-500" />
+                      View My Profile
+                    </button>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-t border-slate-100" />
+
+                  {/* Logout */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-[#3a1224]/5 bg-white/98 backdrop-blur-sm">
-            <nav className="max-w-7xl mx-auto px-6 sm:px-8 py-4 space-y-2">
+          <div className="lg:hidden border-t border-slate-200 bg-white">
+            <nav className="max-w-7xl mx-auto px-4 py-3 space-y-1">
               {navItems.map((item) => {
                 const isExact = pathname === item.href;
                 let isSubPath = pathname?.startsWith(item.href + "/") && item.href !== ROUTES.SITE.ORGANIZER;
                 
-                // Exclude /new route from "My Events" subpath matching
                 if (item.label === "My Events" && pathname?.includes("/events/new")) {
                   isSubPath = false;
                 }
@@ -187,10 +306,10 @@ export default function OrganizerNav({ user }) {
                     <button 
                       key={item.href}
                       onClick={() => {
-                        toast.error("Verification Required", { icon: '🔒' });
                         setIsMobileMenuOpen(false);
+                        toast.error("Complete verification to access", { icon: '🔒' });
                       }}
-                      className="w-full h-10 flex items-center gap-3 px-4 rounded-lg hover:bg-gray-50 text-[#3a1224]/40 text-[9px] font-black uppercase tracking-widest transition-all opacity-50"
+                      className="w-full h-10 flex items-center gap-3 px-3 rounded-lg text-slate-400 text-sm font-semibold transition-all opacity-50"
                     >
                       <Icon className="w-4 h-4" />
                       {item.label}
@@ -203,10 +322,10 @@ export default function OrganizerNav({ user }) {
                     key={item.href}
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`w-full h-10 flex items-center gap-3 px-4 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                    className={`w-full h-10 flex items-center gap-3 px-3 rounded-lg text-sm font-semibold transition-all ${
                       active 
                         ? "bg-[#3a1224] text-white" 
-                        : "hover:bg-gray-100 text-[#3a1224]"
+                        : "text-slate-700 hover:bg-slate-100"
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -215,12 +334,18 @@ export default function OrganizerNav({ user }) {
                 );
               })}
             </nav>
+
+            {/* Mobile Status Badge */}
+            <div className={`mx-4 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-semibold uppercase tracking-wide ${statusInfo.badge}`}>
+              <span className={`w-2 h-2 rounded-full ${statusInfo.dot}`} />
+              {statusInfo.label}
+            </div>
           </div>
         )}
       </header>
 
       {/* Spacer */}
-      <div className="h-20" />
+      <div className="h-16 sm:h-20" />
     </>
   );
 }

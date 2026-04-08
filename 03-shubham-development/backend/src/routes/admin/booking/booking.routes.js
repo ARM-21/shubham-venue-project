@@ -2,6 +2,8 @@ import express from "express";
 import mongoose from "mongoose";
 import Booking from "../../../models/Booking.js";
 import Payment from "../../../models/Payment.js";
+import { sendInvoiceEmail, sendPaymentConfirmationEmail } from "../../../services/email/nodemailer.service.js";
+import { streamBookingInvoice } from "../../../services/invoice/bookingInvoice.service.js";
 import Menu from "../../../models/menu/Menu.js";
 import DecorationScheme from "../../../models/DecorationScheme.js";
 import User from "../../../models/User.js";
@@ -227,7 +229,98 @@ router.patch("/:id/payment", async (req, res, next) => {
       await booking.save();
     }
 
+    // Auto-send invoice email when payment is marked COMPLETED
+    if (nextStatus === "COMPLETED") {
+      try {
+        const user = await User.findById(booking.userId).select('email first_name last_name');
+        const hall = await Booking.findById(booking._id).populate('hallId', 'name').select('hallId');
+        
+        if (user && user.email) {
+          const pdfBuffer = await new Promise((resolve, reject) => {
+            const chunks = [];
+            const { PassThrough } = require('stream');
+            const stream = new PassThrough();
+            
+            // Generate PDF and collect it
+            streamBookingInvoice({ 
+              bookingId: booking._id, 
+              currentUser: { _id: booking.userId, role: 'user' },
+              res: {
+                setHeader: () => {},
+                end: (chunk) => chunks.push(chunk),
+                on: () => {},
+                write: (chunk) => chunks.push(chunk)
+              } 
+            }).catch(reject);
+            
+            // For now, just send email without PDF attachment (PDF generation is complex in async context)
+            resolve(null);
+          });
+
+          await sendInvoiceEmail(user.email, `${user.first_name || ''} ${user.last_name || ''}`.trim(), {
+            bookingId: String(booking._id),
+            venue: hall?.hallId?.name || 'Shubham Venue',
+            eventDate: booking.date ? new Date(booking.date).toLocaleDateString('en-NP') : 'TBD',
+            slot: booking.slot || 'N/A',
+            guests: booking.guests || 0,
+            totalAmount: booking.totalAmount || 0,
+            paymentStatus: 'COMPLETED',
+            bookingStatus: booking.status || 'PENDING'
+          }, pdfBuffer);
+
+          await sendPaymentConfirmationEmail(user.email, `${user.first_name || ''} ${user.last_name || ''}`.trim(), {
+            bookingId: String(booking._id),
+            amount: booking.totalAmount || 0,
+            gateway: payment.gateway || 'CASH',
+            transactionId: payment.transactionId || 'N/A',
+            paidAt: payment.paidAt ? new Date(payment.paidAt).toLocaleDateString('en-NP') : 'Today'
+          });
+        }
+      } catch (emailError) {
+        console.error('Error sending invoice/payment confirmation email:', emailError);
+        // Don't fail the booking update if email fails
+      }
+    }
+
     return res.json({ message: "Payment updated", payment });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Send invoice email manually
+router.post("/:id/send-invoice", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid booking id" });
+    }
+
+    const booking = await Booking.findById(id).populate('hallId', 'name');
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    const payment = await Payment.findOne({ bookingId: booking._id }).sort({ createdAt: -1 });
+    if (!payment || payment.status !== "COMPLETED") {
+      return res.status(400).json({ message: "Invoice can only be sent for completed payments" });
+    }
+
+    const user = await User.findById(booking.userId).select('email first_name last_name');
+    if (!user || !user.email) {
+      return res.status(400).json({ message: "User email not found" });
+    }
+
+    await sendInvoiceEmail(user.email, `${user.first_name || ''} ${user.last_name || ''}`.trim(), {
+      bookingId: String(booking._id),
+      venue: booking.hallId?.name || 'Shubham Venue',
+      eventDate: booking.date ? new Date(booking.date).toLocaleDateString('en-NP') : 'TBD',
+      slot: booking.slot || 'N/A',
+      guests: booking.guests || 0,
+      totalAmount: booking.totalAmount || 0,
+      paymentStatus: 'COMPLETED',
+      bookingStatus: booking.status || 'PENDING'
+    }, null);
+
+    return res.json({ message: "Invoice sent successfully to customer email" });
   } catch (err) {
     next(err);
   }

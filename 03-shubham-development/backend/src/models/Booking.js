@@ -19,7 +19,7 @@ const bookingSchema = new mongoose.Schema({
   date: { type: Date, required: true, index: true },
   slot: { 
     type: String, 
-    enum: ['morning', 'evening', 'wholeday'], 
+    enum: ['morning', 'afternoon', 'evening', 'wholeday'], 
     required: true 
   },
   guests: { type: Number, required: true },

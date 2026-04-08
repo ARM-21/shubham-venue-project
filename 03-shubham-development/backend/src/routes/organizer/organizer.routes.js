@@ -7,6 +7,9 @@ import OrganizerEvent from "../../models/OrganizerEvent.js";
 import TicketType from "../../models/TicketType.js";
 import Ticket from "../../models/Ticket.js";
 import TicketPayment from "../../models/TicketPayment.js";
+import User from "../../models/User.js";
+import Flag from "../../models/Flag.js";
+import Review from "../../models/Review.js";
 
 const router = express.Router();
 
@@ -835,6 +838,142 @@ router.get("/analytics", isAuthenticated, isOrganizer, async (req, res, next) =>
       },
       monthlyTrend,
       eventStatus
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// Get organizer's own reputation & trust score dashboard
+router.get("/reputation", isAuthenticated, isOrganizer, async (req, res, next) => {
+  try {
+    const organizerId = req.currentUser._id;
+
+    // Get organizer with trust metrics
+    const organizer = await User.findById(organizerId).select(
+      "trustMetrics suspensionStatus suspendedAt suspensionReason suspensionEndDate suspensionHistory firstName lastName email"
+    );
+
+    if (!organizer || !organizer.trustMetrics) {
+      return res.status(404).json({ message: "Organizer profile not found" });
+    }
+
+    // Get all flags
+    const flags = await Flag.find({ organizerId })
+      .select("severity status reason createdAt evidence")
+      .lean()
+      .sort({ createdAt: -1 });
+
+    // Get event stats
+    const totalEvents = await OrganizerEvent.countDocuments({ organizerId });
+    const publishedEvents = await OrganizerEvent.countDocuments({
+      organizerId,
+      status: "PUBLISHED",
+    });
+    const suspendedEvents = await OrganizerEvent.countDocuments({
+      organizerId,
+      status: "SUSPENDED",
+    });
+    const pendingEvents = await OrganizerEvent.countDocuments({
+      organizerId,
+      status: "PENDING_REVIEW",
+    });
+
+    // Get average rating from reviews
+    const reviews = await Review.find({ organizerId })
+      .select("rating")
+      .lean();
+    const avgRating =
+      reviews.length > 0
+        ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1)
+        : null;
+
+    // Determine status and recommendations
+    const trustScore = organizer.trustMetrics.trustScore || 3;
+    const isSuspended = organizer.suspensionStatus && organizer.suspensionStatus !== "none";
+    const currentFlags = organizer.trustMetrics.currentFlags || 0;
+    const approvalRate =
+      organizer.trustMetrics.eventsCreated > 0
+        ? Math.round(
+            (organizer.trustMetrics.eventsApproved / organizer.trustMetrics.eventsCreated) * 100
+          )
+        : 0;
+
+    // Generate recommendations
+    const recommendations = [];
+    if (trustScore < 4) {
+      recommendations.push({
+        type: "approval_rate",
+        severity: "info",
+        message: `Your events require admin review. Approval rate: ${approvalRate}%. High-quality events improve your trust score.`,
+      });
+    }
+    if (currentFlags > 0) {
+      recommendations.push({
+        type: "active_flags",
+        severity: "warning",
+        message: `You have ${currentFlags} active flag(s) on your events. Review the details and address any concerns.`,
+      });
+    }
+    if (isSuspended) {
+      const suspendedUntil = organizer.suspensionEndDate
+        ? new Date(organizer.suspensionEndDate).toLocaleDateString()
+        : "Indefinitely";
+      recommendations.push({
+        type: "suspended",
+        severity: "critical",
+        message: `Your account is suspended until ${suspendedUntil}. Reason: ${organizer.suspensionReason || "Not specified"}`,
+      });
+    }
+    if (approvalRate < 70 && approvalRate > 0) {
+      recommendations.push({
+        type: "low_approval",
+        severity: "warning",
+        message:
+          "Your event approval rate is low. Review rejected events and ensure compliance with event standards.",
+      });
+    }
+    if (trustScore >= 4) {
+      recommendations.push({
+        type: "high_trust",
+        severity: "success",
+        message: "Your events are auto-published. Maintain quality to keep this status.",
+      });
+    }
+
+    return res.json({
+      reputation: {
+        trustScore,
+        trustMetrics: {
+          eventsCreated: organizer.trustMetrics.eventsCreated || 0,
+          eventsApproved: organizer.trustMetrics.eventsApproved || 0,
+          currentFlags: currentFlags,
+          resolvedFlags: organizer.trustMetrics.resolvedFlags || 0,
+          averageRating: avgRating,
+          suspensionCount: organizer.trustMetrics.suspensionCount || 0,
+        },
+        suspensionStatus: organizer.suspensionStatus,
+        suspendedAt: organizer.suspendedAt,
+        suspensionReason: organizer.suspensionReason,
+        suspensionEndDate: organizer.suspensionEndDate,
+        suspensionHistory: organizer.suspensionHistory || [],
+      },
+      eventStats: {
+        totalEvents,
+        publishedEvents,
+        suspendedEvents,
+        pendingEvents,
+        approvalRate,
+      },
+      flags: {
+        total: flags.length,
+        open: flags.filter((f) => f.status === "open").length,
+        investigating: flags.filter((f) => f.status === "investigating").length,
+        highSeverity: flags.filter((f) => f.severity === "high").length,
+        critical: flags.filter((f) => f.severity === "critical").length,
+        recentFlags: flags.slice(0, 5),
+      },
+      recommendations,
     });
   } catch (err) {
     return next(err);

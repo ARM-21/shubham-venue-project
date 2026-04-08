@@ -115,6 +115,7 @@ export const ROUTES = {
       EVENT_ATTENDEES: (id) => `/api/v1/organizer/events/${id}/attendees`,
       EVENT_CHECKIN: (id) => `/api/v1/organizer/events/${id}/checkin`,
       ANALYTICS: '/api/v1/organizer/analytics',
+      REPUTATION: '/api/v1/organizer/reputation',
     },
     ADMIN: {
       OVERVIEW: '/api/v1/admin/overview',
@@ -128,6 +129,7 @@ export const ROUTES = {
       HALL_UPLOAD_URL: '/api/v1/admin/halls/upload-url',
       BOOKING_STATUS: (id) => `/api/v1/admin/bookings/${id}/status`,
       BOOKING_PAYMENT: (id) => `/api/v1/admin/bookings/${id}/payment`,
+      BOOKING_SEND_INVOICE: (id) => `/api/v1/admin/bookings/${id}/send-invoice`,
       BOOKING_DETAIL: (id) => `/api/v1/admin/bookings/${id}`,
       BOOKING_UPDATE: (id) => `/api/v1/admin/bookings/${id}`,
       BOOKING_DELETE: (id) => `/api/v1/admin/bookings/${id}`,

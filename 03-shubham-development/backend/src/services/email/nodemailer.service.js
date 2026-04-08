@@ -214,4 +214,126 @@ export const verifyEmailConnection = async () => {
   }
 };
 
-export default transporter;
+/**
+ * Send booking invoice via email with attachment
+ */
+export const sendInvoiceEmail = async (customerEmail, customerName, bookingDetails, pdfBuffer) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+      <h2 style="text-align: center; color: #2c3e50;">📄 Your Booking Invoice</h2>
+      <p>Dear ${customerName},</p>
+      <p>Thank you for your booking! Your invoice is attached to this email.</p>
+      
+      <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Booking ID:</strong> ${bookingDetails.bookingId}</p>
+        <p style="margin: 5px 0;"><strong>Venue:</strong> ${bookingDetails.venue}</p>
+        <p style="margin: 5px 0;"><strong>Event Date:</strong> ${bookingDetails.eventDate}</p>
+        <p style="margin: 5px 0;"><strong>Time Slot:</strong> ${bookingDetails.slot}</p>
+        <p style="margin: 5px 0;"><strong>Number of Guests:</strong> ${bookingDetails.guests}</p>
+        <p style="margin: 5px 0; font-size: 18px; color: #2c3e50;"><strong>Total Amount:</strong> Rs. ${bookingDetails.totalAmount}</p>
+      </div>
+
+      <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 5px 0; color: #2e7d32;"><strong>✔️ Payment Status:</strong> ${bookingDetails.paymentStatus}</p>
+        <p style="margin: 5px 0; color: #2e7d32;"><strong>✔️ Booking Status:</strong> ${bookingDetails.bookingStatus}</p>
+      </div>
+
+      <p><strong>Important Information:</strong></p>
+      <ul>
+        <li>Please keep this invoice for your records</li>
+        <li>You will receive a reminder 24 hours before your event</li>
+        <li>If you have any questions, contact our support team</li>
+        <li>Your cancellation/modification policy details are below</li>
+      </ul>
+
+      <p style="margin-top: 20px; font-size: 12px; color: #666;">For questions or support, contact us at:</p>
+      <p style="font-size: 12px; color: #666;"><strong>Email:</strong> ${process.env.SUPPORT_EMAIL || 'support@shubham-venue.me'}<br/><strong>Phone:</strong> 9849320765</p>
+
+      <p style="margin-top: 30px;">Best regards,<br/><strong>Shubham Venue Management</strong></p>
+      
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;"/>
+      <footer style="text-align: center; font-size: 12px; color: #888;">
+        Shubham Venue, Waling BP Road, Syangja <br/>
+        📞 9849320765 | ✉️ contact@shubham-venue.me<br/>
+        <em>This is an automated message, please do not reply to this email.</em>
+      </footer>
+    </div>
+  `;
+
+  const mailOptions = {
+    from: `"Shubham Venue" <${process.env.SMTP_USER || process.env.EMAIL_USER}>`,
+    to: customerEmail,
+    subject: `📄 Booking Invoice - ${bookingDetails.bookingId}`,
+    html,
+    attachments: pdfBuffer ? [
+      {
+        filename: `invoice-${bookingDetails.bookingId}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }
+    ] : []
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Invoice email sent successfully:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending invoice email:', error);
+    throw error;
+  }
+};
+
+/**
+ * Send payment confirmation email
+ */
+export const sendPaymentConfirmationEmail = async (customerEmail, customerName, paymentDetails) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+      <h2 style="text-align: center; color: #4caf50;">✅ Payment Confirmed</h2>
+      <p>Dear ${customerName},</p>
+      <p>Your payment has been successfully received and confirmed!</p>
+      
+      <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 5px 0;"><strong>Booking ID:</strong> ${paymentDetails.bookingId}</p>
+        <p style="margin: 5px 0;"><strong>Amount Paid:</strong> Rs. ${paymentDetails.amount}</p>
+        <p style="margin: 5px 0;"><strong>Payment Method:</strong> ${paymentDetails.gateway}</p>
+        <p style="margin: 5px 0;"><strong>Transaction ID:</strong> ${paymentDetails.transactionId || 'N/A'}</p>
+        <p style="margin: 5px 0;"><strong>Date:</strong> ${paymentDetails.paidAt}</p>
+      </div>
+
+      <p><strong>What's Next?</strong></p>
+      <ul>
+        <li>Your booking is now confirmed</li>
+        <li>Check your email for the complete invoice</li>
+        <li>You will receive appointment reminders before your event</li>
+        <li>Keep your booking ID handy for any future reference</li>
+      </ul>
+
+      <p>Thank you for choosing Shubham Venue!</p>
+      <p style="margin-top: 30px;">Best regards,<br/><strong>Shubham Venue Team</strong></p>
+      
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;"/>
+      <footer style="text-align: center; font-size: 12px; color: #888;">
+        Shubham Venue, Waling BP Road, Syangja <br/>
+        📞 9849320765 | ✉️ contact@shubham-venue.me
+      </footer>
+    </div>
+  `;
+
+  const mailOptions = {
+    from: `"Shubham Venue" <${process.env.SMTP_USER || process.env.EMAIL_USER}>`,
+    to: customerEmail,
+    subject: `✅ Payment Confirmation - ${paymentDetails.bookingId}`,
+    html
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Payment confirmation email sent successfully:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending payment confirmation email:', error);
+    throw error;
+  }
+};

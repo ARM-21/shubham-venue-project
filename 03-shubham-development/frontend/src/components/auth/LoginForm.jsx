@@ -12,8 +12,8 @@ export default function LoginForm({ onSwitch }) {
   const router = useRouter();
   const searchParams = useSearchParams(); //  Get query params
   
-  // Get redirect URL from query params
-  const redirectUrl = searchParams.get('redirect');
+  // Get redirect URL from query params (check both 'redirect' and 'callbackUrl' parameter names)
+  const redirectUrl = searchParams.get('redirect') || searchParams.get('callbackUrl');
 
   async function onSubmit(data) {
     setLoading(true);
