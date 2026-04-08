@@ -10,9 +10,6 @@ import {
   ClipboardList,
   Sparkles,
   AlertCircle,
-  ChefHat,
-  Palette,
-  Ticket,
   Clock,
   FileText,
   Upload,
@@ -39,6 +36,29 @@ export const EVENT_CATEGORIES = [
   { value: "OTHER", label: "Other" },
 ];
 
+// Function to derive event time range based on booking slot
+function deriveEventTimeRange(slot) {
+  if (slot === "morning") {
+    return { startTime: "09:00", endTime: "13:00", displayStartTime: "9:00 AM", displayEndTime: "1:00 PM" };
+  } else if (slot === "afternoon") {
+    return { startTime: "13:00", endTime: "17:00", displayStartTime: "1:00 PM", displayEndTime: "5:00 PM" };
+  } else if (slot === "evening") {
+    return { startTime: "17:00", endTime: "21:00", displayStartTime: "5:00 PM", displayEndTime: "9:00 PM" };
+  } else if (slot === "wholeday") {
+    return { startTime: "09:00", endTime: "21:00", displayStartTime: "9:00 AM", displayEndTime: "9:00 PM" };
+  }
+  return { startTime: "", endTime: "", displayStartTime: "", displayEndTime: "" };
+}
+
+// Helper function to convert 24-hour time to 12-hour format
+function formatTime24to12(time24) {
+  if (!time24) return "";
+  const [hours, minutes] = time24.split(":").map(Number);
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const hours12 = hours % 12 || 12;
+  return `${hours12}:${String(minutes).padStart(2, "0")} ${ampm}`;
+}
+
 export default function ProfessionalEventForm({ initialData = null, onSubmit, isLoading = false }) {
   const [activeTab, setActiveTab] = useState("basic");
   const [bannerFile, setBannerFile] = useState(null);
@@ -46,7 +66,9 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
   const [bannerUploading, setBannerUploading] = useState(false);
   const [bannerError, setBannerError] = useState(null);
   const [bookingDate, setBookingDate] = useState(null);
-  const [bookingLoading, setBookingLoading] = useState(false)
+  const [bookingSlot, setBookingSlot] = useState(null);
+  const [hallLocation, setHallLocation] = useState(null);
+  const [bookingLoading, setBookingLoading] = useState(false);
   const {
     register,
     control,
@@ -88,9 +110,6 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
       
       // Requirements
       specialRequirements: initialData?.specialRequirements || "",
-      catering: initialData?.catering || false,
-      decoration: initialData?.decoration || false,
-      requiresTicket: initialData?.requiresTicket !== false,
       
       // Visibility
       visibility: initialData?.isPublic ? "public" : "private",
@@ -100,15 +119,50 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
 
   const visibility = watch("visibility");
 
-  // Fetch booking date when component mounts
+  // Fetch booking date and slot when component mounts
   useEffect(() => {
     if (initialData?.bookingId && !bookingDate) {
       setBookingLoading(true);
       axiosInstance
         .get(`/api/v1/bookings/${initialData.bookingId}`)
         .then((res) => {
-          if (res.data?.booking?.date) {
-            setBookingDate(res.data.booking.date);
+          const booking = res.data?.booking;
+          if (booking?.date) {
+            setBookingDate(booking.date);
+            const slot = booking.slot;
+            setBookingSlot(slot);
+            
+            // Auto-populate time fields based on slot
+            const timeRange = deriveEventTimeRange(slot);
+            if (timeRange.startTime && timeRange.endTime) {
+              setValue("eventStartTime", timeRange.startTime);
+              setValue("eventEndTime", timeRange.endTime);
+            }
+            
+            // Fetch hall details for location info
+            if (booking.hallId?._id || booking.hallId) {
+              const hallId = booking.hallId?._id || booking.hallId;
+              axiosInstance
+                .get(`/api/v1/halls/${hallId}`)
+                .then((hallRes) => {
+                  const hall = hallRes.data?.hall || hallRes.data?.data;
+                  if (hall) {
+                    const location = {
+                      city: hall.location?.city || hall.city || "",
+                      state: hall.location?.state || hall.state || "",
+                      country: hall.location?.country || hall.country || "",
+                    };
+                    setHallLocation(location);
+                    // Auto-populate location fields
+                    setValue("city", location.city);
+                    setValue("state", location.state);
+                    setValue("country", location.country);
+                  }
+                })
+                .catch((err) => {
+                  console.error("Failed to fetch hall details:", err);
+                });
+            }
           }
         })
         .catch((err) => {
@@ -117,7 +171,9 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
         })
         .finally(() => setBookingLoading(false));
     }
-  }, [initialData?.bookingId, bookingDate]);
+  }, [initialData?.bookingId, bookingDate, setValue]);
+
+
 
   const tabs = [
     { id: "basic", label: "Basic Info", icon: FileText },
@@ -468,16 +524,27 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
 
           <div>
             <h4 className="font-black text-[#3a1224] text-sm sm:text-base uppercase tracking-widest mb-3 sm:mb-4">Event Times</h4>
+            <p className="text-[9px] sm:text-[10px] font-bold text-[#3a1224]/50 uppercase tracking-widest ml-2 mb-4">Automatically set based on your booking slot</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
               <div>
                 <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
-                  Start Time *
+                  Start Time
                 </label>
-                <input
-                  type="time"
-                  {...register("eventStartTime", { required: "Start time is required" })}
-                  className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
-                />
+                <div className="flex gap-3">
+                  <input
+                    type="time"
+                    {...register("eventStartTime", { required: "Start time is required" })}
+                    disabled={!!bookingSlot}
+                    className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                  {bookingSlot && (
+                    <div className="flex items-center px-4 bg-emerald-50 border border-emerald-200 rounded-lg sm:rounded-xl">
+                      <span className="font-bold text-emerald-700 text-sm sm:text-base whitespace-nowrap">
+                        {formatTime24to12(watch("eventStartTime"))}
+                      </span>
+                    </div>
+                  )}
+                </div>
                 {errors.eventStartTime && (
                   <p className="text-rose-500 text-[8px] sm:text-xs mt-1.5 font-bold ml-2">{errors.eventStartTime.message}</p>
                 )}
@@ -485,13 +552,23 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
 
               <div>
                 <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
-                  End Time *
+                  End Time
                 </label>
-                <input
-                  type="time"
-                  {...register("eventEndTime", { required: "End time is required" })}
-                  className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
-                />
+                <div className="flex gap-3">
+                  <input
+                    type="time"
+                    {...register("eventEndTime", { required: "End time is required" })}
+                    disabled={!!bookingSlot}
+                    className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                  {bookingSlot && (
+                    <div className="flex items-center px-4 bg-emerald-50 border border-emerald-200 rounded-lg sm:rounded-xl">
+                      <span className="font-bold text-emerald-700 text-sm sm:text-base whitespace-nowrap">
+                        {formatTime24to12(watch("eventEndTime"))}
+                      </span>
+                    </div>
+                  )}
+                </div>
                 {errors.eventEndTime && (
                   <p className="text-rose-500 text-[8px] sm:text-xs mt-1.5 font-bold ml-2">{errors.eventEndTime.message}</p>
                 )}
@@ -517,8 +594,11 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
             }
             return duration ? (
               <div className="bg-emerald-50 border border-emerald-200 rounded-lg sm:rounded-xl p-3 sm:p-4">
-                <p className="text-[9px] sm:text-xs font-black text-emerald-700 uppercase tracking-widest">Event Duration</p>
+                <p className="text-[9px] sm:text-xs font-black text-emerald-700 uppercase tracking-widest">Event Duration & Timing</p>
                 <p className="text-lg sm:text-xl font-black text-emerald-600 mt-1">{duration}</p>
+                <p className="text-sm text-emerald-700 font-semibold mt-2">
+                  {formatTime24to12(startTime)} - {formatTime24to12(endTime)}
+                </p>
               </div>
             ) : null;
           })()}
@@ -656,12 +736,21 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
             Event Location
           </h3>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
-            <AlertCircle size={20} className="text-blue-700 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-blue-800">
-              These fields are for additional location context beyond the booking venue
-            </p>
-          </div>
+          {hallLocation ? (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex gap-3">
+              <AlertCircle size={20} className="text-emerald-700 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-emerald-800">
+                Location is locked to your booked venue. You cannot change this location.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
+              <AlertCircle size={20} className="text-blue-700 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-blue-800">
+                Location will be automatically set once you select a booking
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -672,7 +761,8 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
                 type="text"
                 placeholder="e.g., Kathmandu"
                 {...register("city")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                disabled={!!hallLocation}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-50"
               />
             </div>
 
@@ -684,7 +774,8 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
                 type="text"
                 placeholder="State or province"
                 {...register("state")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                disabled={!!hallLocation}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-50"
               />
             </div>
 
@@ -696,7 +787,8 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
                 type="text"
                 placeholder="e.g., Nepal"
                 {...register("country")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                disabled={!!hallLocation}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-50"
               />
             </div>
           </div>
@@ -708,59 +800,12 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
         <div className="space-y-6">
           <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <ClipboardList size={20} className="text-amber-600" />
-            Services & Requirements
+            Special Requirements
           </h3>
-
-          <div className="space-y-4">
-            <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-              <input
-                type="checkbox"
-                {...register("catering")}
-                className="w-5 h-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-              />
-              <div>
-                <p className="font-medium text-gray-900 flex items-center gap-2">
-                  <ChefHat size={18} className="text-amber-600" />
-                  Catering Included
-                </p>
-                <p className="text-sm text-gray-500">Event includes food and beverages</p>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-              <input
-                type="checkbox"
-                {...register("decoration")}
-                className="w-5 h-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-              />
-              <div>
-                <p className="font-medium text-gray-900 flex items-center gap-2">
-                  <Palette size={18} className="text-amber-600" />
-                  Decoration Services
-                </p>
-                <p className="text-sm text-gray-500">Professional venue decoration included</p>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-              <input
-                type="checkbox"
-                {...register("requiresTicket")}
-                className="w-5 h-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-              />
-              <div>
-                <p className="font-medium text-gray-900 flex items-center gap-2">
-                  <Ticket size={18} className="text-amber-600" />
-                  Requires Ticket Purchase
-                </p>
-                <p className="text-sm text-gray-500">Attendees must purchase tickets</p>
-              </div>
-            </label>
-          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Special Requirements
+              Additional Notes
             </label>
             <textarea
               rows="4"

@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import axiosInstance from 'lib/axios';
 import toast from 'react-hot-toast';
-import { CheckIcon, PlusIcon } from 'lucide-react';
+import { CheckIcon, PlusIcon, Salad, Flame, Dessert, Wine } from 'lucide-react';
 import { ROUTES } from 'config/routes';
 import { FormSelectField, FormTextField, PrimaryButton, SecondaryButton, ActionButtonGroup } from './FormInputs';
 
@@ -16,11 +16,32 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
   const [selectedCustomItems, setSelectedCustomItems] = useState(data.selectedMenu || []);
   const [menuMode, setMenuMode] = useState(data.menuMode || 'package'); // 'package' or 'custom'
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all'); // 'all' or specific category
+  const [itemsPerPage] = useState(6);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Get category icon and color
+  const getCategoryStyle = (category) => {
+    const categoryLower = (category || '').toLowerCase();
+    if (categoryLower.includes('starter') || categoryLower.includes('appetizer') || categoryLower.includes('appetiser')) {
+      return { icon: Salad, color: '#10b981', label: '🥗 Starters' };
+    }
+    if (categoryLower.includes('main') || categoryLower.includes('entrée') || categoryLower.includes('entree')) {
+      return { icon: Flame, color: '#ef4444', label: '🍖 Main Courses' };
+    }
+    if (categoryLower.includes('dessert') || categoryLower.includes('sweet')) {
+      return { icon: Dessert, color: '#f59e0b', label: '🍰 Desserts' };
+    }
+    if (categoryLower.includes('drink') || categoryLower.includes('beverage') || categoryLower.includes('wine')) {
+      return { icon: Wine, color: '#8b5cf6', label: '🍷 Beverages' };
+    }
+    return { icon: Salad, color: '#6366f1', label: '✨ ' + category };
+  };
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
-      dietaryRestrictions: data.dietaryRestrictions || '',
-      servingStyle: data.servingStyle || 'buffet'
+      dietaryRestrictions: data.dietaryRestrictions || ''
     }
   });
 
@@ -32,16 +53,43 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
   const fetchMenuData = async () => {
     try {
       setLoading(true);
-      const [packagesRes, itemsRes] = await Promise.all([
-        axiosInstance.get(ROUTES.API.MENUS.ROOT),
-        axiosInstance.get(ROUTES.API.DISHES.ROOT)
-      ]);
-
-      setMenuPackages(packagesRes.data || []);
-      setCustomItems(itemsRes.data || []);
+      // Fetch menus with their dishes
+      const menusRes = await axiosInstance.get(ROUTES.API.MENUS.ROOT);
+      
+      // Extract menus (packages)
+      const menus = menusRes.data?.menus || menusRes.data?.data || (Array.isArray(menusRes.data) ? menusRes.data : []);
+      setMenuPackages(menus);
+      
+      // Extract all dishes from menus WITH DEDUPLICATION
+      let allDishes = [];
+      const seenDishIds = new Set();
+      
+      menus.forEach((menu) => {
+        if (menu.sections && Array.isArray(menu.sections)) {
+          menu.sections.forEach((section) => {
+            if (section.dishes && Array.isArray(section.dishes)) {
+              section.dishes.forEach((dish) => {
+                // Only add dish if we haven't seen this ID before
+                if (!seenDishIds.has(dish._id)) {
+                  seenDishIds.add(dish._id);
+                  allDishes.push({
+                    ...dish,
+                    menuName: menu.name,
+                    category: section.section?.title || section.section || 'Uncategorized',
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+      setCustomItems(allDishes);
     } catch (error) {
       toast.error('Failed to load menu options');
       console.error(error);
+      // Set empty arrays on error
+      setMenuPackages([]);
+      setCustomItems([]);
     } finally {
       setLoading(false);
     }
@@ -58,6 +106,41 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
     return selectedCustomItems.reduce((total, item) => {
       return total + (item.pricePerUnit * item.quantity);
     }, 0);
+  };
+
+  // Filter items by search query and category
+  const filteredItems = customItems.filter(item => {
+    const matchesSearch = 
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  // Group filtered items by category
+  const groupedByCategory = filteredItems.reduce((acc, item) => {
+    const category = item.category || 'Other';
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(item);
+    return acc;
+  }, {});
+
+  // Flatten grouped items for pagination
+  const flattenedItems = Object.entries(groupedByCategory).flatMap(([category, items]) => 
+    items.map((item, idx) => ({ ...item, _categoryKey: `${category}-${idx}` }))
+  );
+
+  const totalPages = Math.ceil(flattenedItems.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedItems = flattenedItems.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to page 1 when search changes
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
   };
 
   const getTotal = () => {
@@ -122,8 +205,7 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
       selectedPackage: menuMode === 'package' ? selectedPackage : null,
       selectedMenu: menuMode === 'custom' ? selectedCustomItems : [],
       menuTotal: getTotal(),
-      dietaryRestrictions: formData.dietaryRestrictions,
-      servingStyle: formData.servingStyle
+      dietaryRestrictions: formData.dietaryRestrictions
     };
 
     onUpdate(menuData);
@@ -243,30 +325,79 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
         <div className="space-y-6">
           <div>
             <p className="text-sm font-semibold text-slate-900">Build Your Custom Menu</p>
+            <p className="text-xs text-slate-600 mt-1">{flattenedItems.length} items available</p>
           </div>
 
-          {/* Group items by category */}
-          {Object.entries(
-            customItems.reduce((acc, item) => {
-              const category = item.category || 'Other';
-              if (!acc[category]) acc[category] = [];
-              acc[category].push(item);
-              return acc;
-            }, {})
-          ).map(([category, items]) => (
-            <div key={category} className="space-y-3">
-              <h4 className="text-sm font-semibold text-slate-900 flex items-center">
-                <span className="w-2 h-2 bg-[#C0A04C] rounded-full mr-3"></span>
-                {category}
-              </h4>
-              <div className="grid grid-cols-1 gap-3">
-                {items.map((item) => {
+          {/* Search Filter */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search dishes by name, category, or description..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 text-sm font-medium text-slate-900 placeholder-slate-400"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setCurrentPage(1);
+                }}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xl"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Category Filter */}
+          <div>
+            <label className="text-sm font-semibold text-slate-900 block mb-2">Menu Section</label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 text-sm font-medium text-slate-900 bg-white hover:border-slate-400 transition-colors"
+            >
+              <option value="all">All Sections</option>
+              {[...new Set(customItems.map(item => item.category))].sort().map(category => (
+                <option key={category} value={category}>
+                  {getCategoryStyle(category).label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {flattenedItems.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-slate-600 font-medium">No items match your search</p>
+            </div>
+          ) : (
+            <>
+              {/* Category Header */}
+              {paginatedItems.length > 0 && (
+                <div className="mb-6">
+                  <div className="bg-gradient-to-r from-[#C0A04C]/10 to-[#C0A04C]/5 border border-[#C0A04C]/20 rounded-xl p-4">
+                    <p className="text-sm font-semibold text-slate-700">
+                      {paginatedItems[0]?.category ? getCategoryStyle(paginatedItems[0].category).label : '✨ Menu Items'}
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Paginated Items */}
+              <div className="space-y-3">
+                {paginatedItems.map((item, idx) => {
                   const isSelected = selectedCustomItems.some(i => i.itemId === item._id);
                   const selectedItem = selectedCustomItems.find(i => i.itemId === item._id);
+                  // Create unique key combining item ID and pagination offset
+                  const uniqueKey = `${item._id}-${startIndex + idx}`;
 
                   return (
                     <div
-                      key={item._id}
+                      key={uniqueKey}
                       className={`border rounded-lg p-5 transition-all ${
                         isSelected
                           ? 'border-[#C0A04C] bg-[#C0A04C]/5'
@@ -285,6 +416,7 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
                             />
                             <div>
                               <h5 className="font-semibold text-slate-900">{item.name}</h5>
+                              <p className="text-xs text-slate-500 mt-1">{item.category}</p>
                               {item.description && (
                                 <p className="text-sm text-slate-600 mt-1">{item.description}</p>
                               )}
@@ -298,7 +430,7 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
                         {/* Quantity Selector */}
                         {isSelected && (
                           <div className="ml-4 flex items-center gap-3">
-                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Qty:</label>
+                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest hidden sm:inline">Qty:</label>
                             <input
                               type="number"
                               min="1"
@@ -316,23 +448,40 @@ export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
                   );
                 })}
               </div>
-            </div>
-          ))}
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-600">
+                      Page <span className="text-[#C0A04C]">{currentPage}</span> of <span className="text-[#C0A04C]">{totalPages}</span>
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
       {/* Additional Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-200">
-        <FormSelectField
-          label="Serving Style"
-          {...register('servingStyle')}
-          options={[
-            { value: 'buffet', label: 'Buffet Style' },
-            { value: 'plated', label: 'Plated Service' },
-            { value: 'family', label: 'Family Style' }
-          ]}
-        />
-
+      <div className="grid grid-cols-1 gap-6 pt-6 border-t border-slate-200">
         <FormTextField
           label="Dietary Restrictions"
           placeholder="e.g., Vegetarian, Vegan, Gluten-free"

@@ -9,6 +9,10 @@ const client = new OAuth2Client(ENV.GOOGLE_CLIENT_ID);
 router.post("/login", async (req, res) => {
 
     try {
+        // Check if token is provided
+        if (!req.body.token) {
+            return res.status(400).json({ message: "Google authentication token is missing. Please try again." });
+        }
 
         const response = await client.verifyIdToken({
             idToken: req.body.token,
@@ -78,8 +82,23 @@ router.post("/login", async (req, res) => {
             }
         });
     } catch (err) {
-        console.error("Registration Error:", err.errorResponse.errInfo.details);
-        return res.status(500).json({ message: "Error Occurred! Try Again Later" });
+        console.error("Google Login Error:", err.message);
+        
+        // Provide user-friendly error messages for common cases
+        if (err.message && err.message.includes("data and hash arguments required")) {
+            return res.status(400).json({ message: "Invalid Google authentication token. Please try logging in again." });
+        }
+        
+        if (err.message && err.message.includes("Invalid value for: idToken")) {
+            return res.status(400).json({ message: "Your Google authentication token is invalid or expired. Please try logging in again." });
+        }
+        
+        if (err.message && err.message.includes("Token used too late")) {
+            return res.status(400).json({ message: "Your login session has expired. Please try again." });
+        }
+        
+        // General error fallback
+        return res.status(500).json({ message: "Google authentication failed. Please try again later." });
     }
 })
 

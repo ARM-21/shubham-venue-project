@@ -1,5 +1,5 @@
 import { success } from "../../utils/http.utils.js";
-import { listHalls, getHallBySlug, checkHallAvailability } from "../../services/hall/hall.service.js";
+import { listHalls, getHallBySlug, getHallById, checkHallAvailability } from "../../services/hall/hall.service.js";
 import { listHallsAvailability } from "../booking/booking.controller.js";
 
 export const listHallsHandler = async (req, res, next) => {
@@ -13,7 +13,16 @@ export const listHallsHandler = async (req, res, next) => {
 
 export const getHallBySlugHandler = async (req, res, next) => {
   try {
-    const hall = await getHallBySlug(req.params.slug);
+    const hall = await getHallBySlug(req.params.idOrSlug);
+    return res.json({ hall });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+export const getHallByIdHandler = async (req, res, next) => {
+  try {
+    const hall = await getHallById(req.params.idOrSlug);
     return res.json({ hall });
   } catch (err) {
     return next(err);

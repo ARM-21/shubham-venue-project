@@ -84,8 +84,8 @@ export default function ViewBookingModal({ bookingId, closeModal, currencyFormat
                   ) : null}
                 </div>
                 <p className="font-medium">{booking.menu?.package?.name || "Custom / Per item"}</p>
-                <p className="text-xs text-[var(--admin-muted)]">Mode: {booking.menu?.mode || "-"}</p>
-                <p className="text-xs text-[var(--admin-muted)]">Menu total: {booking.menu?.total != null ? currencyFormatter.format(Number(booking.menu.total)) : "-"}</p>
+                <p className="text-xs text-[var(--admin-muted)]">Mode: {booking.menuMode || booking.menu?.mode || "-"}</p>
+                <p className="text-xs text-[var(--admin-muted)]">Menu total: {booking.menuTotal != null ? currencyFormatter.format(Number(booking.menuTotal)) : (booking.menu?.total != null ? currencyFormatter.format(Number(booking.menu.total)) : "-")}</p>
               </div>
 
               <div className="space-y-1">
@@ -96,12 +96,42 @@ export default function ViewBookingModal({ bookingId, closeModal, currencyFormat
                   ) : null}
                 </div>
                 <p className="font-medium">{booking.decorations?.scheme?.name || "None"}</p>
-                <p className="text-xs text-[var(--admin-muted)]">Decor total: {booking.decorations?.total != null ? currencyFormatter.format(Number(booking.decorations.total)) : "-"}</p>
+                <p className="text-xs text-[var(--admin-muted)]">Decor total: {booking.decorationTotal != null ? currencyFormatter.format(Number(booking.decorationTotal)) : (booking.decorations?.total != null ? currencyFormatter.format(Number(booking.decorations.total)) : "-")}</p>
                 {booking.decorations?.addons?.length ? (
                   <p className="text-xs text-[var(--admin-muted)]">Addons: {booking.decorations.addons.map((a) => a.name || a.key).join(", ")}</p>
                 ) : null}
               </div>
             </div>
+
+            {booking.selectedMenu && Array.isArray(booking.selectedMenu) && booking.selectedMenu.length > 0 && (
+              <div className="md:col-span-2 space-y-2 bg-white/5 rounded-lg p-3">
+                <p className="text-[var(--admin-muted)] font-medium text-sm">Selected Menu Items</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="border-b border-white/10">
+                      <tr className="text-left text-[var(--admin-muted)]">
+                        <th className="pb-2 pl-2">Item</th>
+                        <th className="pb-2">Category</th>
+                        <th className="pb-2 text-right">Qty</th>
+                        <th className="pb-2 text-right">Unit Price</th>
+                        <th className="pb-2 text-right pr-2">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {booking.selectedMenu.map((item, idx) => (
+                        <tr key={idx} className="text-white">
+                          <td className="py-2 pl-2">{item.name}</td>
+                          <td className="py-2 text-[var(--admin-muted)]">{item.category || "—"}</td>
+                          <td className="py-2 text-right">{item.quantity}</td>
+                          <td className="py-2 text-right">{item.pricePerUnit != null ? currencyFormatter.format(Number(item.pricePerUnit)) : "—"}</td>
+                          <td className="py-2 text-right font-medium pr-2">{item.total != null ? currencyFormatter.format(Number(item.total)) : "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2 md:col-span-2">
                 <div className="flex items-center justify-between">
