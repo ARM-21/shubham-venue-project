@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -83,14 +84,13 @@ export default function BookingsPage() {
 
   const handleDownloadInvoice = async (bookingId) => {
     try {
-      const res = await fetch(ROUTES.API.BOOKINGS.INVOICE(bookingId), {
-        method: 'GET',
-        credentials: 'include',
+      toast.loading('Generating invoice...');
+      const res = await axiosInstance.get(ROUTES.API.BOOKINGS.INVOICE(bookingId), {
+        responseType: 'blob',
       });
       
-      if (!res.ok) throw new Error('Failed to download invoice');
-      
-      const blob = await res.blob();
+      toast.dismiss();
+      const blob = new Blob([res.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -101,7 +101,9 @@ export default function BookingsPage() {
       window.URL.revokeObjectURL(url);
       toast.success('Invoice downloaded');
     } catch (err) {
-      toast.error('Failed to download invoice');
+      toast.dismiss();
+      console.error('Invoice download error:', err);
+      toast.error(err?.response?.data?.message || 'Failed to download invoice');
     }
   };
 
