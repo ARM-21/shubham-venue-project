@@ -1,7 +1,12 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
+import { Mail } from "lucide-react";
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
 
 export default function EditBookingModal({ editModal, setEditModal, saveEdit, actionLoading, onClose }) {
   const isOpen = !!editModal.open;
+  const [sendingInvoice, setSendingInvoice] = useState(false);
   const paymentStatusKey = (editModal.paymentStatus || "INITIATED").toUpperCase().trim();
 
   const paymentOptions = useMemo(() => {
@@ -51,6 +56,18 @@ export default function EditBookingModal({ editModal, setEditModal, saveEdit, ac
     }
   }, [editModal.paymentStatus, paymentOptions, setEditModal]);
 
+  const handleSendInvoice = async () => {
+    setSendingInvoice(true);
+    try {
+      await axiosInstance.post(ROUTES.API.ADMIN.BOOKING_SEND_INVOICE(editModal.id));
+      toast.success('Invoice sent to customer email');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to send invoice');
+    } finally {
+      setSendingInvoice(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -71,9 +88,10 @@ export default function EditBookingModal({ editModal, setEditModal, saveEdit, ac
             onChange={(e) => setEditModal((prev) => ({ ...prev, slot: e.target.value }))}
             className="w-full bg-[var(--admin-bg)] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[var(--admin-primary)]"
           >
-            <option value="morning">Morning</option>
-            <option value="evening">Evening</option>
-            <option value="wholeday">Whole day</option>
+            <option value="morning">Morning (08:00 AM - 01:00 PM)</option>
+            <option value="afternoon">Afternoon (01:00 PM - 05:00 PM)</option>
+            <option value="evening">Evening (05:00 PM - 11:00 PM)</option>
+            <option value="wholeday">Whole Day (08:00 AM - 11:00 PM)</option>
           </select>
           <label className="block text-sm text-[var(--admin-muted)]">Guests</label>
           <input
@@ -121,6 +139,17 @@ export default function EditBookingModal({ editModal, setEditModal, saveEdit, ac
           ) : null}
         </div>
         <div className="flex justify-end gap-2 pt-2">
+          {paymentStatusKey === "COMPLETED" && (
+            <button
+              onClick={handleSendInvoice}
+              disabled={sendingInvoice}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-300 text-sm transition-colors disabled:opacity-50"
+              title="Send invoice email to customer"
+            >
+              <Mail className="size-4" />
+              {sendingInvoice ? 'Sending...' : 'Send Invoice'}
+            </button>
+          )}
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-lg border border-white/10 text-sm text-[var(--admin-muted)] hover:bg-white/5"

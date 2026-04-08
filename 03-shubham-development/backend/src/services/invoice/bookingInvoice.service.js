@@ -61,8 +61,9 @@ export async function streamBookingInvoice({ bookingId, currentUser, res }) {
   }
 
   const payment = await Payment.findOne({ bookingId: booking._id }).sort({ paidAt: -1, createdAt: -1 }).lean();
-  if (!payment || (payment.gateway !== "CASH" && payment.status !== "COMPLETED")) {
-    throw httpError(400, "Invoice available after payment completion");
+  // Invoice only available if payment is COMPLETED (for all payment gateways including CASH)
+  if (!payment || payment.status !== "COMPLETED") {
+    throw httpError(400, "Invoice available only after payment is confirmed");
   }
 
   const config = (await SystemConfig.findOne({ key: "default" }).lean()) || {};

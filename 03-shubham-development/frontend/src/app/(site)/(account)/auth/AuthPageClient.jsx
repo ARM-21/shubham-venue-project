@@ -16,7 +16,8 @@ export default function AuthPageClient({ redirect }) {
   const searchParams = useSearchParams();
   const [mode, setMode] = useState("login");
 
-  const redirectUrl = redirect ?? searchParams.get("redirect");
+  // Get redirect URL from query params (check both 'redirect' and 'callbackUrl')
+  const redirectUrl = redirect ?? searchParams.get("redirect") ?? searchParams.get("callbackUrl");
 
   useEffect(() => {
     if (!loading && user?.isVerified) {

@@ -215,8 +215,22 @@ export default function ProfilePage() {
   }, [displayUser?.first_name, displayUser?.firstName, displayUser?.last_name, displayUser?.lastName, displayUser?.phone, resetProfile]);
 
   const handleLogout = useCallback(async () => {
-    await logout();
-    router.push(ROUTES.AUTH.LOGIN);
+    try {
+      // Call logout API endpoint
+      await axiosInstance.post(ROUTES.API.AUTH.LOGOUT);
+      
+      // Clear auth context
+      await logout();
+      
+      // Redirect to login
+      router.push(ROUTES.AUTH.LOGIN);
+      
+      toast.success('Logged out successfully');
+    } catch (err) {
+      console.error('Logout error:', err);
+      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to logout';
+      toast.error(errorMessage);
+    }
   }, [logout, router]);
 
   // Derived values

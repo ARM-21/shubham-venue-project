@@ -6,15 +6,16 @@ import { useAuth } from 'contexts/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from 'lib/axios';
-import { Settings, Bell, CreditCard, Lock, LogOut, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Settings, Bell, CreditCard, LogOut, Mail, Phone, MapPin, Edit2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import BreadcrumbNav from 'components/organizer/BreadcrumbNav';
 import { ROUTES } from 'config/routes';
 import { useQueryOrganizerStatus } from '@queries/organizer/status';
+import { useQueryProfileMy } from '@queries/customer/profile-my';
 
 export default function OrganizerSettings() {
-  const { user, logout } = useAuth();
+  const { user: authUser, logout, setUser } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('profile');
@@ -24,12 +25,14 @@ export default function OrganizerSettings() {
     notifications: false,
   });
 
-  // Fetch fresh organizer status from server
+  // Fetch fresh profile data from API
+  const { data: profileData, isLoading: profileLoading } = useQueryProfileMy();
+  const user = profileData?.user || profileData || authUser;
+
   const { data: statusData, isLoading: statusLoading } = useQueryOrganizerStatus({
     enabled: !!user,
   });
 
-  // Form setup with react-hook-form
   const {
     register,
     handleSubmit,
@@ -38,8 +41,8 @@ export default function OrganizerSettings() {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      firstName: user?.firstName || user?.first_name || '',
-      lastName: user?.lastName || user?.last_name || '',
+      firstName: user?.first_name || '',
+      lastName: user?.last_name || '',
       phone: user?.phone || '',
       city: user?.city || '',
       taxId: user?.organizerDetails?.taxId || '',
@@ -52,12 +55,11 @@ export default function OrganizerSettings() {
     },
   });
 
-  // Reset form when user data changes
   useEffect(() => {
     if (user) {
       reset({
-        firstName: user?.firstName || user?.first_name || '',
-        lastName: user?.lastName || user?.last_name || '',
+        firstName: user?.first_name || '',
+        lastName: user?.last_name || '',
         phone: user?.phone || '',
         city: user?.city || '',
         taxId: user?.organizerDetails?.taxId || '',
@@ -71,7 +73,6 @@ export default function OrganizerSettings() {
     }
   }, [user, reset]);
 
-  // Mutation - send to server
   const updateProfileMutation = useMutation({
     mutationFn: async (payload) => {
       const res = await axiosInstance.put(ROUTES.API.PROFILE.UPDATE, payload);
@@ -79,17 +80,19 @@ export default function OrganizerSettings() {
     },
     onSuccess: (data) => {
       toast.success('Settings saved successfully!');
-      // Exit edit mode after save
       setEditMode(prev => ({
         ...prev,
         [activeTab]: false
       }));
-      // Update form with fresh data from server
-      if (data?.user || data?.profile) {
-        const userData = data.user || data.profile;
+      
+      // Get fresh user data from mutation response
+      const userData = data?.user || data?.profile;
+      
+      if (userData) {
+        // Reset form with fresh data
         reset({
-          firstName: userData?.firstName || userData?.first_name || '',
-          lastName: userData?.lastName || userData?.last_name || '',
+          firstName: userData?.first_name || '',
+          lastName: userData?.last_name || '',
           phone: userData?.phone || '',
           city: userData?.city || '',
           taxId: userData?.organizerDetails?.taxId || '',
@@ -100,12 +103,15 @@ export default function OrganizerSettings() {
           notificationsSms: userData?.organizerDetails?.notificationsSms ?? false,
           notificationsEventUpdates: userData?.organizerDetails?.notificationsEventUpdates ?? true,
         });
+        
+        // Update auth context immediately
+        setUser?.(userData);
       }
-      // Invalidate and refetch profile cache to update auth context
-      queryClient.invalidateQueries({ queryKey: ["profile-me"] });
-      queryClient.refetchQueries({ queryKey: ["profile-me"] });
-      // Also refetch user queries to ensure data is updated everywhere
-      queryClient.invalidateQueries({ queryKey: ["user"] });
+      
+      // Explicitly refetch to ensure fresh data from API
+      queryClient.refetchQueries({ queryKey: ['profile-my'] });
+      // Also invalidate and refetch user queries
+      queryClient.invalidateQueries({ queryKey: ['user'] });
     },
     onError: (error) => {
       toast.error(error?.response?.data?.message || 'Failed to save settings');
@@ -143,23 +149,37 @@ export default function OrganizerSettings() {
   };
 
   const handleLogout = async () => {
-    await logout();
-    router.push(ROUTES.AUTH.LOGIN);
+    try {
+      // Call logout API endpoint
+      const response = await axiosInstance.post(ROUTES.API.AUTH.LOGOUT);
+      
+      // Clear auth context
+      await logout();
+      
+      // Clear any cached queries
+      queryClient.clear();
+      
+      // Redirect to login
+      router.push(ROUTES.AUTH.LOGIN);
+      
+      toast.success('Logged out successfully');
+    } catch (err) {
+      console.error('Logout error:', err);
+      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to logout';
+      toast.error(errorMessage);
+    }
   };
 
-  // Get organizer eligibility status
   const isOrganizerEligible = statusData?.isOrganizerEligible;
 
-  // Conditional tabs
   const tabs = [
-    { id: 'profile', label: 'Account', icon: Settings },
+    { id: 'profile', label: 'Profile', icon: Settings },
     ...(isOrganizerEligible ? [
       { id: 'payment', label: 'Payment', icon: CreditCard },
       { id: 'notifications', label: 'Notifications', icon: Bell },
     ] : []),
   ];
 
-  // Reset active tab if no longer eligible
   useEffect(() => {
     if (!isOrganizerEligible && (activeTab === 'payment' || activeTab === 'notifications')) {
       setActiveTab('profile');
@@ -169,373 +189,402 @@ export default function OrganizerSettings() {
   const formValues = watch();
 
   return (
-    <div className="min-h-screen bg-[#fdfaf6] relative">
-      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/80 to-[#fdfaf6] pointer-events-none z-0" />
-
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-32 pb-12 sm:pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 pb-12 sm:pb-20">
         {/* Breadcrumb */}
         <div className="mb-8">
           <BreadcrumbNav />
         </div>
 
         {/* Header */}
-        <header className="mb-8 sm:mb-16">
+        <header className="mb-8 sm:mb-12">
           <div className="flex items-center gap-3 mb-3 sm:mb-4">
             <div className="w-8 h-[1px] bg-[#C0A04C]" />
-            <span className="text-[8px] sm:text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Settings</span>
+            <span className="text-xs font-semibold text-[#C0A04C] uppercase tracking-wide">Settings</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold text-white mb-2 sm:mb-4">
-            Organizer <span className="text-[#C0A04C] italic font-serif">Settings</span>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 mb-3">
+            Organizer <span className="text-[#C0A04C]">Settings</span>
           </h1>
-          <p className="text-white/70 text-xs sm:text-base lg:text-lg font-light max-w-2xl">
-            Manage your account, payment methods, and notification preferences.
-          </p>
+          <p className="text-slate-600 text-sm sm:text-base">Manage your account, payment details, and preferences.</p>
         </header>
 
-        {/* Main Card */}
-        <div className="bg-white/95 rounded-2xl sm:rounded-3xl shadow-lg backdrop-blur-sm border border-[#3a1224]/5 overflow-hidden">
-          {/* Tabs */}
-          <div className="flex gap-0 border-b border-[#3a1224]/10 overflow-x-auto no-scrollbar">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 min-w-[120px] sm:min-w-auto px-3 sm:px-6 py-4 sm:py-5 text-center border-b-2 transition-all whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'border-[#C0A04C] bg-[#C0A04C]/5'
-                      : 'border-transparent text-[#3a1224]/50 hover:text-[#3a1224]/70'
-                  }`}
-                >
-                  <div className="flex items-center justify-center gap-1 sm:gap-2 text-[7px] sm:text-[9px] font-black uppercase tracking-widest">
-                    <Icon size={14} className="sm:w-4 sm:h-4" />
-                    <span className="hidden xs:inline">{tab.label}</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all whitespace-nowrap ${
+                  isActive
+                    ? 'bg-[#3a1224] text-white shadow-lg'
+                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
 
-          {/* Content */}
-          <div className="p-4 sm:p-6 lg:p-10 xl:p-12">
-            <AnimatePresence mode="wait">
-              {/* PROFILE TAB */}
-              {activeTab === 'profile' && (
-                <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <div className="flex items-center justify-between mb-6 sm:mb-8">
-                    <h2 className="text-xl sm:text-2xl font-display font-bold text-[#3a1224]">Account Information</h2>
-                    {!editMode.profile && (
-                      <button
-                        onClick={() => setEditMode(prev => ({ ...prev, profile: true }))}
-                        className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#C0A04C]/10 text-[#C0A04C] rounded-lg sm:rounded-xl font-black text-[7px] sm:text-[9px] uppercase tracking-widest hover:bg-[#C0A04C]/20 transition-all"
-                      >
-                        <ChevronRight size={14} className="sm:w-4 sm:h-4" /> Edit
-                      </button>
-                    )}
+        {/* Main Content */}
+        <div className="space-y-6">
+          {/* Profile Tab */}
+          {activeTab === 'profile' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              {/* Account Information Card */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900">Profile Information</h2>
+                    <p className="text-sm text-slate-500 mt-1">Update your personal details</p>
                   </div>
+                  {!editMode.profile && (
+                    <button
+                      onClick={() => setEditMode(prev => ({ ...prev, profile: true }))}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-[#C0A04C]/10 text-[#C0A04C] rounded-lg font-semibold text-sm hover:bg-[#C0A04C]/20 transition-all"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      Edit
+                    </button>
+                  )}
+                </div>
 
-                  {!isOrganizerEligible && (
-                    <div className="mb-8 p-4 sm:p-5 bg-amber-50 border border-amber-200 rounded-lg sm:rounded-xl">
-                      <p className="text-sm sm:text-base text-amber-900 font-semibold">
-                        💡 Payment and notification settings will be available once your organizer account is verified.
+                {!editMode.profile && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">First Name</p>
+                        <p className="text-lg font-semibold text-slate-900">{formValues.firstName}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Last Name</p>
+                        <p className="text-lg font-semibold text-slate-900">{formValues.lastName}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Email</p>
+                      <p className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-slate-400" />
+                        {user?.email}
                       </p>
                     </div>
-                  )}
-
-                  {/* VIEW MODE */}
-                  {!editMode.profile && (
-                    <div className="space-y-6 mb-8">
-                      <div className="p-4 sm:p-5 bg-[#3a1224]/5 rounded-lg sm:rounded-2xl">
-                        <p className="text-[8px] sm:text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2">Name</p>
-                        <p className="text-base sm:text-lg font-bold text-[#3a1224]">{formValues.firstName} {formValues.lastName}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Phone</p>
+                        <p className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-slate-400" />
+                          {formValues.phone || '—'}
+                        </p>
                       </div>
-                      <div className="p-4 sm:p-5 bg-[#3a1224]/5 rounded-lg sm:rounded-2xl">
-                        <p className="text-[8px] sm:text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2">Email</p>
-                        <p className="text-base sm:text-lg font-bold text-[#3a1224]">{user?.email}</p>
-                      </div>
-                      <div className="p-4 sm:p-5 bg-[#3a1224]/5 rounded-lg sm:rounded-2xl">
-                        <p className="text-[8px] sm:text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2">Phone</p>
-                        <p className="text-base sm:text-lg font-bold text-[#3a1224]">{formValues.phone || 'Not provided'}</p>
-                      </div>
-                      <div className="p-4 sm:p-5 bg-[#3a1224]/5 rounded-lg sm:rounded-2xl">
-                        <p className="text-[8px] sm:text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2">City</p>
-                        <p className="text-base sm:text-lg font-bold text-[#3a1224]">{formValues.city || 'Not provided'}</p>
-                      </div>
-                      <div className="p-4 sm:p-5 bg-[#3a1224]/5 rounded-lg sm:rounded-2xl">
-                        <p className="text-[8px] sm:text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2">Status</p>
-                        <div className={`inline-block px-2 sm:px-3 py-1 rounded-full text-[7px] sm:text-[9px] font-black uppercase tracking-widest ${
-                          statusData?.isOrganizerEligible ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                        }`}>
-                          {statusData?.isOrganizerEligible ? '✓ Verified Organizer' : 'Pending Verification'}
-                        </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">City</p>
+                        <p className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-slate-400" />
+                          {formValues.city || '—'}
+                        </p>
                       </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* EDIT MODE */}
-                  {editMode.profile && (
-                    <form onSubmit={handleSubmit(onSaveAccount)} className="space-y-6 mb-8">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3 block">First Name</label>
-                          <input
-                            type="text"
-                            {...register('firstName', { required: 'First name is required' })}
-                            className="w-full h-10 sm:h-12 px-3 sm:px-4 bg-gray-50 border border-[#3a1224]/10 rounded-lg sm:rounded-xl text-xs sm:text-base text-[#3a1224] focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20"
-                          />
-                          {errors.firstName && <p className="text-[10px] text-red-500 mt-1">{errors.firstName.message}</p>}
-                        </div>
-                        <div>
-                          <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3 block">Last Name</label>
-                          <input
-                            type="text"
-                            {...register('lastName', { required: 'Last name is required' })}
-                            className="w-full h-10 sm:h-12 px-3 sm:px-4 bg-gray-50 border border-[#3a1224]/10 rounded-lg sm:rounded-xl text-xs sm:text-base text-[#3a1224] focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20"
-                          />
-                          {errors.lastName && <p className="text-[10px] text-red-500 mt-1">{errors.lastName.message}</p>}
-                        </div>
-                      </div>
-
+                {editMode.profile && (
+                  <form onSubmit={handleSubmit(onSaveAccount)} className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3 block">Email</label>
+                        <label className="text-sm font-semibold text-slate-700 block mb-2">First Name</label>
                         <input
-                          type="email"
-                          value={user?.email}
-                          disabled
-                          className="w-full h-10 sm:h-12 px-3 sm:px-4 bg-gray-100 border border-[#3a1224]/10 rounded-lg sm:rounded-xl text-xs sm:text-base text-[#3a1224]/50 cursor-not-allowed"
+                          type="text"
+                          {...register('firstName', { required: 'First name is required' })}
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 transition-all"
                         />
-                        <p className="text-[10px] text-[#3a1224]/40 mt-2">Email cannot be changed</p>
+                        {errors.firstName && <p className="text-sm text-red-500 mt-1">{errors.firstName.message}</p>}
                       </div>
-
                       <div>
-                        <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3 block">Phone</label>
+                        <label className="text-sm font-semibold text-slate-700 block mb-2">Last Name</label>
+                        <input
+                          type="text"
+                          {...register('lastName', { required: 'Last name is required' })}
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 transition-all"
+                        />
+                        {errors.lastName && <p className="text-sm text-red-500 mt-1">{errors.lastName.message}</p>}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700 block mb-2">Email (Read-only)</label>
+                      <input
+                        type="email"
+                        value={user?.email}
+                        disabled
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-500 cursor-not-allowed"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-semibold text-slate-700 block mb-2">Phone</label>
                         <input
                           type="tel"
                           {...register('phone')}
-                          className="w-full h-10 sm:h-12 px-3 sm:px-4 bg-gray-50 border border-[#3a1224]/10 rounded-lg sm:rounded-xl text-xs sm:text-base text-[#3a1224] focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20"
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 transition-all"
                         />
                       </div>
-
                       <div>
-                        <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3 block">City</label>
+                        <label className="text-sm font-semibold text-slate-700 block mb-2">City</label>
                         <input
                           type="text"
                           {...register('city')}
-                          className="w-full h-10 sm:h-12 px-3 sm:px-4 bg-gray-50 border border-[#3a1224]/10 rounded-lg sm:rounded-xl text-xs sm:text-base text-[#3a1224] focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20"
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 transition-all"
                         />
                       </div>
+                    </div>
 
-                      <div className="flex gap-3 sm:gap-4">
-                        <button
-                          type="submit"
-                          disabled={updateProfileMutation.isPending}
-                          className="flex-1 h-10 sm:h-12 bg-[#3a1224] text-white rounded-lg sm:rounded-xl font-black text-[8px] sm:text-[9px] uppercase tracking-widest shadow-lg hover:bg-[#3a1224]/90 disabled:opacity-50 transition-all"
-                        >
-                          {updateProfileMutation.isPending ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditMode(prev => ({ ...prev, profile: false }));
-                            reset();
-                          }}
-                          className="flex-1 h-10 sm:h-12 bg-gray-200 text-[#3a1224] rounded-lg sm:rounded-xl font-black text-[8px] sm:text-[9px] uppercase tracking-widest hover:bg-gray-300 transition-all"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </form>
-                  )}
-
-                  {/* Danger Zone */}
-                  <div className="border-t border-[#3a1224]/10 pt-6 sm:pt-8 mt-8">
-                    <h3 className="text-base sm:text-lg font-bold text-[#3a1224] mb-4 sm:mb-6">Danger Zone</h3>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full h-10 sm:h-12 flex items-center justify-center gap-2 bg-red-50 text-red-600 rounded-lg sm:rounded-xl font-black text-[8px] sm:text-[9px] uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all"
-                    >
-                      <LogOut size={14} className="sm:w-4 sm:h-4" /> Logout
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* PAYMENT TAB */}
-              {activeTab === 'payment' && (
-                <motion.div key="payment" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <div className="flex items-center justify-between mb-6 sm:mb-8">
-                    <h2 className="text-xl sm:text-2xl font-display font-bold text-[#3a1224]">Payment Information</h2>
-                    {!editMode.payment && (
+                    <div className="flex gap-3 pt-4">
                       <button
-                        onClick={() => setEditMode(prev => ({ ...prev, payment: true }))}
-                        className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#C0A04C]/10 text-[#C0A04C] rounded-lg sm:rounded-xl font-black text-[7px] sm:text-[9px] uppercase tracking-widest hover:bg-[#C0A04C]/20 transition-all"
+                        type="submit"
+                        disabled={updateProfileMutation.isPending}
+                        className="flex-1 px-6 py-2.5 bg-[#3a1224] text-white rounded-lg font-semibold hover:bg-[#3a1224]/90 disabled:opacity-50 transition-all"
                       >
-                        <ChevronRight size={14} className="sm:w-4 sm:h-4" /> Edit
+                        {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
                       </button>
-                    )}
-                  </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditMode(prev => ({ ...prev, profile: false }));
+                          reset();
+                        }}
+                        className="flex-1 px-6 py-2.5 border border-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-50 transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
 
+              {/* Status Card */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 sm:p-8 text-white">
+                <h3 className="text-lg font-black mb-4">Verification Status</h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-300 mb-1">Current Status</p>
+                    <p className="text-2xl font-black">{isOrganizerEligible ? '✓ Verified' : 'Pending'}</p>
+                  </div>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-black ${
+                    isOrganizerEligible ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                  }`}>
+                    {isOrganizerEligible ? '✓' : '⏳'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Danger Zone */}
+              <div className="bg-white rounded-2xl border border-red-200 p-6 sm:p-8">
+                <h3 className="text-lg font-black text-red-700 mb-4">Danger Zone</h3>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-red-50 text-red-600 rounded-lg font-semibold hover:bg-red-600 hover:text-white transition-all"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout Account
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Payment Tab */}
+          {activeTab === 'payment' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900">Payment Details</h2>
+                    <p className="text-sm text-slate-500 mt-1">Configure your bank account information</p>
+                  </div>
                   {!editMode.payment && (
-                    <div className="space-y-4 mb-8">
-                      <div className="p-4 sm:p-5 bg-[#3a1224]/5 rounded-lg sm:rounded-2xl">
-                        <p className="text-[8px] sm:text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2">Tax ID</p>
-                        <p className="text-base sm:text-lg font-bold text-[#3a1224]">{formValues.taxId || 'Not provided'}</p>
+                    <button
+                      onClick={() => setEditMode(prev => ({ ...prev, payment: true }))}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-[#C0A04C]/10 text-[#C0A04C] rounded-lg font-semibold text-sm hover:bg-[#C0A04C]/20 transition-all"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      Edit
+                    </button>
+                  )}
+                </div>
+
+                {!editMode.payment && (
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Tax ID</p>
+                      <p className="text-lg font-semibold text-slate-900">{formValues.taxId || '—'}</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Bank Code</p>
+                        <p className="text-lg font-semibold text-slate-900">{formValues.bankCode || '—'}</p>
                       </div>
-                      <div className="p-4 sm:p-5 bg-[#3a1224]/5 rounded-lg sm:rounded-2xl">
-                        <p className="text-[8px] sm:text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2">Bank Code</p>
-                        <p className="text-base sm:text-lg font-bold text-[#3a1224]">{formValues.bankCode || 'Not provided'}</p>
-                      </div>
-                      <div className="p-4 sm:p-5 bg-[#3a1224]/5 rounded-lg sm:rounded-2xl">
-                        <p className="text-[8px] sm:text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2">Account Number</p>
-                        <p className="text-base sm:text-lg font-bold text-[#3a1224]">{formValues.bankAccount || 'Not provided'}</p>
-                      </div>
-                      <div className="p-4 sm:p-5 bg-[#3a1224]/5 rounded-lg sm:rounded-2xl">
-                        <p className="text-[8px] sm:text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2">Account Holder</p>
-                        <p className="text-base sm:text-lg font-bold text-[#3a1224]">{formValues.accountHolder || 'Not provided'}</p>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Account Number</p>
+                        <p className="text-lg font-semibold text-slate-900">{formValues.bankAccount ? `••••${formValues.bankAccount.slice(-4)}` : '—'}</p>
                       </div>
                     </div>
-                  )}
-
-                  {editMode.payment && (
-                    <form onSubmit={handleSubmit(onSavePayment)} className="space-y-6 mb-8">
-                      <div>
-                        <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3 block">Tax ID</label>
-                        <input
-                          type="text"
-                          {...register('taxId')}
-                          className="w-full h-10 sm:h-12 px-3 sm:px-4 bg-gray-50 border border-[#3a1224]/10 rounded-lg sm:rounded-xl text-xs sm:text-base text-[#3a1224] focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3 block">Bank Code</label>
-                          <input
-                            type="text"
-                            {...register('bankCode')}
-                            className="w-full h-10 sm:h-12 px-3 sm:px-4 bg-gray-50 border border-[#3a1224]/10 rounded-lg sm:rounded-xl text-xs sm:text-base text-[#3a1224] focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3 block">Account Number</label>
-                          <input
-                            type="text"
-                            {...register('bankAccount')}
-                            className="w-full h-10 sm:h-12 px-3 sm:px-4 bg-gray-50 border border-[#3a1224]/10 rounded-lg sm:rounded-xl text-xs sm:text-base text-[#3a1224] focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-3 block">Account Holder</label>
-                        <input
-                          type="text"
-                          {...register('accountHolder')}
-                          className="w-full h-10 sm:h-12 px-3 sm:px-4 bg-gray-50 border border-[#3a1224]/10 rounded-lg sm:rounded-xl text-xs sm:text-base text-[#3a1224] focus:border-[#C0A04C]/50 focus:ring-2 focus:ring-[#C0A04C]/20"
-                        />
-                      </div>
-
-                      <div className="flex gap-3 sm:gap-4">
-                        <button
-                          type="submit"
-                          disabled={updateProfileMutation.isPending}
-                          className="flex-1 h-10 sm:h-12 bg-[#3a1224] text-white rounded-lg sm:rounded-xl font-black text-[8px] sm:text-[9px] uppercase tracking-widest shadow-lg hover:bg-[#3a1224]/90 disabled:opacity-50 transition-all"
-                        >
-                          {updateProfileMutation.isPending ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditMode(prev => ({ ...prev, payment: false }))}
-                          className="flex-1 h-10 sm:h-12 bg-gray-200 text-[#3a1224] rounded-lg sm:rounded-xl font-black text-[8px] sm:text-[9px] uppercase tracking-widest hover:bg-gray-300 transition-all"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </form>
-                  )}
-                </motion.div>
-              )}
-
-              {/* NOTIFICATIONS TAB */}
-              {activeTab === 'notifications' && (
-                <motion.div key="notifications" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <div className="flex items-center justify-between mb-6 sm:mb-8">
-                    <h2 className="text-xl sm:text-2xl font-display font-bold text-[#3a1224]">Notification Preferences</h2>
-                    {!editMode.notifications && (
-                      <button
-                        onClick={() => setEditMode(prev => ({ ...prev, notifications: true }))}
-                        className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#C0A04C]/10 text-[#C0A04C] rounded-lg sm:rounded-xl font-black text-[7px] sm:text-[9px] uppercase tracking-widest hover:bg-[#C0A04C]/20 transition-all"
-                      >
-                        <ChevronRight size={14} className="sm:w-4 sm:h-4" /> Edit
-                      </button>
-                    )}
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Account Holder</p>
+                      <p className="text-lg font-semibold text-slate-900">{formValues.accountHolder || '—'}</p>
+                    </div>
                   </div>
+                )}
 
-                  {!editMode.notifications && (
-                    <div className="space-y-4 mb-8">
-                      {[
-                        { key: 'notificationsEmail', label: 'Email Notifications', desc: 'Receive email updates about your events' },
-                        { key: 'notificationsSms', label: 'SMS Notifications', desc: 'Receive SMS alerts for check-ins' },
-                        { key: 'notificationsEventUpdates', label: 'Event Updates', desc: 'Get notified about event registrations' },
-                      ].map((notif) => (
-                        <div key={notif.key} className="flex items-center gap-3 sm:gap-4 p-4 sm:p-5 bg-[#3a1224]/5 rounded-lg sm:rounded-2xl">
-                          <div className={`flex items-center justify-center w-6 h-6 rounded-full ${formValues[notif.key] ? 'bg-emerald-100' : 'bg-gray-200'}`}>
-                            <span className={`text-lg font-bold ${formValues[notif.key] ? 'text-emerald-600' : 'text-gray-400'}`}>
-                              {formValues[notif.key] ? '✓' : '-'}
-                            </span>
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-[8px] sm:text-[9px] font-black text-[#3a1224] uppercase tracking-widest">{notif.label}</p>
-                            <p className="text-[10px] sm:text-[11px] text-[#3a1224]/60">{notif.desc}</p>
-                          </div>
-                        </div>
-                      ))}
+                {editMode.payment && (
+                  <form onSubmit={handleSubmit(onSavePayment)} className="space-y-4">
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700 block mb-2">Tax ID</label>
+                      <input
+                        type="text"
+                        {...register('taxId')}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 transition-all"
+                      />
                     </div>
-                  )}
 
-                  {editMode.notifications && (
-                    <form onSubmit={handleSubmit(onSaveNotifications)} className="space-y-5 mb-8">
-                      {[
-                        { key: 'notificationsEmail', label: 'Email Notifications', desc: 'Receive email updates about your events' },
-                        { key: 'notificationsSms', label: 'SMS Notifications', desc: 'Receive SMS alerts for check-ins' },
-                        { key: 'notificationsEventUpdates', label: 'Event Updates', desc: 'Get notified about event registrations' },
-                      ].map((notif) => (
-                        <label key={notif.key} className="flex items-start sm:items-center gap-3 sm:gap-4 p-4 sm:p-5 bg-gray-50 rounded-lg sm:rounded-xl hover:bg-[#C0A04C]/5 cursor-pointer transition-colors">
-                          <input
-                            type="checkbox"
-                            {...register(notif.key)}
-                            className="w-4 h-4 sm:w-5 sm:h-5 rounded accent-[#C0A04C] cursor-pointer mt-0.5 sm:mt-0 shrink-0"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[8xs] sm:text-[9px] font-black uppercase tracking-widest">{notif.label}</p>
-                            <p className="text-[10px] sm:text-[11px] text-[#3a1224]/60">{notif.desc}</p>
-                          </div>
-                        </label>
-                      ))}
-
-                      <div className="flex gap-3 sm:gap-4">
-                        <button
-                          type="submit"
-                          disabled={updateProfileMutation.isPending}
-                          className="flex-1 h-10 sm:h-12 bg-[#3a1224] text-white rounded-lg sm:rounded-xl font-black text-[8px] sm:text-[9px] uppercase tracking-widest shadow-lg hover:bg-[#3a1224]/90 disabled:opacity-50 transition-all"
-                        >
-                          {updateProfileMutation.isPending ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditMode(prev => ({ ...prev, notifications: false }))}
-                          className="flex-1 h-10 sm:h-12 bg-gray-200 text-[#3a1224] rounded-lg sm:rounded-xl font-black text-[8px] sm:text-[9px] uppercase tracking-widest hover:bg-gray-300 transition-all"
-                        >
-                          Cancel
-                        </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-semibold text-slate-700 block mb-2">Bank Code</label>
+                        <input
+                          type="text"
+                          {...register('bankCode')}
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 transition-all"
+                        />
                       </div>
-                    </form>
+                      <div>
+                        <label className="text-sm font-semibold text-slate-700 block mb-2">Account Number</label>
+                        <input
+                          type="text"
+                          {...register('bankAccount')}
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700 block mb-2">Account Holder Name</label>
+                      <input
+                        type="text"
+                        {...register('accountHolder')}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 transition-all"
+                      />
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                      <button
+                        type="submit"
+                        disabled={updateProfileMutation.isPending}
+                        className="flex-1 px-6 py-2.5 bg-[#3a1224] text-white rounded-lg font-semibold hover:bg-[#3a1224]/90 disabled:opacity-50 transition-all"
+                      >
+                        {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditMode(prev => ({ ...prev, payment: false }))}
+                        className="flex-1 px-6 py-2.5 border border-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-50 transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Notifications Tab */}
+          {activeTab === 'notifications' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900">Notification Preferences</h2>
+                    <p className="text-sm text-slate-500 mt-1">Choose how you want to be notified</p>
+                  </div>
+                  {!editMode.notifications && (
+                    <button
+                      onClick={() => setEditMode(prev => ({ ...prev, notifications: true }))}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-[#C0A04C]/10 text-[#C0A04C] rounded-lg font-semibold text-sm hover:bg-[#C0A04C]/20 transition-all"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      Edit
+                    </button>
                   )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                </div>
+
+                {!editMode.notifications && (
+                  <div className="space-y-3">
+                    {[
+                      { key: 'notificationsEmail', label: 'Email Notifications', desc: 'Receive email updates about your events' },
+                      { key: 'notificationsSms', label: 'SMS Notifications', desc: 'Receive SMS alerts for check-ins' },
+                      { key: 'notificationsEventUpdates', label: 'Event Updates', desc: 'Get notified about new registrations' },
+                    ].map((notif) => (
+                      <div key={notif.key} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-100">
+                        <div>
+                          <p className="font-semibold text-slate-900">{notif.label}</p>
+                          <p className="text-sm text-slate-500 mt-0.5">{notif.desc}</p>
+                        </div>
+                        <div className={`flex-shrink-0 h-6 w-11 rounded-full transition-colors ${
+                          formValues[notif.key] ? 'bg-emerald-500' : 'bg-slate-300'
+                        } flex items-center`}>
+                          <span className={`h-5 w-5 rounded-full bg-white transition-transform ${
+                            formValues[notif.key] ? 'translate-x-5' : 'translate-x-0.5'
+                          }`} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {editMode.notifications && (
+                  <form onSubmit={handleSubmit(onSaveNotifications)} className="space-y-4">
+                    {[
+                      { key: 'notificationsEmail', label: 'Email Notifications', desc: 'Receive email updates about your events' },
+                      { key: 'notificationsSms', label: 'SMS Notifications', desc: 'Receive SMS alerts for check-ins' },
+                      { key: 'notificationsEventUpdates', label: 'Event Updates', desc: 'Get notified about new registrations' },
+                    ].map((notif) => (
+                      <label key={notif.key} className="flex items-center p-4 bg-slate-50 rounded-lg border border-slate-100 cursor-pointer hover:bg-slate-100 transition-colors">
+                        <input
+                          type="checkbox"
+                          {...register(notif.key)}
+                          className="w-5 h-5 rounded accent-[#C0A04C] cursor-pointer"
+                        />
+                        <div className="ml-4 flex-1">
+                          <p className="font-semibold text-slate-900">{notif.label}</p>
+                          <p className="text-sm text-slate-500 mt-0.5">{notif.desc}</p>
+                        </div>
+                      </label>
+                    ))}
+
+                    <div className="flex gap-3 pt-4">
+                      <button
+                        type="submit"
+                        disabled={updateProfileMutation.isPending}
+                        className="flex-1 px-6 py-2.5 bg-[#3a1224] text-white rounded-lg font-semibold hover:bg-[#3a1224]/90 disabled:opacity-50 transition-all"
+                      >
+                        {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditMode(prev => ({ ...prev, notifications: false }))}
+                        className="flex-1 px-6 py-2.5 border border-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-50 transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
     </div>

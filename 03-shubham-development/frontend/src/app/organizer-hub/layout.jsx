@@ -11,7 +11,7 @@ export default function OrganizerLayout({ children }) {
 
   useEffect(() => {
     if (!loading && !user) {
-      redirect(`${ROUTES.SITE.LOGIN}?callbackUrl=${ROUTES.SITE.ORGANIZER}`);
+      redirect(`${ROUTES.AUTH.LOGIN}?callbackUrl=${ROUTES.SITE.ORGANIZER}`);
     }
   }, [user, loading]);
 
