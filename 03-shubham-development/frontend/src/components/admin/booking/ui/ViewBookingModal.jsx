@@ -17,10 +17,10 @@ export default function ViewBookingModal({ bookingId, closeModal, currencyFormat
   };
 
   const toneForPayment = (status) => {
-    const key = (status || "initiated").toLowerCase();
-    if (key === "completed") return "positive";
-    if (key === "failed") return "danger";
-    if (key === "refunded") return "neutral";
+    const key = (status || "INITIATED").toUpperCase();
+    if (key === "COMPLETED") return "positive";
+    if (key === "FAILED") return "danger";
+    if (key === "REFUNDED") return "neutral";
     return "warning";
   };
 
@@ -109,7 +109,7 @@ export default function ViewBookingModal({ bookingId, closeModal, currencyFormat
                   {booking.payment?.transactionId ? <span className="text-[var(--admin-muted)] text-xs">Txn: {booking.payment.transactionId}</span> : null}
                 </div>
                 <div className="flex items-center gap-2">
-                  <PaymentPill tone={toneForPayment(booking.payment?.status)}>{(booking.payment?.status || "initiated").toUpperCase()}</PaymentPill>
+                  <PaymentPill tone={toneForPayment(booking.payment?.status)}>{(booking.payment?.status || "INITIATED").toUpperCase()}</PaymentPill>
                   <p className="text-xs text-[var(--admin-muted)]">Gateway: {booking.payment?.gateway || "-"}</p>
                   <p className="text-xs text-[var(--admin-muted)]">Amount: {booking.pricing?.totalAmount != null ? currencyFormatter.format(Number(booking.pricing.totalAmount)) : "-"}</p>
                 </div>

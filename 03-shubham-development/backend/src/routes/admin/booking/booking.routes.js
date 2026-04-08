@@ -174,21 +174,24 @@ router.patch("/:id", async (req, res, next) => {
 router.patch("/:id/payment", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status, gateway = "cash" } = req.body || {};
+    const { status, gateway } = req.body || {};
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid booking id" });
     }
 
-    const nextStatus = (status || "").toLowerCase();
-    const allowedStatuses = ["initiated", "completed", "failed", "refunded"];
+    const nextStatus = (status || "").toUpperCase();
+    const allowedStatuses = ["INITIATED", "COMPLETED", "FAILED", "REFUNDED"];
     if (!allowedStatuses.includes(nextStatus)) {
-      return res.status(400).json({ message: "status must be initiated|completed|failed|refunded" });
+      return res.status(400).json({ message: "status must be INITIATED|COMPLETED|FAILED|REFUNDED" });
     }
 
-    const allowedGateways = ["khalti", "esewa", "cash"];
-    if (!allowedGateways.includes(gateway)) {
-      return res.status(400).json({ message: "gateway must be khalti|esewa|cash" });
+    const normalizedGateway = gateway ? String(gateway).toUpperCase() : null;
+    if (normalizedGateway) {
+      const allowedGateways = ["KHALTI", "ESEWA", "CASH"];
+      if (!allowedGateways.includes(normalizedGateway)) {
+        return res.status(400).json({ message: "gateway must be KHALTI|ESEWA|CASH" });
+      }
     }
 
     const booking = await Booking.findById(id);
@@ -200,18 +203,23 @@ router.patch("/:id/payment", async (req, res, next) => {
     }
 
     if (!payment) {
+      // Create new payment with provided gateway or default to CASH
+      const createGateway = normalizedGateway || "CASH";
       payment = await Payment.create({
         bookingId: booking._id,
         userId: booking.userId,
         amount: booking.totalAmount,
-        gateway,
-        status: "initiated",
+        gateway: createGateway,
+        status: "INITIATED",
       });
     }
 
     payment.status = nextStatus;
-    payment.gateway = gateway;
-    payment.paidAt = nextStatus === "completed" ? payment.paidAt || new Date() : null;
+    // Only update gateway if it was provided by the client
+    if (normalizedGateway) {
+      payment.gateway = normalizedGateway;
+    }
+    payment.paidAt = nextStatus === "COMPLETED" ? payment.paidAt || new Date() : null;
     await payment.save();
 
     if (!booking.paymentId || String(booking.paymentId) !== String(payment._id)) {

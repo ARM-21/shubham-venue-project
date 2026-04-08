@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import { ROUTES } from "config/routes";
 import AdminTopbar from "components/admin/dashboard/AdminTopbar";
 import axiosInstance from "lib/axios";
@@ -14,7 +15,8 @@ import {
   AlertCircle, 
   Loader2, 
   Download, 
-  FilterX 
+  FilterX,
+  RefreshCw
 } from "lucide-react";
 
 // Components
@@ -68,12 +70,12 @@ export default function AdminBookingsPage() {
     ...(searchTerm && { q: searchTerm }),
   }), [page, filters, searchTerm]);
 
-  const { data: bookingsData, isLoading: bookingsLoading } = useQueryBookings({ params: bookingsParams });
+  const { data: bookingsData, isLoading: bookingsLoading, isFetching, refetch: refetchBookings } = useQueryBookings({ params: bookingsParams, staleTime: 5000 });
 
   // --- Mutations ---
   const invalidateAll = () => {
-    queryClient.invalidateQueries(["bookings"]);
-    queryClient.invalidateQueries(["admin-overview"]);
+    queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
   };
 
   const createBookingMutation = useMutation({
@@ -114,6 +116,17 @@ export default function AdminBookingsPage() {
     setPage(1);
   };
 
+  const handleRefresh = useCallback(() => {
+    toast.promise(
+      refetchBookings(),
+      {
+        loading: 'Refreshing bookings...',
+        success: 'Bookings refreshed',
+        error: 'Failed to refresh bookings'
+      }
+    );
+  }, [refetchBookings]);
+
   const handleExportCSV = () => {
     if (!rows.length) return;
     const headers = ["ID", "Customer", "Hall", "Date", "Amount", "Status"];
@@ -132,7 +145,11 @@ export default function AdminBookingsPage() {
       const { id, date, slot, guests, status, paymentStatus, originalStatus, originalPaymentStatus } = editModal;
       const promises = [bookingUpdateMutation.mutateAsync({ id, type: 'update', payload: { date, slot, guests: Number(guests) } })];
       if (status !== originalStatus) promises.push(bookingUpdateMutation.mutateAsync({ id, type: 'status', payload: { status } }));
-      if (paymentStatus !== originalPaymentStatus) promises.push(bookingUpdateMutation.mutateAsync({ id, type: 'payment', payload: { status: paymentStatus } }));
+      if (paymentStatus !== originalPaymentStatus) {
+        const b = bookingsData?.items?.find(x => (x.id || x._id) === id);
+        const gateway = b?.payment?.gateway || "CASH";
+        promises.push(bookingUpdateMutation.mutateAsync({ id, type: 'payment', payload: { status: paymentStatus, gateway } }));
+      }
       await Promise.all(promises);
       setEditModal({ open: false, id: null });
       setSuccessMsg("Booking updated.");
@@ -166,8 +183,8 @@ export default function AdminBookingsPage() {
     eventDate: b.date ? new Date(b.date).toLocaleDateString("en-NP", { month: "short", day: "numeric", year: "numeric" }) : "-",
     guests: b.guests || 0,
     amount: npr.format(b.amount || b.totalAmount || 0),
-    payment: { label: b.payment?.status || b.payments?.[0]?.status || "Pending", tone: (b.payment?.status || b.payments?.[0]?.status) === "completed" ? "positive" : "warning" },
-    status: { label: b.status || "Pending", tone: ["confirmed", "completed"].includes(b.status?.toLowerCase()) ? "positive" : "warning" },
+    payment: { label: b.payment?.status || b.payments?.[0]?.status || "INITIATED", tone: (b.payment?.status || b.payments?.[0]?.status)?.toUpperCase() === "COMPLETED" ? "positive" : "warning" },
+    status: { label: b.status || "Pending", tone: ["CONFIRMED", "COMPLETED"].includes(b.status?.toUpperCase()) ? "positive" : "warning" },
   })), [bookingsData, npr]);
 
   return (
@@ -194,6 +211,19 @@ export default function AdminBookingsPage() {
             <div className="flex gap-3">
               <button onClick={handleExportCSV} className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2.5 rounded-xl text-sm transition-all">
                 <Download className="size-4" /> Export
+              </button>
+              <button 
+                onClick={handleRefresh} 
+                disabled={isFetching} 
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
+                  isFetching 
+                    ? 'bg-blue-500/20 border-blue-500/40 text-blue-300' 
+                    : 'bg-white/5 hover:bg-white/10 border-white/10'
+                } ${isFetching ? 'opacity-100' : ''}`}
+                title={isFetching ? "Refreshing bookings..." : "Click to refresh bookings"}
+              >
+                <RefreshCw className={`size-4 ${isFetching ? 'animate-spin' : ''}`} /> 
+                {isFetching ? 'Refreshing...' : 'Refresh'}
               </button>
               <button onClick={() => setIsNewBookingOpen(true)} className="flex items-center gap-2 bg-[var(--admin-primary)] hover:brightness-110 px-6 py-3 rounded-xl font-bold transition-all shadow-lg">
                 <Plus className="size-5" /> New Booking
@@ -225,8 +255,8 @@ export default function AdminBookingsPage() {
                   setErrorMsg("Booking not found. Please refresh and try again.");
                   return;
                 }
-                const paymentStatus = b.payment?.status || b.payments?.[0]?.status || "Pending";
-                setEditModal({ open: true, id, date: b.date.slice(0,10), slot: b.slot, guests: b.guests, status: b.status, paymentStatus, originalStatus: b.status, originalPaymentStatus: paymentStatus });
+                const paymentStatus = b.payment?.status || b.payments?.[0]?.status || "INITIATED";
+                setEditModal({ open: true, id, date: (b.date ? b.date.slice(0,10) : ""), slot: b.slot || "morning", guests: b.guests || 0, status: b.status || "PENDING", paymentStatus, originalStatus: b.status || "PENDING", originalPaymentStatus: paymentStatus });
               }} 
               onDelete={(id) => confirm("Delete?") && deleteMutation.mutate(id)} 
             />

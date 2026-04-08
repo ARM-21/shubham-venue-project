@@ -49,7 +49,10 @@ export default function ProfilePage() {
     },
     onSuccess: (data) => {
       const newUser = data.user;
-      queryClient.invalidateQueries({ queryKey: ['profile-my'] });
+      // Explicit refetch to ensure fresh data is loaded
+      queryClient.refetchQueries({ queryKey: ['profile-my'] });
+      // Also invalidate user queries for auth context sync
+      queryClient.invalidateQueries({ queryKey: ['user'] });
       setUser?.(newUser);
       setEditing(false);
       toast.success('Profile updated successfully!');
@@ -127,8 +130,8 @@ export default function ProfilePage() {
     setValue: setProfileValue
   } = useForm({
     defaultValues: {
-      first_name: user?.first_name || '',
-      last_name: user?.last_name || '',
+      first_name: user?.first_name || user?.firstName || '',
+      last_name: user?.last_name || user?.lastName || '',
       phone: user?.phone || ''
     }
   });
@@ -149,14 +152,19 @@ export default function ProfilePage() {
 
   const newPassword = watch('newPassword');
 
+  const displayUser = user || authUser;
+  const isLoading = authLoading || profileLoading;
+
   // Update form values when user data changes
   React.useEffect(() => {
-    if (user) {
-      setProfileValue('first_name', user?.first_name || '');
-      setProfileValue('last_name', user?.last_name || '');
-      setProfileValue('phone', user?.phone || '');
+    if (displayUser) {
+      resetProfile({
+        first_name: displayUser?.first_name || displayUser?.firstName || '',
+        last_name: displayUser?.last_name || displayUser?.lastName || '',
+        phone: displayUser?.phone || ''
+      });
     }
-  }, [user, setProfileValue]);
+  }, [displayUser?._id, displayUser?.first_name, displayUser?.firstName, displayUser?.last_name, displayUser?.lastName, displayUser?.phone, resetProfile]);
 
   // Helper functions
   const uploadToS3 = useCallback(async (uploadData, file) => {
@@ -197,16 +205,14 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
   }, []);
 
-    const displayUser = user || authUser;
-  const isLoading = authLoading || profileLoading;
   const handleCancelEdit = useCallback(() => {
     setEditing(false);
     resetProfile({
-      first_name: displayUser?.first_name || '',
-      last_name: displayUser?.last_name || '',
+      first_name: displayUser?.first_name || displayUser?.firstName || '',
+      last_name: displayUser?.last_name || displayUser?.lastName || '',
       phone: displayUser?.phone || ''
     });
-  }, [displayUser?.first_name, displayUser?.last_name, displayUser?.phone, resetProfile]);
+  }, [displayUser?.first_name, displayUser?.firstName, displayUser?.last_name, displayUser?.lastName, displayUser?.phone, resetProfile]);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -219,13 +225,13 @@ export default function ProfilePage() {
   const isOAuthUser = useMemo(() => displayUser?.provider === 'google', [displayUser?.provider]);
   
   const fullName = useMemo(
-    () => `${displayUser?.first_name || ''} ${displayUser?.last_name || ''}`.trim() || 'User',
-    [displayUser?.first_name, displayUser?.last_name]
+    () => `${displayUser?.first_name || displayUser?.firstName || ''} ${displayUser?.last_name || displayUser?.lastName || ''}`.trim() || 'User',
+    [displayUser?.first_name, displayUser?.firstName, displayUser?.last_name, displayUser?.lastName]
   );
   
   const initials = useMemo(
-    () => `${displayUser?.first_name?.[0] || ''}${displayUser?.last_name?.[0] || ''}`.toUpperCase() || 'U',
-    [displayUser?.first_name, displayUser?.last_name]
+    () => `${(displayUser?.first_name || displayUser?.firstName)?.[0] || ''}${(displayUser?.last_name || displayUser?.lastName)?.[0] || ''}`.toUpperCase() || 'U',
+    [displayUser?.first_name, displayUser?.firstName, displayUser?.last_name, displayUser?.lastName]
   );
 
   if (isLoading) {
@@ -354,8 +360,8 @@ export default function ProfilePage() {
                 {!editing ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {[
-                      { label: "First Name", value: displayUser?.first_name || "—" },
-                      { label: "Last Name", value: displayUser?.last_name || "—" },
+                      { label: "First Name", value: displayUser?.first_name || displayUser?.firstName || "—" },
+                      { label: "Last Name", value: displayUser?.last_name || displayUser?.lastName || "—" },
                       { label: "Email", value: displayUser?.email, tag: isOAuthUser ? "Google" : null },
                       { label: "Phone", value: displayUser?.phone || "—" }
                     ].map((field, idx) => (

@@ -2,15 +2,15 @@ import React, { useEffect, useMemo } from "react";
 
 export default function EditBookingModal({ editModal, setEditModal, saveEdit, actionLoading, onClose }) {
   const isOpen = !!editModal.open;
-  const paymentStatusKey = (editModal.paymentStatus || "initiated").toLowerCase().trim();
+  const paymentStatusKey = (editModal.paymentStatus || "INITIATED").toUpperCase().trim();
 
   const paymentOptions = useMemo(() => {
-    const key = (editModal.originalPaymentStatus || "initiated").toLowerCase();
-    if (key === "initiated") return ["initiated", "completed", "failed"];
-    if (key === "failed") return ["failed", "initiated", "completed"];
-    if (key === "completed") return ["completed", "refunded"];
-    if (key === "refunded") return ["refunded"];
-    return ["initiated", "completed", "failed"];
+    const key = (editModal.originalPaymentStatus || "INITIATED").toUpperCase();
+    if (key === "INITIATED") return ["INITIATED", "COMPLETED", "FAILED"];
+    if (key === "FAILED") return ["FAILED", "INITIATED", "COMPLETED"];
+    if (key === "COMPLETED") return ["COMPLETED", "REFUNDED"];
+    if (key === "REFUNDED") return ["REFUNDED"];
+    return ["INITIATED", "COMPLETED", "FAILED"];
   }, [editModal.originalPaymentStatus]);
 
   const baseStatusOptions = useMemo(() => {
@@ -23,16 +23,16 @@ export default function EditBookingModal({ editModal, setEditModal, saveEdit, ac
   }, [editModal.originalStatus]);
 
   const statusOptions = useMemo(() => {
-    if (paymentStatusKey === "failed") {
+    if (paymentStatusKey === "FAILED") {
       return baseStatusOptions.filter((s) => s === "PENDING" || s === "CANCELLED");
     }
-    if (paymentStatusKey === "initiated") {
+    if (paymentStatusKey === "INITIATED") {
       return baseStatusOptions.filter((s) => s !== "COMPLETED");
     }
-    if (paymentStatusKey === "refunded") {
+    if (paymentStatusKey === "REFUNDED") {
       return baseStatusOptions.filter((s) => s === "CANCELLED");
     }
-    if (paymentStatusKey === "completed") {
+    if (paymentStatusKey === "COMPLETED") {
       return baseStatusOptions.filter((s) => s !== "PENDING");
     }
     return baseStatusOptions;
@@ -45,7 +45,7 @@ export default function EditBookingModal({ editModal, setEditModal, saveEdit, ac
   }, [editModal.status, setEditModal, statusOptions]);
 
   useEffect(() => {
-    const normalized = (editModal.paymentStatus || "").toLowerCase();
+    const normalized = (editModal.paymentStatus || "").toUpperCase().trim();
     if (!paymentOptions.includes(normalized)) {
       setEditModal((prev) => ({ ...prev, paymentStatus: paymentOptions[0] }));
     }
