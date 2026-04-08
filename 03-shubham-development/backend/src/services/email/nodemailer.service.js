@@ -1,13 +1,14 @@
 import nodemailer from 'nodemailer';
+import ENV from '../../config/env.config.js';
 
 // Initialize transporter with SMTP configuration
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: process.env.SMTP_PORT || 587,
-  secure: process.env.SMTP_SECURE === 'true' || false, // true for 465, false for other ports
+  host: ENV.SMTP_HOST,
+  port: ENV.SMTP_PORT,
+  secure: ENV.SMTP_SECURE,
   auth: {
-    user: process.env.SMTP_USER || process.env.EMAIL_USER,
-    pass: process.env.SMTP_PASSWORD || process.env.EMAIL_PASSWORD,
+    user: ENV.SMTP_USER,
+    pass: ENV.SMTP_PASSWORD,
   },
 });
 
@@ -45,7 +46,7 @@ export const sendOrganizerWarningEmail = async (organizerEmail, organizerName, e
         <li>Contact our support team if you believe this is an error</li>
       </ol>
       
-      <p>If you have any questions or would like to appeal this warning, please contact our support team at <strong>${process.env.SUPPORT_EMAIL || 'support@shubham-venue.me'}</strong></p>
+      <p>If you have any questions or would like to appeal this warning, please contact our support team at <strong>${ENV.SUPPORT_EMAIL}</strong></p>
       
       <p style="margin-top: 30px;">Best regards,<br/><strong>Shubham Venue Compliance Team</strong></p>
       
@@ -59,7 +60,7 @@ export const sendOrganizerWarningEmail = async (organizerEmail, organizerName, e
   `;
 
   const mailOptions = {
-    from: `"Shubham Venue <${process.env.SMTP_USER || process.env.EMAIL_USER}>"`,
+    from: `"Shubham Venue <${ENV.SMTP_USER}>"`,
     to: organizerEmail,
     subject: `⚠️ Important: Warning Notice for Event - ${eventName}`,
     html,
@@ -115,7 +116,7 @@ export const sendFlagNotificationEmail = async (organizerEmail, organizerName, e
         <li>Our team will contact you with further information</li>
       </ul>
       
-      <p>For assistance, please contact: <strong>${process.env.SUPPORT_EMAIL || 'support@shubham-venue.me'}</strong></p>
+      <p>For assistance, please contact: <strong>${ENV.SUPPORT_EMAIL}</strong></p>
       
       <p style="margin-top: 30px;">Best regards,<br/><strong>Shubham Venue Moderation Team</strong></p>
       
@@ -128,7 +129,7 @@ export const sendFlagNotificationEmail = async (organizerEmail, organizerName, e
   `;
 
   const mailOptions = {
-    from: `"Shubham Venue <${process.env.SMTP_USER || process.env.EMAIL_USER}>"`,
+    from: `"Shubham Venue <${ENV.SMTP_USER}>"`,
     to: organizerEmail,
     subject: `🚩 Event Flag Notification - ${eventName}`,
     html,
@@ -171,7 +172,7 @@ export const sendEventSuspensionEmail = async (organizerEmail, organizerName, ev
       </ul>
       
       <p><strong>Appeal Process:</strong></p>
-      <p>If you believe this suspension is in error, please send us a detailed explanation and any supporting evidence to <strong>${process.env.SUPPORT_EMAIL || 'support@shubham-venue.me'}</strong></p>
+      <p>If you believe this suspension is in error, please send us a detailed explanation and any supporting evidence to <strong>${ENV.SUPPORT_EMAIL}</strong></p>
       
       <p style="margin-top: 30px;">Best regards,<br/><strong>Shubham Venue Compliance Team</strong></p>
       
@@ -184,7 +185,7 @@ export const sendEventSuspensionEmail = async (organizerEmail, organizerName, ev
   `;
 
   const mailOptions = {
-    from: `"Shubham Venue <${process.env.SMTP_USER || process.env.EMAIL_USER}>"`,
+    from: `"Shubham Venue <${ENV.SMTP_USER}>"`,
     to: organizerEmail,
     subject: `🚫 Event Suspended - ${eventName}`,
     html,
@@ -247,7 +248,7 @@ export const sendInvoiceEmail = async (customerEmail, customerName, bookingDetai
       </ul>
 
       <p style="margin-top: 20px; font-size: 12px; color: #666;">For questions or support, contact us at:</p>
-      <p style="font-size: 12px; color: #666;"><strong>Email:</strong> ${process.env.SUPPORT_EMAIL || 'support@shubham-venue.me'}<br/><strong>Phone:</strong> 9849320765</p>
+      <p style="font-size: 12px; color: #666;"><strong>Email:</strong> ${ENV.SUPPORT_EMAIL}<br/><strong>Phone:</strong> 9849320765</p>
 
       <p style="margin-top: 30px;">Best regards,<br/><strong>Shubham Venue Management</strong></p>
       
@@ -261,7 +262,7 @@ export const sendInvoiceEmail = async (customerEmail, customerName, bookingDetai
   `;
 
   const mailOptions = {
-    from: `"Shubham Venue" <${process.env.SMTP_USER || process.env.EMAIL_USER}>`,
+    from: `"Shubham Venue" <${ENV.SMTP_USER}>`,
     to: customerEmail,
     subject: `📄 Booking Invoice - ${bookingDetails.bookingId}`,
     html,
@@ -322,7 +323,7 @@ export const sendPaymentConfirmationEmail = async (customerEmail, customerName, 
   `;
 
   const mailOptions = {
-    from: `"Shubham Venue" <${process.env.SMTP_USER || process.env.EMAIL_USER}>`,
+    from: `"Shubham Venue" <${ENV.SMTP_USER}>`,
     to: customerEmail,
     subject: `✅ Payment Confirmation - ${paymentDetails.bookingId}`,
     html
@@ -335,5 +336,74 @@ export const sendPaymentConfirmationEmail = async (customerEmail, customerName, 
   } catch (error) {
     console.error('Error sending payment confirmation email:', error);
     throw error;
+  }
+};
+
+/**
+ * Send event cancellation notification to attendees
+ */
+export const sendEventCancellationEmail = async (attendeeEmail, eventName, cancellationReason, eventDate, refundFormUrl) => {
+  const formattedDate = eventDate ? new Date(eventDate).toLocaleDateString('en-NP', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  }) : 'N/A';
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 640px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+      <h2 style="text-align: center; color: #dc3545; margin-bottom: 16px;">Event Cancellation Notice</h2>
+      <p>Dear Attendee,</p>
+      <p>We regret to inform you that the following event has been cancelled:</p>
+      
+      <div style="background: #ffe6e6; padding: 16px; border-radius: 6px; margin: 16px 0; border-left: 4px solid #dc3545;">
+        <p style="margin: 0;"><strong>Event:</strong> ${eventName}</p>
+        <p style="margin: 8px 0 0 0;"><strong>Scheduled Date:</strong> ${formattedDate}</p>
+        ${cancellationReason ? `<p style="margin: 8px 0 0 0;"><strong>Reason:</strong> ${cancellationReason}</p>` : ''}
+      </div>
+      
+      <h3 style="color: #2c3e50; margin-top: 20px;">Refund Process</h3>
+      <p>We understand this may be disappointing. To process your refund request, please fill out the form below:</p>
+      
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${refundFormUrl}" style="display: inline-block; background: #007bff; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+          Submit Refund Request Form
+        </a>
+      </div>
+      
+      <p>Our team will review your refund request and process it within 5-7 business days.</p>
+      
+      <h3 style="color: #2c3e50; margin-top: 20px;">Need Help?</h3>
+      <p>If you have any questions or concerns, please contact our support team:</p>
+      <p>
+        <strong>Email:</strong> <a href="mailto:${ENV.SUPPORT_EMAIL}" style="color: #007bff;">${ENV.SUPPORT_EMAIL}</a><br/>
+        <strong>Phone:</strong> 9849320765
+      </p>
+      
+      <p style="margin-top: 20px;">We apologize for any inconvenience this may cause.</p>
+      <p>Thank you for your understanding,<br/>The Shubham Venue Team</p>
+      
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;"/>
+      <footer style="text-align: center; font-size: 12px; color: #888;">
+        Shubham Venue, Waling BP Road, Syangja <br/>
+        📞 9849320765 | ✉️ contact@shubham-venue.me
+      </footer>
+    </div>
+  `;
+
+  const mailOptions = {
+    from: `"Shubham Venue" <${ENV.SMTP_USER}>`,
+    to: attendeeEmail,
+    subject: `Event Cancelled: "${eventName}" - Refund Information`,
+    html
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Cancellation email sent successfully:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending event cancellation email:', error);
+    // Non-blocking - don't throw error
+    return { success: false, error: error.message };
   }
 };

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { CheckCircle, Edit2, AlertCircle } from 'lucide-react';
+import { getSlotMultiplier } from '../../utils/booking.utils';
 
 export default function StepBookingReview({ 
   hall, 
@@ -14,7 +15,7 @@ export default function StepBookingReview({
   const [termsAccepted, setTermsAccepted] = useState(false);
   // Try multiple field names for hall price
   const pricePerHour = Number(hall?.pricePerHour) || Number(hall?.price) || Number(hall?.costPerHour) || 0;
-  const multiplier = (bookingData?.slot === 'wholeday') ? 15 : 5;
+  const multiplier = getSlotMultiplier(bookingData?.slot);
   const hallPrice = pricePerHour * multiplier;
   const total = calculateTotal();
 

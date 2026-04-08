@@ -39,13 +39,13 @@ export const EVENT_CATEGORIES = [
 // Function to derive event time range based on booking slot
 function deriveEventTimeRange(slot) {
   if (slot === "morning") {
-    return { startTime: "09:00", endTime: "13:00", displayStartTime: "9:00 AM", displayEndTime: "1:00 PM" };
+    return { startTime: "07:00", endTime: "12:00", displayStartTime: "7:00 AM", displayEndTime: "12:00 PM" };
   } else if (slot === "afternoon") {
-    return { startTime: "13:00", endTime: "17:00", displayStartTime: "1:00 PM", displayEndTime: "5:00 PM" };
+    return { startTime: "13:00", endTime: "18:00", displayStartTime: "1:00 PM", displayEndTime: "6:00 PM" };
   } else if (slot === "evening") {
-    return { startTime: "17:00", endTime: "21:00", displayStartTime: "5:00 PM", displayEndTime: "9:00 PM" };
+    return { startTime: "19:00", endTime: "22:30", displayStartTime: "7:00 PM", displayEndTime: "10:30 PM" };
   } else if (slot === "wholeday") {
-    return { startTime: "09:00", endTime: "21:00", displayStartTime: "9:00 AM", displayEndTime: "9:00 PM" };
+    return { startTime: "07:00", endTime: "22:30", displayStartTime: "7:00 AM", displayEndTime: "10:30 PM" };
   }
   return { startTime: "", endTime: "", displayStartTime: "", displayEndTime: "" };
 }
@@ -68,6 +68,7 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
   const [bookingDate, setBookingDate] = useState(null);
   const [bookingSlot, setBookingSlot] = useState(null);
   const [hallLocation, setHallLocation] = useState(null);
+  const [hallCapacity, setHallCapacity] = useState(null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const {
     register,
@@ -118,6 +119,8 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
   });
 
   const visibility = watch("visibility");
+  const maxAttendees = watch("maxAttendees");
+  const expectedAttendees = watch("expectedAttendees");
 
   // Fetch booking date and slot when component mounts
   useEffect(() => {
@@ -139,7 +142,7 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
               setValue("eventEndTime", timeRange.endTime);
             }
             
-            // Fetch hall details for location info
+            // Fetch hall details for location info and capacity
             if (booking.hallId?._id || booking.hallId) {
               const hallId = booking.hallId?._id || booking.hallId;
               axiosInstance
@@ -153,6 +156,7 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
                       country: hall.location?.country || hall.country || "",
                     };
                     setHallLocation(location);
+                    setHallCapacity(hall.capacity || null);
                     // Auto-populate location fields
                     setValue("city", location.city);
                     setValue("state", location.state);
@@ -281,6 +285,27 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
         toast.error("Registration must end before or on event date");
         return;
       }
+    }
+
+    // Validate attendees don't exceed hall capacity
+    const maxAttendeesNum = data.maxAttendees ? parseInt(data.maxAttendees) : null;
+    const expectedAttendeesNum = data.expectedAttendees ? parseInt(data.expectedAttendees) : null;
+
+    if (hallCapacity) {
+      if (maxAttendeesNum && maxAttendeesNum > hallCapacity) {
+        toast.error(`Maximum attendees (${maxAttendeesNum}) cannot exceed hall capacity (${hallCapacity})`);
+        return;
+      }
+      if (expectedAttendeesNum && expectedAttendeesNum > hallCapacity) {
+        toast.error(`Expected attendees (${expectedAttendeesNum}) cannot exceed hall capacity (${hallCapacity})`);
+        return;
+      }
+    }
+
+    // Validate expected attendees <= max attendees
+    if (maxAttendeesNum && expectedAttendeesNum && expectedAttendeesNum > maxAttendeesNum) {
+      toast.error("Expected attendees cannot exceed maximum attendees");
+      return;
     }
 
     // Convert time-only inputs to datetime by combining with booking date
@@ -657,31 +682,61 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
             Attendance & Audience
           </h3>
 
+          {/* Hall Capacity Info */}
+          {hallCapacity && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-blue-900">Hall Capacity: <span className="text-lg text-blue-700">{hallCapacity}</span></p>
+                <p className="text-xs text-blue-700 mt-1">Maximum and expected attendees cannot exceed this capacity</p>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Maximum Attendees
+                Maximum Attendees {hallCapacity && <span className="text-xs text-gray-500">(Max: {hallCapacity})</span>}
               </label>
               <input
                 type="number"
                 min="1"
+                max={hallCapacity || undefined}
                 placeholder="Expected capacity"
                 {...register("maxAttendees")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
+                  maxAttendees && hallCapacity && parseInt(maxAttendees) > hallCapacity
+                    ? "border-red-300 focus:ring-red-500 bg-red-50"
+                    : "border-gray-300 focus:ring-amber-500"
+                }`}
               />
+              {maxAttendees && hallCapacity && parseInt(maxAttendees) > hallCapacity && (
+                <p className="text-sm text-red-600 font-bold mt-1">⚠️ Exceeds hall capacity of {hallCapacity}</p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Expected Attendees
+                Expected Attendees {hallCapacity && <span className="text-xs text-gray-500">(Max: {hallCapacity})</span>}
               </label>
               <input
                 type="number"
                 min="0"
+                max={hallCapacity || undefined}
                 placeholder="Anticipated number"
                 {...register("expectedAttendees")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
+                  expectedAttendees && hallCapacity && parseInt(expectedAttendees) > hallCapacity
+                    ? "border-red-300 focus:ring-red-500 bg-red-50"
+                    : "border-gray-300 focus:ring-amber-500"
+                }`}
               />
+              {expectedAttendees && hallCapacity && parseInt(expectedAttendees) > hallCapacity && (
+                <p className="text-sm text-red-600 font-bold mt-1">⚠️ Exceeds hall capacity of {hallCapacity}</p>
+              )}
+              {expectedAttendees && maxAttendees && parseInt(expectedAttendees) > parseInt(maxAttendees) && (
+                <p className="text-sm text-orange-600 font-bold mt-1">⚠️ Cannot exceed maximum attendees ({maxAttendees})</p>
+              )}
             </div>
 
             <div className="md:col-span-2">

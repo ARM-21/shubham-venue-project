@@ -18,7 +18,7 @@ export const recalculateOrganizerMetrics = async (organizerId) => {
     // Count approved events
     const eventsApproved = await OrganizerEvent.countDocuments({
       organizerId,
-      status: 'published', // or 'PUBLISHED' depending on enum
+      status: 'PUBLISHED', // Must match actual enum value
     });
 
     // Count active flags

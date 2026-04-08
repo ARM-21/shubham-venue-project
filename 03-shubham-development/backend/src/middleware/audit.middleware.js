@@ -50,8 +50,9 @@ export async function createAuditLog(logData) {
     await log.save();
     return log;
   } catch (error) {
-    console.error("Error creating audit log:", error);
-    // Don't throw - audit failures shouldn't break operations
+    console.warn("Warning: Could not create audit log:", error.message);
+    // Don't throw - audit failures shouldn't break operations or metrics sync
+    return null;
   }
 }
 

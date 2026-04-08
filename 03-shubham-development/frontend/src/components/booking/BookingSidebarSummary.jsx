@@ -1,5 +1,6 @@
 import React from 'react';
 import { Calendar, Clock, Users, Check, Edit2 } from 'lucide-react';
+import { getSlotMultiplier } from '../../utils/booking.utils';
 
 export default function BookingSidebarSummary({ 
   hall, 
@@ -11,7 +12,7 @@ export default function BookingSidebarSummary({
   const total = calculateTotal();
   // Try multiple field names for hall price
   const pricePerHour = Number(hall?.pricePerHour) || Number(hall?.price) || Number(hall?.costPerHour) || 0;
-  const multiplier = (bookingData?.slot === 'wholeday') ? 15 : 5;
+  const multiplier = getSlotMultiplier(bookingData?.slot);
   const hallPrice = pricePerHour * multiplier;
 
   if (isCompactView) {

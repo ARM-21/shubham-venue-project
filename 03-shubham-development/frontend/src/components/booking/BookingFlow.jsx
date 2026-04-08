@@ -15,6 +15,7 @@ import StepAvailabilityConfirmation from './StepAvailabilityConfirmation';
 import StepContactInfo from './StepContactInfo';
 import StepBookingReview from './StepBookingReview';
 import { useAuth } from 'contexts/AuthProvider';
+import { getSlotMultiplier } from '../../utils/booking.utils';
 
 export default function BookingFlow({ hall, initialDate, initialSlot, initialGuests }) {
   const router = useRouter();
@@ -191,7 +192,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
 
   const calculateTotal = useCallback(() => {
     const pricePerHour = Number(hall?.pricePerHour) || 0;
-    const multiplier = (bookingData?.slot === 'wholeday') ? 15 : 5;
+    const multiplier = getSlotMultiplier(bookingData?.slot);
     const hallPrice = pricePerHour * multiplier;
     const menuTotal = bookingData.bookingPurpose === 'organizer' ? 0 : (Number(bookingData?.menuTotal) || 0);
     const decorationTotal = bookingData.bookingPurpose === 'organizer' ? 0 : (Number(bookingData?.decorationTotal) || 0);
@@ -204,7 +205,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
   }
 
   const pricePerHour = Number(hall?.pricePerHour) || 0;
-  const multiplier = (bookingData?.slot === 'wholeday') ? 15 : 5;
+  const multiplier = getSlotMultiplier(bookingData?.slot);
   const hallPrice = pricePerHour * multiplier;
   const total = calculateTotal();
 

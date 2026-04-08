@@ -101,7 +101,8 @@ export const useQueryOrganizersReputation = (options = {}) => {
   return useQuery({
     queryKey: ['organizersReputation', suspended, hasFlags, page, limit],
     queryFn: () => fetchOrganizers({ suspended, hasFlags, page, limit }),
-    staleTime: 3 * 60 * 1000,
+    staleTime: 60 * 1000, // Reduced to 1 minute for fresher trust score updates
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
   });
 };
 

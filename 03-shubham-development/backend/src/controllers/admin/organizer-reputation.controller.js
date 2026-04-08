@@ -504,14 +504,22 @@ export const recalculateMetrics = async (req, res, next) => {
       // Recalculate all organizers
       const result = await recalculateAllOrganizerMetrics();
 
-      // Audit log
+      // Audit log - use a consistent system transaction ID
+      const systemTransactionId = "sys_bulk_calc_" + Date.now();
       await createAuditLog({
         entityType: "system",
-        entityId: "metrics_bulk_recalculation",
+        entityId: systemTransactionId,
         action: "bulk_metrics_recalculation",
         performedBy: adminId,
         performedByRole: "admin",
-        metadata: result,
+        metadata: {
+          ...result,
+          successRate: `${result.succeeded}/${result.total}`,
+          duration: result.duration || "N/A",
+        },
+      }).catch((err) => {
+        // Log but don't block - metrics sync is more important than audit trail
+        console.warn("Audit log failed but metrics synced:", err.message);
       });
 
       return success(res, result, "Metrics recalculated for all organizers");

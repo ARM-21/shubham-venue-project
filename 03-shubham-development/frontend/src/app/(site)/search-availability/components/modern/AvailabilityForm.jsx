@@ -32,10 +32,10 @@ export const AvailabilityForm = ({ register, handleSubmit, checkAvailability, is
             className="w-full px-5 py-4 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C0A04C]/20 transition-all text-sm font-medium text-[#3a1224] appearance-none"
           >
             <option value="">Select Slot</option>
-            <option value="morning" disabled={disableMorning}>Morning (08:00 AM - 01:00 PM)</option>
-            <option value="afternoon" disabled={disableAfternoon}>Afternoon (01:00 PM - 05:00 PM)</option>
-            <option value="evening" disabled={disableEvening}>Evening (05:00 PM - 11:00 PM)</option>
-            <option value="wholeday">Whole Day (08:00 AM - 11:00 PM)</option>
+            <option value="morning" disabled={disableMorning}>Morning (09:00 AM - 01:00 PM)</option>
+            <option value="afternoon" disabled={disableAfternoon}>Afternoon (09:00 AM - 09:00 PM)</option>
+            <option value="evening" disabled={disableEvening}>Evening (05:00 PM - 09:00 PM)</option>
+            <option value="wholeday">Whole Day (09:00 AM - 09:00 PM)</option>
           </select>
         </div>
 
