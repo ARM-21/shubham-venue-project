@@ -25,6 +25,18 @@ export async function getHallBySlug(slug) {
   return hall;
 }
 
+export async function getHallById(hallId) {
+  if (!hallId) throw httpError(400, "Hall ID is required");
+
+  const hall = await Hall.findById(hallId).select("-__v");
+
+  if (!hall || hall.isActive === false || hall.isDeleted === true) {
+    throw httpError(404, "Hall not found");
+  }
+
+  return hall;
+}
+
 /**Booking availability check */
 // Keep in sync with Booking.status enum
 const BLOCKING_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"];

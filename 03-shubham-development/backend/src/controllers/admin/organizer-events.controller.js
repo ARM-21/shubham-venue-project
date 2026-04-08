@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import OrganizerEvent from "../../models/OrganizerEvent.js";
 import User from "../../models/User.js";
 import Hall from "../../models/Hall.js";
+import Menu from "../../models/menu/Menu.js";
 import AdminNotification from "../../models/AdminNotification.js";
 import {
   calculateTrustScore,
@@ -41,6 +42,7 @@ export const createOrganizerEvent = async (req, res, next) => {
       dressCode,
       ageRestriction,
       catering,
+      cateringMenus,
       decoration,
       requiresTicket,
       location,
@@ -126,6 +128,29 @@ export const createOrganizerEvent = async (req, res, next) => {
       }
     }
 
+    // Validate catering menus
+    let validatedCateringMenus = [];
+    if (cateringMenus && cateringMenus.length > 0) {
+      // Catering must be enabled if menus are provided
+      if (!catering) {
+        return httpError(
+          res,
+          "Catering must be enabled to select menu items",
+          400
+        );
+      }
+
+      // Validate all menu IDs exist
+      const menuIds = cateringMenus.map((id) => new mongoose.Types.ObjectId(id));
+      const existingMenus = await Menu.find({ _id: { $in: menuIds } }).select("_id");
+
+      if (existingMenus.length !== cateringMenus.length) {
+        return httpError(res, "One or more selected menus do not exist", 404);
+      }
+
+      validatedCateringMenus = existingMenus.map((menu) => menu._id);
+    }
+
     // Check organizer trust score
     const trustCalculation = await calculateTrustScore(organizerId);
     const initialStatus =
@@ -151,6 +176,7 @@ export const createOrganizerEvent = async (req, res, next) => {
       dressCode,
       ageRestriction,
       catering: catering || false,
+      cateringMenus: validatedCateringMenus,
       decoration: decoration || false,
       requiresTicket: requiresTicket !== false,
       location: location || {},
@@ -258,6 +284,7 @@ export const getOrganizerEvents = async (req, res, next) => {
 
     const events = await OrganizerEvent.find(query)
       .populate("hallId", "name city state")
+      .populate("cateringMenus", "name pricePerPerson description")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -573,7 +600,8 @@ export const getEventDetail = async (req, res, next) => {
 
     const event = await OrganizerEvent.findById(eventId)
       .populate("organizerId", "email firstName lastName")
-      .populate("hallId", "name");
+      .populate("hallId", "name")
+      .populate("cateringMenus", "name pricePerPerson description");
 
     if (!event) {
       return httpError(res, "Event not found", 404);
@@ -594,6 +622,10 @@ export const getEventDetail = async (req, res, next) => {
         _id: event.hallId?._id,
         name: event.hallId?.name || "TBD",
       },
+      catering: event.catering,
+      cateringMenus: event.cateringMenus || [],
+      decoration: event.decoration,
+      requiresTicket: event.requiresTicket,
       status: event.status,
       createdAt: event.createdAt,
     };

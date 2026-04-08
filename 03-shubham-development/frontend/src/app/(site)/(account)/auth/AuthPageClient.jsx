@@ -38,7 +38,12 @@ export default function AuthPageClient({ redirect }) {
       await toast.promise(Promise.resolve(result), {
         loading: "Logging in with Google...",
         success: "Logged in successfully!",
-        error: (err) => err?.response?.data?.message || err?.message || "Google login failed",
+        error: (err) => {
+          // Extract the most relevant error message
+          const backendMessage = err?.response?.data?.message;
+          const errorMessage = err?.message;
+          return backendMessage || errorMessage || "Google login failed. Please try again.";
+        },
       });
 
       // Check if user needs to complete onboarding
@@ -50,7 +55,10 @@ export default function AuthPageClient({ redirect }) {
         router.push("/");
       }
     } catch (err) {
-      console.error(err);
+      console.error('Google login error:', err);
+      // Show a user-friendly error toast
+      const errorMessage = err?.response?.data?.message || err?.message || "Google login failed. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

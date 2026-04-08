@@ -124,21 +124,37 @@ export default function StepBookingReview({
             </button>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {bookingData.selectedPackage ? (
               <div className="flex items-center justify-between">
                 <span className="text-sm text-[#3a1224]/60">{bookingData.selectedPackage.name}</span>
                 <span className="font-black text-[#3a1224]">NPR {bookingData.menuTotal.toLocaleString()}</span>
               </div>
             ) : (
-              <div>
-                <p className="text-sm font-black text-[#3a1224] mb-2">Custom Items ({bookingData.selectedMenu?.length || 0})</p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs font-black text-[#3a1224]/50 uppercase tracking-wide pb-2 border-b border-[#3a1224]/10">
+                  <span>Item ({bookingData.selectedMenu?.length || 0})</span>
+                  <span>Qty</span>
+                  <span>Unit Price</span>
+                  <span>Total</span>
+                </div>
                 {bookingData.selectedMenu?.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-sm">
-                    <span className="text-[#3a1224]/60">{item.name} x{item.quantity}</span>
-                    <span className="text-[#3a1224]">NPR {item.total?.toLocaleString()}</span>
+                  <div key={idx} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex-1">
+                        <p className="font-black text-[#3a1224]">{item.name}</p>
+                        <p className="text-[11px] text-[#3a1224]/50 mt-0.5">{item.category}</p>
+                      </div>
+                      <span className="text-[#3a1224]/60 font-semibold w-10 text-right">{item.quantity}</span>
+                      <span className="text-[#3a1224]/60 font-semibold w-20 text-right">NPR {item.pricePerUnit?.toLocaleString()}</span>
+                      <span className="font-black text-[#3a1224] w-24 text-right">NPR {item.total?.toLocaleString()}</span>
+                    </div>
                   </div>
                 ))}
+                <div className="pt-3 border-t border-[#3a1224]/10 flex items-center justify-between">
+                  <span className="text-sm font-black text-[#3a1224]">Menu Total</span>
+                  <span className="text-lg font-display font-black text-[#C0A04C]">NPR {bookingData.menuTotal?.toLocaleString()}</span>
+                </div>
               </div>
             )}
           </div>

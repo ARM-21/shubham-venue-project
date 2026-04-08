@@ -62,8 +62,9 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
         { key: 'availability', title: 'Availability', step: 1 },
         { key: 'contact', title: 'Contact', step: 2 },
         { key: 'details', title: 'Details', step: 3 },
-        { key: 'review', title: 'Review', step: 4 },
-        { key: 'payment', title: 'Payment', step: 5 },
+        { key: 'menu', title: 'Menu', step: 4 },
+        { key: 'review', title: 'Review', step: 5 },
+        { key: 'payment', title: 'Payment', step: 6 },
       ];
     }
     return [
@@ -138,6 +139,18 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
       throw error;
     }
   }, [hall._id, initialDate, initialSlot, initialGuests, bookingData.bookingPurpose, router, hall.slug]);
+
+  const releaseReservation = useCallback(async () => {
+    if (!reservationId) return;
+    try {
+      await axiosInstance.post(ROUTES.API.BOOKINGS.RESERVE_BY_ID(reservationId), {});
+      setReservationId(null);
+      setTimeLeft(null);
+      setIsReserved(false);
+    } catch (error) {
+      console.error('Failed to release reservation:', error);
+    }
+  }, [reservationId]);
 
   const updateBookingData = useCallback((newData) => {
     setBookingData((prev) => ({ ...prev, ...newData }));
@@ -502,7 +515,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
               )}
 
               {/* Decorations Step */}
-              {currentStepKey === 'decor' && (
+              {currentStepKey === 'decor' && bookingData.bookingPurpose === 'customer' && (
                 <Step3Decorations
                   data={bookingData}
                   onUpdate={updateBookingData}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
+import { useAuth } from "contexts/AuthProvider";
 import { 
   LayoutGrid, 
   CalendarCheck, 
@@ -61,6 +62,7 @@ function statusTone(status) {
 export default function OrganizerNav({ user }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { logout } = useAuth();
   const [status, setStatus] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);

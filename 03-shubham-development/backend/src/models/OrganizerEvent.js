@@ -64,6 +64,12 @@ const organizerEventSchema = new mongoose.Schema(
     // Event Requirements
     specialRequirements: { type: String, trim: true },
     catering: { type: Boolean, default: false },
+    cateringMenus: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Menu",
+      },
+    ],
     decoration: { type: Boolean, default: false },
     requiresTicket: { type: Boolean, default: true },
     // Location Details

@@ -156,6 +156,11 @@ export const loginLocalUser = async (email, password) => {
     throw httpError(401, "Invalid email or password");
   }
 
+  // Check if user is a Google OAuth user trying to login with password
+  if (user.provider === 'google') {
+    throw httpError(400, "This account is registered with Google. Please use Google login instead");
+  }
+
   // Block disabled accounts
   if (user.isActive === false) {
     throw httpError(403, "Account disabled. Contact support");
