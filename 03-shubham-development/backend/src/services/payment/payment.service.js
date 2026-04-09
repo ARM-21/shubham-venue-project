@@ -126,69 +126,96 @@ export async function completePayment({ paymentId }) {
   if (!payment) throw httpError(404, "Payment not found");
   if (payment.status === "COMPLETED") return payment;
 
-  if (payment.gateway === "KHALTI") {
-    if (!ENV.KHALTI_SECRET_KEY) throw httpError(500, "KHALTI_SECRET_KEY not configured");
+  // Start transaction for atomic payment verification and booking update
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-    const pidx = payment.gatewayResponse?.pidx || (!mongoose.Types.ObjectId.isValid(target) ? target : null);
-    if (!pidx) throw httpError(400, "Missing pidx for verification");
+  try {
+    // Re-fetch payment within transaction to get fresh state
+    payment = await Payment.findById(payment._id).session(session);
+    if (!payment) throw httpError(404, "Payment not found");
+    if (payment.status === "COMPLETED") {
+      await session.abortTransaction();
+      return payment;
+    }
 
-    const lookupRes = await axios.post(
-      KHALTI_LOOKUP_URL,
-      { pidx },
-      {
-        headers: {
-          Authorization: `Key ${ENV.KHALTI_SECRET_KEY}`,
-          "Content-Type": "application/json",
-        },
+    if (payment.gateway === "KHALTI") {
+      if (!ENV.KHALTI_SECRET_KEY) throw httpError(500, "KHALTI_SECRET_KEY not configured");
+
+      const pidx = payment.gatewayResponse?.pidx || (!mongoose.Types.ObjectId.isValid(target) ? target : null);
+      if (!pidx) throw httpError(400, "Missing pidx for verification");
+
+      const lookupRes = await axios.post(
+        KHALTI_LOOKUP_URL,
+        { pidx },
+        {
+          headers: {
+            Authorization: `Key ${ENV.KHALTI_SECRET_KEY}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const { status, transaction_id: transactionId, detail, error_key: errorKey } = lookupRes.data || {};
+      payment.gatewayResponse = { ...payment.gatewayResponse, verification: lookupRes.data || {} };
+
+      if (status !== "Completed") {
+        payment.status = "FAILED";
+        await payment.save({ session });
+        await session.commitTransaction();
+        throw httpError(400, errorKey ? `${detail || "Payment not completed"} (${errorKey})` : detail || "Payment not completed");
       }
+
+      payment.status = "COMPLETED";
+      payment.transactionId = transactionId || paymentId;
+      payment.paidAt = new Date();
+      await payment.save({ session });
+    } else if (payment.gateway === "ESEWA") {
+      const transactionUuid = payment.gatewayResponse?.transactionUuid || (!mongoose.Types.ObjectId.isValid(target) ? target : null);
+      if (!transactionUuid) throw httpError(400, "Missing transaction_uuid for verification");
+
+      const verification = await verifyEsewaTransaction({
+        transactionUuid,
+        totalAmount: payment.amount,
+      });
+
+      payment.gatewayResponse = { ...payment.gatewayResponse, verification };
+
+      if (!isSuccessStatus(verification?.status)) {
+        payment.status = "FAILED";
+        await payment.save({ session });
+        await session.commitTransaction();
+        throw httpError(400, "Payment not completed");
+      }
+
+      payment.status = "COMPLETED";
+      payment.transactionId =
+        verification?.reference_id || verification?.ref_id || verification?.transaction_id || transactionUuid;
+      payment.paidAt = new Date();
+      await payment.save({ session });
+    } else {
+      throw httpError(400, "Unsupported gateway for verification");
+    }
+
+    // Update booking atomically within same transaction
+    await Booking.findByIdAndUpdate(
+      payment.bookingId,
+      {
+        reservedUntil: null,
+        paymentId: payment._id,
+        cancelledAt: null,
+        cancellationReason: null,
+      },
+      { session, new: true }
     );
 
-    const { status, transaction_id: transactionId, detail, error_key: errorKey } = lookupRes.data || {};
-    payment.gatewayResponse = { ...payment.gatewayResponse, verification: lookupRes.data || {} };
-
-    if (status !== "Completed") {
-      payment.status = "FAILED";
-      await payment.save();
-      throw httpError(400, errorKey ? `${detail || "Payment not completed"} (${errorKey})` : detail || "Payment not completed");
-    }
-
-    payment.status = "COMPLETED";
-    payment.transactionId = transactionId || paymentId;
-    payment.paidAt = new Date();
-    await payment.save();
-  } else if (payment.gateway === "ESEWA") {
-    const transactionUuid = payment.gatewayResponse?.transactionUuid || (!mongoose.Types.ObjectId.isValid(target) ? target : null);
-    if (!transactionUuid) throw httpError(400, "Missing transaction_uuid for verification");
-
-    const verification = await verifyEsewaTransaction({
-      transactionUuid,
-      totalAmount: payment.amount,
-    });
-
-    payment.gatewayResponse = { ...payment.gatewayResponse, verification };
-
-    if (!isSuccessStatus(verification?.status)) {
-      payment.status = "FAILED";
-      await payment.save();
-      throw httpError(400, "Payment not completed");
-    }
-
-    payment.status = "COMPLETED";
-    payment.transactionId =
-      verification?.reference_id || verification?.ref_id || verification?.transaction_id || transactionUuid;
-    payment.paidAt = new Date();
-    await payment.save();
-  } else {
-    throw httpError(400, "Unsupported gateway for verification");
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
   }
-
-  await Booking.findByIdAndUpdate(payment.bookingId, {
-    // keep status unchanged; admin will approve/reject manually even after payment
-    reservedUntil: null,
-    paymentId: payment._id,
-    cancelledAt: null,
-    cancellationReason: null,
-  });
 
   return payment;
 }

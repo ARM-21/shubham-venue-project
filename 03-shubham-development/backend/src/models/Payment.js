@@ -28,4 +28,13 @@ const paymentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Auto-cleanup INITIATED payments after 30 minutes (matches booking reservation timeout + buffer)
+paymentSchema.index(
+  { createdAt: 1 },
+  {
+    expireAfterSeconds: 1800, // 30 minutes
+    partialFilterExpression: { status: "INITIATED" }
+  }
+);
+
 export default mongoose.model("Payment", paymentSchema);

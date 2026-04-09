@@ -78,7 +78,7 @@ export default function OrganizerSettings() {
       const res = await axiosInstance.put(ROUTES.API.PROFILE.UPDATE, payload);
       return res.data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast.success('Settings saved successfully!');
       setEditMode(prev => ({
         ...prev,
@@ -108,9 +108,11 @@ export default function OrganizerSettings() {
         setUser?.(userData);
       }
       
-      // Explicitly refetch to ensure fresh data from API
-      queryClient.refetchQueries({ queryKey: ['profile-my'] });
-      // Also invalidate and refetch user queries
+      // Set stale time to 0 and invalidate to force immediate refetch
+      queryClient.removeQueries({ queryKey: ['profile-my'] });
+      // Refetch with cache bypass
+      await queryClient.refetchQueries({ queryKey: ['profile-my'], stale: true });
+      // Also invalidate auth user queries for immediate context update
       queryClient.invalidateQueries({ queryKey: ['user'] });
     },
     onError: (error) => {

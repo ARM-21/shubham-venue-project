@@ -365,34 +365,56 @@ router.patch("/:id/payment", async (req, res, next) => {
     const booking = await Booking.findById(id);
     if (!booking) return res.status(404).json({ message: "Booking not found" });
 
-    let payment = booking.paymentId ? await Payment.findById(booking.paymentId) : null;
-    if (!payment) {
-      payment = await Payment.findOne({ bookingId: booking._id }).sort({ createdAt: -1 });
-    }
+    let payment; // Declare outside try block for access in email sending and response
 
-    if (!payment) {
-      // Create new payment with provided gateway or default to CASH
-      const createGateway = normalizedGateway || "CASH";
-      payment = await Payment.create({
-        bookingId: booking._id,
-        userId: booking.userId,
-        amount: booking.totalAmount,
-        gateway: createGateway,
-        status: "INITIATED",
-      });
-    }
+    // Start transaction for atomic payment and booking updates
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    payment.status = nextStatus;
-    // Only update gateway if it was provided by the client
-    if (normalizedGateway) {
-      payment.gateway = normalizedGateway;
-    }
-    payment.paidAt = nextStatus === "COMPLETED" ? payment.paidAt || new Date() : null;
-    await payment.save();
+    try {
+      payment = booking.paymentId ? await Payment.findById(booking.paymentId).session(session) : null;
+      if (!payment) {
+        payment = await Payment.findOne({ bookingId: booking._id }).sort({ createdAt: -1 }).session(session);
+      }
 
-    if (!booking.paymentId || String(booking.paymentId) !== String(payment._id)) {
-      booking.paymentId = payment._id;
-      await booking.save();
+      if (!payment) {
+        // Create new payment with provided gateway or default to CASH
+        const createGateway = normalizedGateway || "CASH";
+        payment = await Payment.create(
+          [{
+            bookingId: booking._id,
+            userId: booking.userId,
+            amount: booking.totalAmount,
+            gateway: createGateway,
+            status: "INITIATED",
+          }],
+          { session }
+        );
+        payment = payment[0]; // Create returns array with transaction session
+      }
+
+      payment.status = nextStatus;
+      // Only update gateway if it was provided by the client
+      if (normalizedGateway) {
+        payment.gateway = normalizedGateway;
+      }
+      payment.paidAt = nextStatus === "COMPLETED" ? payment.paidAt || new Date() : null;
+      await payment.save({ session });
+
+      if (!booking.paymentId || String(booking.paymentId) !== String(payment._id)) {
+        booking.paymentId = payment._id;
+        await booking.save({ session });
+      }
+
+      await session.commitTransaction();
+      
+      // Re-fetch payment after transaction commits for response
+      payment = await Payment.findById(payment._id);
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      await session.endSession();
     }
 
     // Auto-send invoice email when payment is marked COMPLETED

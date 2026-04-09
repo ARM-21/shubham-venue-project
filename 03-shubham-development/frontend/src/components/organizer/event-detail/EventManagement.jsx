@@ -49,6 +49,8 @@ function deriveEventDateTime(bookingDate, slot, isStartTime = true) {
 
 export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
   const [bannerPreview, setBannerPreview] = useState(event?.bannerUrl || "");
+  const [bannerError, setBannerError] = useState("");
+  const [bannerUploading, setBannerUploading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [uploadPreview, setUploadPreview] = useState(null);
@@ -67,16 +69,21 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
   const uploadBannerMutation = useMutation({
     mutationFn: async (file) => {
       if (!file) throw new Error("File required");
+      if (!event?._id) throw new Error("Event ID required");
 
       // Step 1: Get presigned upload URL
-      const urlRes = await axiosInstance.post(ROUTES.API.PROFILE.AVATAR_UPLOAD_URL, {
+      const urlRes = await axiosInstance.post(ROUTES.API.ORGANIZER.EVENT_BANNER_UPLOAD_URL, {
         fileExtension: "." + file.name.split(".").pop(),
         contentType: file.type,
       });
-      const { url: presignedUrl, s3Key, publicUrl } = urlRes.data;
+      const { uploadUrl, key: s3Key, publicUrl } = urlRes.data?.data || {};
+      
+      if (!uploadUrl || !s3Key || !publicUrl) {
+        throw new Error("Upload URL not received");
+      }
 
       // Step 2: Upload file to S3
-      const uploadRes = await fetch(presignedUrl, {
+      const uploadRes = await fetch(uploadUrl, {
         method: "PUT",
         body: file,
         headers: {
@@ -88,19 +95,28 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
         throw new Error(`S3 upload failed: ${uploadRes.status}`);
       }
 
-      // Step 3: Confirm upload in backend and track in uploads
-      await axiosInstance.post(ROUTES.API.PROFILE.AVATAR_CONFIRM, {
+      // Step 3: Confirm upload in backend and save to event
+      const confirmRes = await axiosInstance.post(ROUTES.API.ORGANIZER.EVENT_BANNER_CONFIRM(event._id), {
         s3Key,
         publicUrl,
       });
 
-      return { s3Key, publicUrl };
+      return confirmRes.data?.event || { s3Key, publicUrl };
     },
-    onSuccess: () => {
-      // Invalidate user uploads query to refetch
-      queryClient.invalidateQueries({
-        queryKey: [USER_UPLOADS_QUERY_KEY],
-      });
+    onSuccess: (data) => {
+      // Update banner preview with confirmed URL
+      setBannerPreview(data?.bannerUrl || data?.publicUrl || "");
+      setBannerUploading(false);
+      setBannerError("");
+      toast.success("Banner uploaded successfully");
+      // Refetch user uploads to show in gallery
+      refetchUploads().catch(() => {});
+    },
+    onError: (error) => {
+      const message = error?.response?.data?.message || error.message || "Upload failed";
+      setBannerError(message);
+      setBannerUploading(false);
+      toast.error(`❌ Upload failed: ${message}`);
     },
   });
 
@@ -199,6 +215,7 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("❌ File size must be under 5MB");
+      setBannerError("File size must be under 5MB");
       return;
     }
 
@@ -211,6 +228,9 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
     reader.readAsDataURL(file);
 
     try {
+      setBannerUploading(true);
+      setBannerError("");
+      
       // Upload to S3
       const { publicUrl } = await uploadBannerMutation.mutateAsync(file);
       
@@ -226,7 +246,9 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
       // Close upload tab and go to my-uploads
       setImageSelectorTab("my-uploads");
     } catch (error) {
-      toast.error(`❌ Upload failed: ${error.message}`);
+      const message = error?.response?.data?.message || error.message || "Upload failed";
+      setBannerError(message);
+      toast.error(`❌ Upload failed: ${message}`);
       console.error("Upload error:", error);
     }
   };
