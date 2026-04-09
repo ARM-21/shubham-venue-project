@@ -13,6 +13,7 @@ import { EventHero } from "./components/EventHero";
 import { EventDetails } from "./components/EventDetails";
 import { TicketsSection } from "./components/TicketsSection";
 import { VenueInfo } from "./components/VenueInfo";
+import { RichTextDisplay } from "components/shared/RichTextDisplay";
 
 const PLACEHOLDER_IMAGE = "/assets/business-images/placeholder.jpg";
 
@@ -189,13 +190,18 @@ export default function EventDetailPage() {
     remaining: Math.max(0, Number(type.quantityTotal || 0) - Number(type.quantitySold || 0)),
   }));
   const eventEnded = event.endDateTime ? new Date(event.endDateTime).getTime() < Date.now() : false;
+  
+  // Check if registration has started
+  const registrationNotStarted = event.registrationStartDate 
+    ? new Date(event.registrationStartDate).getTime() > Date.now() 
+    : false;
 
   return (
-    <main className="min-h-screen bg-[#fdfaf6]/50 relative selection:bg-[#C0A04C]/30 overflow-x-hidden">
+    <main className="min-h-screen bg-gradient-to-b from-[#FDFCFB] via-[#fdfaf6] to-[#FDFCFB] relative selection:bg-[#C0A04C]/30 overflow-x-hidden">
       {/* Background effects */}
-      <div className="fixed inset-0 pointer-events-none opacity-30 z-0">
-        <div className="absolute top-0 right-[-10%] w-[40%] h-[40%] bg-[#C0A04C]/5 blur-[120px] rounded-full" />
-        <div className="absolute bottom-0 left-[-10%] w-[40%] h-[40%] bg-[#3a1224]/5 blur-[120px] rounded-full" />
+      <div className="fixed inset-0 pointer-events-none opacity-40 z-0">
+        <div className="absolute top-0 right-[-10%] w-[40%] h-[40%] bg-[#C0A04C]/4 blur-[120px] rounded-full" />
+        <div className="absolute bottom-0 left-[-10%] w-[40%] h-[40%] bg-[#3a1224]/4 blur-[120px] rounded-full" />
       </div>
       <div className="absolute top-0 left-0 w-full h-[800px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/70 to-transparent pointer-events-none z-0" />
 
@@ -204,62 +210,92 @@ export default function EventDetailPage() {
         <EventHero event={event} banner={event.bannerUrl || PLACEHOLDER_IMAGE} />
       </div>
 
-      <div className="relative z-10 max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 pb-8 lg:pb-12 pt-8 lg:pt-12">
+      <div className="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24 lg:pb-32 pt-12 lg:pt-16">
         {error ? (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-sm font-bold uppercase tracking-wider">
+          <div className="mb-12 p-6 bg-red-50 border border-red-200 text-red-700 rounded-[2rem] text-sm font-bold uppercase tracking-wider flex items-center gap-3">
             {error}
           </div>
         ) : null}
 
         {needsAccessCode ? (
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(58,18,36,0.06)] border border-[#3a1224]/5 p-10 md:p-14">
+          <div className="max-w-2xl mx-auto mt-8">
+            <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(58,18,36,0.08)] border border-[#3a1224]/5 p-8 md:p-12 backdrop-blur-sm">
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-8 h-[1px] bg-[#C0A04C]" />
+                <div className="w-8 h-[2px] bg-gradient-to-r from-[#C0A04C] to-[#C0A04C]/50" />
                 <span className="text-[11px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Restricted Event</span>
               </div>
-              <h2 className="text-3xl font-display font-bold text-[#3a1224] mb-3 tracking-tight">🔒 Access Code Required</h2>
-              <p className="text-[#3a1224]/60 font-medium mb-8">This is a private event. Please enter the access code to view details and purchase tickets.</p>
+              <h2 className="text-3xl lg:text-4xl font-display font-bold text-[#3a1224] mb-4 tracking-tight">Access Code Required</h2>
+              <p className="text-[#3a1224]/70 font-medium mb-8 leading-relaxed">This is a private event. Please enter the access code provided to view details and purchase tickets.</p>
               
               <input
                 type="text"
                 value={accessCode}
                 onChange={(e) => setAccessCode(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAccessCodeSubmit()}
                 placeholder="Enter event access code"
-                className="w-full bg-[#3a1224]/3 border border-[#3a1224]/10 text-[#3a1224] px-5 py-4 rounded-xl focus:outline-none focus:border-[#C0A04C]/50 focus:bg-[#3a1224]/5 transition-all duration-300 placeholder-[#3a1224]/30 text-sm mb-6 font-medium"
+                className="w-full bg-[#3a1224]/5 border border-[#3a1224]/15 text-[#3a1224] px-6 py-4 rounded-2xl focus:outline-none focus:border-[#C0A04C] focus:bg-white focus:shadow-[0_0_0_3px_rgba(192,160,76,0.1)] transition-all duration-300 placeholder-[#3a1224]/40 text-base mb-6 font-medium"
               />
               <button
                 onClick={handleAccessCodeSubmit}
                 disabled={accessCodeMutation.isPending}
-                className="w-full py-4 rounded-xl bg-[#3a1224] text-white font-black uppercase tracking-wider hover:bg-[#C0A04C] hover:text-[#3a1224] transition duration-300 disabled:opacity-50"
+                className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-[#3a1224] to-[#2a0d1a] text-white font-black uppercase tracking-wider text-sm hover:shadow-lg hover:shadow-[#3a1224]/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {accessCodeMutation.isPending ? "Unlocking..." : "Unlock Event"}
               </button>
             </div>
           </div>
         ) : (
-          <div className="space-y-12 lg:space-y-16">
+          <div className="space-y-16 lg:space-y-24">
             {/* Event Details Section */}
-            <EventDetails 
-              event={event} 
-              formatDateTime={formatDateTime}
-              hallName={event.hallId?.name || "Venue"}
-            />
+            <section id="details">
+              <EventDetails 
+                event={event} 
+                formatDateTime={formatDateTime}
+                hallName={event.hallId?.name || "Venue"}
+              />
+            </section>
+
+            {/* About Section */}
+            {event.description && (
+              <section id="about" className="scroll-mt-20">
+                <div className="mb-8">
+                  <div className="h-1 w-24 bg-gradient-to-r from-[#C0A04C] to-transparent mb-6" />
+                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#3a1224] tracking-tight">About This Event</h2>
+                </div>
+                <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(58,18,36,0.06)] border border-white/50 p-8 lg:p-12 xl:p-16">
+                  <div className="prose prose-lg max-w-none text-[#3a1224] leading-relaxed">
+                    <div className="bg-gradient-to-br from-[#FDFCFB] to-[#fdfaf6] rounded-2xl p-8 border border-[#3a1224]/5">
+                      <RichTextDisplay content={event.description} />
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
 
             {/* Venue Information */}
-            <VenueInfo venue={event.hallId} />
+            <section id="venue" className="scroll-mt-20">
+              <VenueInfo venue={event.hallId} />
+            </section>
 
             {/* Tickets Section */}
-            <TicketsSection 
-              ticketTypes={ticketTypes}
-              onBuyTicket={handleBuyTicket}
-              eventEnded={eventEnded}
-              submitting={submitting}
-              onSelectPaymentGateway={setGatewayTicketId}
-              selectedPaymentGateway={gatewayTicketId}
-              eventCapacity={event.hallId?.capacity || 0}
-              totalSold={ticketTypes.reduce((sum, t) => sum + (t.quantitySold || 0), 0)}
-            />
+            <section id="tickets" className="scroll-mt-20">
+              <div className="mb-8">
+                <div className="h-1 w-24 bg-gradient-to-r from-[#C0A04C] to-transparent mb-6" />
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#3a1224] tracking-tight">Get Your Ticket</h2>
+              </div>
+              <TicketsSection 
+                ticketTypes={ticketTypes}
+                onBuyTicket={handleBuyTicket}
+                eventEnded={eventEnded}
+                registrationNotStarted={registrationNotStarted}
+                registrationStartDate={event.registrationStartDate}
+                submitting={submitting}
+                onSelectPaymentGateway={setGatewayTicketId}
+                selectedPaymentGateway={gatewayTicketId}
+                eventCapacity={event.hallId?.capacity || 0}
+                totalSold={ticketTypes.reduce((sum, t) => sum + (t.quantitySold || 0), 0)}
+              />
+            </section>
           </div>
         )}
       </div>

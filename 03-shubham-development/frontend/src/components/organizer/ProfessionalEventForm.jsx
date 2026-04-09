@@ -218,38 +218,61 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
   const uploadBanner = async () => {
     if (!bannerFile) return;
     
+    if (!initialData?._id) {
+      toast.error("Event must be saved before uploading banner");
+      return;
+    }
+    
     try {
       setBannerUploading(true);
       setBannerError(null);
 
-      // Get presigned URL from backend using menu upload URL
+      // Step 1: Get presigned URL from backend
       const ext = `.${bannerFile.name.split('.').pop()}`;
-      const { data } = await axiosInstance.post(ROUTES.API.ADMIN.MENU_UPLOAD_URL, {
-        fileExtension: ext,
-        contentType: bannerFile.type,
-      });
+      const { data } = await axiosInstance.post(
+        ROUTES.API.ORGANIZER.EVENT_BANNER_UPLOAD_URL,
+        {
+          fileExtension: ext,
+          contentType: bannerFile.type,
+        }
+      );
 
       const uploadUrl = data?.data?.uploadUrl;
       const publicUrl = data?.data?.publicUrl;
+      const key = data?.data?.key;
 
-      if (!uploadUrl || !publicUrl) {
+      if (!uploadUrl || !publicUrl || !key) {
         throw new Error('Upload URL not received');
       }
 
-      // Upload to S3 using presigned URL
-      await fetch(uploadUrl, {
+      // Step 2: Upload to S3 using presigned URL
+      const response = await fetch(uploadUrl, {
         method: 'PUT',
         headers: { 'Content-Type': bannerFile.type },
         body: bannerFile,
       });
 
-      // Update form with the public URL
-      setValue('bannerUrl', publicUrl, { shouldDirty: true });
+      if (!response.ok) throw new Error('S3 upload failed');
+
+      // Step 3: Confirm upload to backend
+      const confirmRes = await axiosInstance.post(
+        ROUTES.API.ORGANIZER.EVENT_BANNER_CONFIRM(initialData._id),
+        {
+          s3Key: key,
+          publicUrl: publicUrl,
+        }
+      );
+
+      // Update form with confirmed URL
+      const confirmedUrl = confirmRes.data?.event?.bannerUrl || publicUrl;
+      setValue('bannerUrl', confirmedUrl, { shouldDirty: true });
       setBannerFile(null);
+      setBannerPreview(confirmedUrl);
+
       toast.success('Banner uploaded successfully');
     } catch (err) {
       const message = err?.response?.data?.message || err.message || 'Upload failed';
-      toast.error(message);
+      toast.error(`❌ Upload failed: ${message}`);
       setBannerError(message);
     } finally {
       setBannerUploading(false);

@@ -387,6 +387,7 @@ export default function OrganizerEventDetailPage() {
           onPrevPage={() => setAttendeesPage(p => p - 1)}
           onNextPage={() => setAttendeesPage(p => p + 1)}
           isLoading={attendeesLoading}
+          eventId={eventId}
         />
       </div>
     </div>

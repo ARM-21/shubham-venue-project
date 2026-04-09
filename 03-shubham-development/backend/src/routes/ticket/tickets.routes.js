@@ -62,9 +62,15 @@ router.get("/my", isAuthenticated, async (req, res, next) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate({ path: "eventId", select: "name type startDateTime endDateTime hallId" })
+        .populate({
+          path: "eventId",
+          select: "name type startDateTime endDateTime hallId",
+          populate: {
+            path: "hallId",
+            select: "name slug"
+          }
+        })
         .populate({ path: "ticketTypeId", select: "name price" })
-        .populate({ path: "eventId.hallId", select: "name slug" })
         .lean(),
       Ticket.countDocuments(filter),
     ]);

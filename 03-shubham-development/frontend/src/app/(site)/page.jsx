@@ -24,9 +24,9 @@ export default function Home() {
       </section>
 
       {/* Venues Section */}
-      <section id="venues" className="bg-[#fdfaf6] pt-14 pb-12 sm:pt-16 sm:pb-14 lg:pt-32 lg:pb-20">
+      <section id="venues" className="bg-[#fdfaf6] pt-10 pb-10 sm:pt-10 sm:pb-10 lg:pt-32 lg:pb-10">
         <div className="max-w-[1800px] mx-auto px-4 lg:px-10">
-          <div className="mb-10 sm:mb-12 lg:mb-14">
+          <div className="mb-5 sm:mb-5 lg:mb-14">
             <div className="flex items-center gap-3 mb-2">
               <div className="h-1 w-1.5 bg-[#C0A04C] rounded-full"></div>
               <span className="text-xs font-black text-[#C0A04C] tracking-wider uppercase">Venue Selection</span>
@@ -39,22 +39,14 @@ export default function Home() {
       </section>
 
       {/* Events Section */}
-      <section id="events" className="bg-[#fdfaf6] pt-8 pb-12 sm:pt-12 sm:pb-12 lg:pt-12 lg:pb-12">
-        <div className="max-w-[1800px] mx-auto px-4 lg:px-10">
-          <div className="mb-10 sm:mb-12 lg:mb-14">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="h-1 w-1.5 bg-[#C0A04C] rounded-full"></div>
-              <span className="text-xs font-black text-[#C0A04C] tracking-wider uppercase">What's Happening</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black text-[#3a1224]">Events & Celebrations</h2>
-            <p className="text-sm sm:text-base text-[#3a1224]/60 mt-3 font-medium max-w-2xl">Explore upcoming events and celebrations hosted at our venues. Secure your reservations and join memorable experiences.</p>
-          </div>
+      <section id="events" className="bg-[#fdfaf6] pt-8 pb-12 sm:pt-6 sm:pb-6 lg:pt-6 lg:pb-12">
+        <div className="max-w-[1800px] mx-auto ">
           <UpcomingEvents />
         </div>
       </section>
 
       {/* Menus Section */}
-      <section id="menus" className="bg-[#fdfaf6] pt-8 pb-12 sm:pt-12 sm:pb-12 lg:pt-12 lg:pb-12">
+      <section id="menus" className="bg-[#fdfaf6] pt-8 pb-12 sm:pt-12 sm:pb-12 lg:pt-6 lg:pb-12">
         <div className="max-w-[1800px] mx-auto px-4 lg:px-10">
           <div className="mb-10 sm:mb-12 lg:mb-14">
             <div className="flex items-center gap-3 mb-2">

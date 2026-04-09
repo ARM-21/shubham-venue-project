@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from "react";
-import { Users, Search } from "lucide-react";
+import { Users, Search, Download } from "lucide-react";
+import toast from "react-hot-toast";
+import { ROUTES } from "config/routes";
 import { GuestDetailModal } from "./GuestDetailModal";
 
 function formatDate(value) {
@@ -27,9 +29,11 @@ export function GuestManifest({
   onPrevPage,
   onNextPage,
   isLoading,
+  eventId,
 }) {
   const [selectedGuest, setSelectedGuest] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const filteredAttendees = attendees;
 
@@ -43,24 +47,115 @@ export function GuestManifest({
     setSelectedGuest(null);
   };
 
+  const handleExportCheckedIn = async () => {
+    try {
+      setExporting(true);
+      const response = await fetch(ROUTES.API.ORGANIZER.EVENT_ATTENDEES_EXPORT(eventId), {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `attendees-export-${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success('Attendees exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export attendees');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportAll = async () => {
+    try {
+      setExporting(true);
+      const response = await fetch(ROUTES.API.ORGANIZER.EVENT_ATTENDEES_EXPORT_ALL(eventId), {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `attendees-all-export-${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success('All attendees exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export attendees');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <>
     <section className="bg-white rounded-2xl border border-[#3a1224]/5 p-8 shadow-sm overflow-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <Users className="w-5 h-5 text-[#C0A04C]" />
-          <h3 className="text-lg sm:text-xl font-black text-[#3a1224] uppercase tracking-wider">Guest Manifest</h3>
-          <span className="text-xs sm:text-sm font-bold text-white bg-[#3a1224] px-3 py-1 rounded-full">{totalAttendees}</span>
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Users className="w-5 h-5 text-[#C0A04C]" />
+            <h3 className="text-lg sm:text-xl font-black text-[#3a1224] uppercase tracking-wider">Guest Manifest</h3>
+            <span className="text-xs sm:text-sm font-bold text-white bg-[#3a1224] px-3 py-1 rounded-full">{totalAttendees}</span>
+          </div>
+          <div className="relative flex-1 sm:ml-auto sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3a1224]/20" />
+            <input
+              type="text"
+              placeholder="Search guests..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg pl-10 pr-4 py-2 text-sm sm:text-base font-bold text-[#3a1224] focus:ring-1 ring-[#C0A04C]/20 outline-none"
+            />
+          </div>
         </div>
-        <div className="relative flex-1 sm:ml-auto sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3a1224]/20" />
-          <input
-            type="text"
-            placeholder="Search guests..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg pl-10 pr-4 py-2 text-sm sm:text-base font-bold text-[#3a1224] focus:ring-1 ring-[#C0A04C]/20 outline-none"
-          />
+
+        {/* Export Buttons */}
+        <div className="flex flex-wrap gap-3 items-center">
+          <button
+            onClick={handleExportCheckedIn}
+            disabled={exporting || !eventId}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 border border-emerald-500/30 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download size={14} className="sm:w-4" />
+            <span className="hidden sm:inline">Export Checked-In</span>
+            <span className="sm:hidden">Checked-In</span>
+          </button>
+
+          <button
+            onClick={handleExportAll}
+            disabled={exporting || !eventId}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 border border-blue-500/30 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download size={14} className="sm:w-4" />
+            <span className="hidden sm:inline">Export All</span>
+            <span className="sm:hidden">All</span>
+          </button>
+
+          {exporting && (
+            <span className="text-xs font-bold text-[#3a1224]/40 animate-pulse">Exporting...</span>
+          )}
         </div>
       </div>
 

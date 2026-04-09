@@ -27,6 +27,7 @@ const organizerEventSchema = new mongoose.Schema(
     isPublic: { type: Boolean, default: true, index: true },
     accessCode: { type: String, trim: true },
     bannerUrl: { type: String, trim: true },
+    bannerS3Key: { type: String, trim: true }, // For S3 cleanup purposes
     // Event Timing
     startDateTime: { type: Date },
     endDateTime: { type: Date },

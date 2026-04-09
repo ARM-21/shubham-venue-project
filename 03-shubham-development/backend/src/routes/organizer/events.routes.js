@@ -3,6 +3,9 @@ import { isAuthenticated, isOrganizer } from "../../middleware/auth.middleware.j
 import { auditMiddleware } from "../../middleware/audit.middleware.js";
 
 import * as organizerEventsController from "../../controllers/admin/organizer-events.controller.js";
+import { exportEventAttendees, exportAllEventAttendees } from "../../services/event/export.service.js";
+import { success, httpError } from "../../utils/http.utils.js";
+import OrganizerEvent from "../../models/OrganizerEvent.js";
 
 const router = express.Router();
 
@@ -20,5 +23,69 @@ router.post("/events", organizerEventsController.createOrganizerEvent);
  * Get organizer's own events
  */
 router.get("/events", organizerEventsController.getOrganizerEvents);
+
+/**
+ * Export checked-in attendees for an event (CSV format)
+ * GET /api/v1/organizer/events/:eventId/attendees/export
+ */
+router.get("/events/:eventId/attendees/export", async (req, res, next) => {
+  try {
+    const { eventId } = req.params;
+    const organizerId = req.currentUser._id;
+
+    // Verify organizer owns this event
+    const event = await OrganizerEvent.findById(eventId);
+    if (!event) {
+      return httpError(res, 404, "Event not found");
+    }
+
+    if (event.organizerId.toString() !== organizerId.toString()) {
+      return httpError(res, 403, "You don't have permission to export attendees for this event");
+    }
+
+    // Generate CSV
+    const { csv, filename } = await exportEventAttendees(eventId);
+
+    // Set response headers for file download
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (error) {
+    console.error("[Export Attendees Error]", error);
+    httpError(res, 500, error.message || "Failed to export attendees");
+  }
+});
+
+/**
+ * Export all attendees for an event including cancelled/refunded (CSV format)
+ * GET /api/v1/organizer/events/:eventId/attendees/export-all
+ */
+router.get("/events/:eventId/attendees/export-all", async (req, res, next) => {
+  try {
+    const { eventId } = req.params;
+    const organizerId = req.currentUser._id;
+
+    // Verify organizer owns this event
+    const event = await OrganizerEvent.findById(eventId);
+    if (!event) {
+      return httpError(res, 404, "Event not found");
+    }
+
+    if (event.organizerId.toString() !== organizerId.toString()) {
+      return httpError(res, 403, "You don't have permission to export attendees for this event");
+    }
+
+    // Generate CSV
+    const { csv, filename } = await exportAllEventAttendees(eventId);
+
+    // Set response headers for file download
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (error) {
+    console.error("[Export All Attendees Error]", error);
+    httpError(res, 500, error.message || "Failed to export attendees");
+  }
+});
 
 export default router;
