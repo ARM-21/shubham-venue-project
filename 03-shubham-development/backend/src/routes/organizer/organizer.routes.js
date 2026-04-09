@@ -14,6 +14,7 @@ import Review from "../../models/Review.js";
 import AdminNotification from "../../models/AdminNotification.js";
 import { onEventApproved } from "../../services/trustScore.service.js";
 import { sendEventCancellationEmail } from "../../services/email/nodemailer.service.js";
+import { generateEventBannerUploadUrl } from "../../services/event/upload.service.js";
 import ENV from "../../config/env.config.js";
 
 const router = express.Router();
@@ -1103,6 +1104,99 @@ router.post("/events/:id/duplicate", isAuthenticated, isOrganizer, async (req, r
     return res.status(201).json({ 
       message: "Event duplicated successfully", 
       event: duplicatedEvent 
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/**
+ * POST /api/v1/organizer/events/banner/upload-url
+ * Get presigned URL for event banner upload
+ */
+router.post("/events/banner/upload-url", isAuthenticated, isOrganizer, async (req, res, next) => {
+  try {
+    const { fileExtension, contentType } = req.body || {};
+    
+    if (!fileExtension || !contentType) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "fileExtension and contentType are required" 
+      });
+    }
+
+    const data = await generateEventBannerUploadUrl(fileExtension, contentType);
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/**
+ * POST /api/v1/organizer/events/:eventId/banner/confirm
+ * Confirm event banner upload and save to database
+ */
+router.post("/events/:eventId/banner/confirm", isAuthenticated, isOrganizer, async (req, res, next) => {
+  try {
+    const { eventId } = req.params;
+    const { s3Key, publicUrl } = req.body || {};
+    const organizerId = req.currentUser._id;
+
+    // Validate input
+    if (!s3Key || !publicUrl) {
+      return res.status(400).json({
+        success: false,
+        message: "S3 key and public URL are required"
+      });
+    }
+
+    // Validate event ID
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event ID"
+      });
+    }
+
+    // Verify organizer owns this event
+    const event = await OrganizerEvent.findOne({ 
+      _id: eventId, 
+      organizerId 
+    });
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found or unauthorized"
+      });
+    }
+
+    // Get old banner S3 key for cleanup
+    const oldS3Key = event.bannerS3Key;
+
+    // Update event with new banner
+    const updated = await OrganizerEvent.findByIdAndUpdate(
+      eventId,
+      {
+        bannerUrl: publicUrl,
+        bannerS3Key: s3Key,
+      },
+      { new: true }
+    ).lean();
+
+    // Not awaiting deletion to avoid timeout - let it happen in background
+    if (oldS3Key && oldS3Key !== s3Key) {
+      // Async deletion without awaiting
+      setTimeout(() => {
+        // TODO: Implement S3 deletion if needed
+        console.log(`Scheduled deletion of old banner: ${oldS3Key}`);
+      }, 0);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Event banner uploaded successfully",
+      event: updated
     });
   } catch (err) {
     return next(err);

@@ -41,7 +41,7 @@ export default function ReportEventButton({ eventId, eventName, className = '' }
 
   if (isLoading) {
     return (
-      <button disabled className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-[#C0A04C]/30 bg-[#C0A04C]/5 text-[#3a1224]/50 font-semibold text-sm opacity-50">
+      <button disabled className="inline-flex items-center gap-2 lg:px-4 lg:py-2.5 rounded-lg border-2 border-[#C0A04C]/30 bg-[#C0A04C]/5 text-[#3a1224]/50 font-semibold text-sm  opacity-50">
         <AlertCircle size={16} />
         Loading...
       </button>
@@ -65,7 +65,7 @@ export default function ReportEventButton({ eventId, eventName, className = '' }
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-[#C0A04C]/50 bg-[#C0A04C]/10 text-[#3a1224] hover:border-[#C0A04C] hover:bg-[#C0A04C]/20 transition font-semibold text-sm ${className}`}
+        className={`inline-flex items-center gap-2 lg:px-4 lg:py-2.5 rounded-lg border-2 border-[#C0A04C]/50 bg-[#C0A04C]/10  hover:border-[#C0A04C] hover:bg-[#C0A04C]/20 transition font-semibold py-2 px-2 text-red-500 text-[10px] lg:text-sm ${className}`}
       >
         <AlertCircle size={16} />
         Report Event

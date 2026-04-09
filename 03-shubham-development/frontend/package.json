@@ -19,6 +19,7 @@
     "axios": "^1.13.2",
     "chart.js": "^4.4.0",
     "framer-motion": "^12.34.3",
+    "json2csv": "6.0.0-alpha.2",
     "lucide-react": "^0.545.0",
     "luxon": "^3.7.2",
     "next": "15.5.9",
