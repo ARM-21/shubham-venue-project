@@ -12,6 +12,20 @@ const ALLOWED_STATUS_TRANSITIONS = {
   "SUSPENDED": []
 };
 
+// Function to derive event time range based on booking slot (matches backend logic)
+function deriveEventTimeRange(slot) {
+  if (slot === "morning") {
+    return { startHour: 7, endHour: 12, displayStart: "7:00 AM", displayEnd: "12:00 PM" };
+  } else if (slot === "afternoon") {
+    return { startHour: 13, endHour: 18, displayStart: "1:00 PM", displayEnd: "6:00 PM" };
+  } else if (slot === "evening") {
+    return { startHour: 19, endHour: 22, displayStart: "7:00 PM", displayEnd: "10:30 PM" };
+  } else if (slot === "wholeday") {
+    return { startHour: 7, endHour: 22, displayStart: "7:00 AM", displayEnd: "10:30 PM" };
+  }
+  return { startHour: 0, endHour: 24, displayStart: "12:00 AM", displayEnd: "12:00 AM" };
+}
+
 export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
   const [bannerPreview, setBannerPreview] = useState(event?.bannerUrl || "");
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -50,6 +64,9 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
   // Validate event date (booking date)
   const isEventDateInPast = bookingDate && new Date(bookingDate) < new Date();
 
+  // Get slot timing info for display
+  const slotTimingInfo = event?.bookingId?.slot ? deriveEventTimeRange(event.bookingId.slot) : null;
+
   // Update preview when banner URL changes
   if (bannerUrl && bannerUrl !== bannerPreview) {
     setBannerPreview(bannerUrl);
@@ -69,6 +86,21 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
       if (endDate <= startDate) {
         toast.error("❌ Registration end time must be after start time");
         return;
+      }
+
+      // NEW: Validate event times are within booking slot range
+      if (event?.bookingId?.slot) {
+        const slotRange = deriveEventTimeRange(event.bookingId.slot);
+        const startHour = startDate.getHours();
+        const endHour = endDate.getHours();
+
+        // Check if event times exceed slot boundaries
+        if (startHour < slotRange.startHour || endHour > slotRange.endHour) {
+          toast.error(
+            `❌ Event times must be within the ${event.bookingId.slot} slot (${slotRange.displayStart} to ${slotRange.displayEnd})\n\nYou selected: ${startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} to ${endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
+          );
+          return;
+        }
       }
     }
     
@@ -286,6 +318,26 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
                 <p className="text-xs sm:text-sm text-red-800 font-bold">
                   Registration end time must be after start time.
                 </p>
+              </div>
+            )}
+
+            {/* NEW: Slot restriction info */}
+            {event?.bookingId?.slot && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex gap-2">
+                <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="text-xs sm:text-sm text-blue-800 font-bold">
+                  <p>📅 Booked slot: <span className="uppercase font-black">{event.bookingId.slot}</span></p>
+                  <p className="mt-1 text-blue-700">Event times must stay within this slot range. Contact admin to change the booking slot.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Slot timing guide */}
+            {slotTimingInfo && (
+              <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <p className="text-xs sm:text-sm font-black text-emerald-900 uppercase tracking-widest mb-2">✓ Allowed Event Times</p>
+                <p className="text-sm sm:text-base font-bold text-emerald-700">{slotTimingInfo.displayStart} - {slotTimingInfo.displayEnd}</p>
+                <p className="text-xs text-emerald-700 mt-2 font-medium">Select times that fall between these hours</p>
               </div>
             )}
             
