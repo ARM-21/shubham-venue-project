@@ -4,10 +4,10 @@ import { ShieldCheck, Star, Clock, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const features = [
-  { icon: ShieldCheck, text: "Verified Luxury Venue", sub: "Government Certified" },
-  { icon: Star, text: "5-Star Hospitality", sub: "Award Winning Service" },
-  { icon: Clock, text: "24/7 Concierge", sub: "Always At Your Service" },
-  { icon: Heart, text: "Exquisite Catering", sub: "Chef-Curated Menus" },
+  { icon: ShieldCheck, text: "Certified Venues", sub: "Government Verified" },
+  { icon: Star, text: "Professional Service", sub: "Quality Assured" },
+  { icon: Clock, text: "Dedicated Support", sub: "Available Always" },
+  { icon: Heart, text: "Exceptional Menus", sub: "Expert Chefs" },
 ];
 
 export default function TrustBar() {

@@ -16,12 +16,17 @@ export default function SiteLayout({ children }) {
     '/payment/verify',
     '/tickets',
     '/profile',
-    '/auth'
+    '/auth',
+    '/menus/'
   ];
 
   // Pages where navbar and footer should NOT appear (full-screen flows)
   const noNavbarPages = [
     '/auth/onboarding',
+    '/auth/login',
+    '/auth/register',
+    '/auth/forgot-password',
+    '/menus/'
   ];
 
   // Check if current page should hide navbar/header
@@ -41,7 +46,7 @@ export default function SiteLayout({ children }) {
       {!shouldHideNavbar && (
         <div className="w-full bg-[#3a1224] text-white/80 py-2.5 border-b border-white/10 relative z-50 overflow-x-hidden">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 flex justify-between items-center gap-2 sm:gap-4 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em]">
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 sm:gap-6">
               <div className="flex items-center gap-2 hover:text-[#C0A04C] transition-colors cursor-default">
                 <MapPin size={12} className="text-[#C0A04C]" />
                 <span className="text-white/90">Waling, Syangja, Nepal</span>
@@ -53,9 +58,12 @@ export default function SiteLayout({ children }) {
             </div>
             
             <div className="flex items-center gap-4">
+              <span className="text-[#C0A04C] text-[9px] sm:text-[10px] font-black px-2 py-0.5 bg-amber-500/15 rounded border border-amber-500/30">
+                <span className="inline-block w-1.5 h-1.5 bg-[#C0A04C] rounded-full animate-pulse"></span> UNDER DEVELOPMENT
+              </span>
               <div className="flex items-center gap-2 text-[#C0A04C] animate-pulse">
                 <Sparkles size={12} />
-                <span>Royal Hospitality</span>
+                <span className="hidden sm:inline">Royal Hospitality</span>
               </div>
             </div>
           </div>

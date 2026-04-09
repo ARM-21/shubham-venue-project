@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Info } from "lucide-react";
 import MenuSkeleton from "components/menu/menus-page/MenuSkeleton";
 import FilterSkeleton from "components/menu/menus-page/FilterSkeleton";
 import SearchFilter from "components/menu/menus-page/SearchFilter";
@@ -70,52 +71,63 @@ export default function MenuListPage() {
 
     if (isLoading) {
         return (
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="mb-8">
-                    <div className="h-10 w-64 bg-gray-200 rounded animate-pulse mb-4"></div>
-                    <div className="h-6 w-96 bg-gray-200 rounded animate-pulse"></div>
+            <main className="min-h-screen bg-[#fdfaf6]">
+                <div className="bg-gradient-to-br from-[#3a1224] to-[#3a1224]/90 text-white py-12 sm:py-16 lg:py-20">
+                    <div className="mx-auto px-4 sm:px-6 lg:px-12 max-w-7xl">
+                        <div className="h-16 w-96 bg-white/10 rounded-lg animate-pulse mb-4"></div>
+                        <div className="h-8 w-64 bg-white/10 rounded-lg animate-pulse"></div>
+                    </div>
                 </div>
-                <FilterSkeleton />
-                <MenuSkeleton />
+                <div className="mx-auto px-4 sm:px-6 lg:px-12 max-w-7xl py-8">
+                    <FilterSkeleton />
+                    <MenuSkeleton />
+                </div>
             </main>
         );
     }
 
     return (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="min-h-screen bg-[#fdfaf6]">
             {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Our Menu Packages</h1>
-                <p className="text-gray-600">
-                    Choose from our curated selection of menu packages for your special occasion.
-                    {menus.length > 0 && (
-                        <span className="font-medium ml-1">{menus.length} packages available</span>
+            <div className="bg-gradient-to-br from-[#3a1224] to-[#3a1224]/90 text-white py-12 sm:py-16 lg:py-20">
+                <div className="mx-auto px-4 sm:px-6 lg:px-12 max-w-7xl">
+                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-black mb-4 leading-tight">Our Menu Packages</h1>
+                    <p className="text-white/80 text-lg font-medium max-w-2xl">
+                        Choose from our curated selection of premium menu packages for your special occasion.
+                        {menus.length > 0 && (
+                            <span className="block mt-2 text-[#C0A04C] font-black text-xl">{menus.length} packages available</span>
+                        )}
+                    </p>
+                </div>
+            </div>
+
+            {/* Filters & Content */}
+            <div className="mx-auto px-4 sm:px-6 lg:px-12 max-w-7xl py-8">
+                <SearchFilter searchTerm={searchTerm} setSearchTerm={setSearchTerm} sortBy={sortBy} setSortBy={setSortBy} categories={categories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
+                
+                {/* Results Info */}
+                <div className="flex justify-between items-center mb-8 mt-6 pb-6 border-b border-[#3a1224]/10">
+                    <p className="text-[#3a1224]/70 font-semibold">
+                        Showing <span className="font-black text-[#3a1224]">{filteredMenus.length}</span> menu package(s)
+                    </p>
+                    {searchTerm && (
+                        <button
+                            onClick={() => setSearchTerm("")}
+                            className="text-sm text-[#C0A04C] hover:text-[#3a1224] cursor-pointer font-black uppercase tracking-wider transition-colors"
+                        >
+                            Clear search
+                        </button>
                     )}
-                </p>
-            </div>
+                </div>
 
-            <SearchFilter searchTerm={searchTerm} setSearchTerm={setSearchTerm} sortBy={sortBy} setSortBy={setSortBy} categories={categories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
-            {/* Results Info */}
-            <div className="flex justify-between items-center mb-6">
-                <p className="text-gray-600">
-                    Showing <span className="font-semibold">{filteredMenus.length}</span> menu package(s)
-                </p>
-                {searchTerm && (
-                    <button
-                        onClick={() => setSearchTerm("")}
-                        className="text-sm text-[#3a1224] hover:text-[#ce3907] cursor-pointer font-medium"
-                    >
-                        Clear search
-                    </button>
-                )}
-            </div>
-
-            {/* Menus Grid */}
-            {filteredMenus.length === 0 ? (
-                <div className="bg-white rounded-lg shadow p-12 text-center">
-                    <Image src="/assets/utils-icons/sad.svg" alt="No menus found" width={64} height={64} className="mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No menus found</h3>
-                    <p className="text-gray-600 mb-4">
+                {/* Menus Grid */}
+                {filteredMenus.length === 0 ? (
+                <div className="bg-white rounded-[2rem] border border-[#3a1224]/10 shadow-lg p-12 sm:p-16 text-center">
+                    <div className="inline-block p-4 bg-red-50 rounded-2xl mb-6">
+                        <Info className="w-12 h-12 text-red-500" />
+                    </div>
+                    <h3 className="text-2xl font-black text-[#3a1224] mb-3">No Menus Found</h3>
+                    <p className="text-[#3a1224]/60 font-medium mb-8 max-w-xl mx-auto">
                         {searchTerm
                             ? `No menus match "${searchTerm}". Try a different search.`
                             : "No menus available in this category."}
@@ -126,102 +138,81 @@ export default function MenuListPage() {
                                 setSearchTerm("");
                                 setSelectedCategory("all");
                             }}
-                            className="px-4 py-2 bg-[#3a1224] text-white rounded-lg hover:bg-white hover:text-black hover:border-black border-1 transition-colors cursor-pointer "
+                            className="px-8 py-3 bg-gradient-to-r from-[#C0A04C] to-[#D4B563] text-[#3a1224] rounded-full font-black uppercase tracking-widest hover:shadow-lg transition-all"
                         >
-                            View all menus
+                            View All Menus
                         </button>
                     )}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
                     {filteredMenus.map((menu) => (
-                        <div
+                        <Link
                             key={menu.id || menu.slug}
-                            className="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow duration-300"
+                            href={ROUTES.SITE.MENU_DETAILS(menu.slug)}
+                            className="group bg-white rounded-[2rem] border border-[#3a1224]/5 overflow-hidden hover:shadow-2xl hover:shadow-[#3a1224]/10 transition-all duration-300 transform hover:scale-105"
                         >
                             {/* Menu Image */}
-                            <div className="relative h-48 w-full bg-gradient-to-br from-[#3a1224] to-[#5c3d4a]">
+                            <div className="relative h-48 sm:h-56 w-full bg-gradient-to-br from-[#3a1224] to-[#3a1224]/80 overflow-hidden">
                                 <Image
-                                    src={menu.image || menu.imageUrl || STATIC_MENU_IMAGES[menu.slug] || "/assets/business-images/menu-images/placeholder.jpg"}
+                                    src={menu.heroImage || menu.image || menu.imageUrl || "/assets/business-images/menu-images/placeholder.jpg"}
                                     alt={menu.name || "Menu"}
                                     fill
-                                    className="object-cover"
+                                    className="object-cover group-hover:scale-110 transition-transform duration-500"
                                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                    priority={false}
                                 />
-                                {menu.category && (
-                                    <div className="absolute top-3 left-3">
-                                        <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium rounded-full">
-                                            {menu.category}
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/80 via-[#3a1224]/20 to-transparent" />
+                                
+                                {/* Tags - Absolute positioned */}
+                                <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                                    {menu.isCustomMenu && (
+                                        <span className="px-3 py-1 bg-blue-500/90 backdrop-blur-sm text-white text-xs font-black uppercase tracking-wider rounded-full border border-blue-400/50">
+                                            Customizable
                                         </span>
-                                    </div>
-                                )}
+                                    )}
+                                    {menu.sections && Array.isArray(menu.sections) && (
+                                        <span className="px-3 py-1 bg-[#C0A04C]/90 backdrop-blur-sm text-[#3a1224] text-xs font-black uppercase tracking-wider rounded-full border border-[#C0A04C]/50">
+                                            {menu.sections.length} sections
+                                        </span>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Menu Info */}
-                            <div className="p-5">
-                                <div className="mb-4">
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
-                                        {menu.name}
-                                    </h3>
-                                    <p className="text-gray-600 text-sm line-clamp-2 mb-3">
-                                        {menu.description || "No description available"}
-                                    </p>
+                            <div className="p-6 sm:p-8">
+                                <h3 className="text-xl sm:text-2xl font-display font-black text-[#3a1224] mb-2 group-hover:text-[#C0A04C] transition-colors line-clamp-1">
+                                    {menu.name}
+                                </h3>
+                                <p className="text-[#3a1224]/60 text-sm font-medium line-clamp-2 mb-6 min-h-10">
+                                    {menu.description || "Premium menu thoughtfully curated for your special event."}
+                                </p>
 
-                                    {/* Price and Dish Count */}
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="text-lg font-bold text-[#4e3842]">
+                                {/* Price and Dish Count */}
+                                <div className="flex items-end justify-between mb-6 pb-6 border-b border-[#3a1224]/10">
+                                    <div>
+                                        <p className="text-xs font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Price per person</p>
+                                        <p className="text-2xl sm:text-3xl font-display font-black text-[#3a1224]">
                                             {typeof menu.pricePerPerson === "number"
-                                                ? `${menu.pricePerPerson} ${menu.currency || "NPR"}`
-                                                : "Price on request"}
-                                            <span className="text-sm font-normal text-gray-500 block">
-                                                per person
-                                            </span>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="font-semibold text-gray-900">
-                                                {menu.dishCount || 0}
-                                            </div>
-                                            <div className="text-xs text-gray-500">dishes</div>
-                                        </div>
+                                                ? `NPR ${menu.pricePerPerson.toLocaleString()}`
+                                                : "Custom"}
+                                        </p>
                                     </div>
-
-                                    {/* Tags */}
-                                    <div className="flex flex-wrap gap-2 mb-4">
-                                        {menu.isCustomMenu && (
-                                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
-                                                Customizable
-                                            </span>
-                                        )}
-                                        {menu.sections && Array.isArray(menu.sections) && (
-                                            <span className="px-2 py-1 bg-blue-100 text-black-800 text-xs font-medium rounded">
-                                                {menu.sections.length} sections
-                                            </span>
-                                        )}
+                                    <div className="text-right">
+                                        <p className="text-lg sm:text-2xl font-black text-[#C0A04C]">{menu.dishCount || 0}</p>
+                                        <p className="text-xs font-bold text-[#3a1224]/50 uppercase tracking-wider">Dishes</p>
                                     </div>
                                 </div>
 
-                                {/* Action Buttons */}
-                                <div className="flex gap-3">
-                                    <Link
-                                        href={ROUTES.SITE.MENU_DETAILS(menu.slug)}
-                                        className="flex-1 text-center px-4 py-2 bg-white border-1 border-gray-200  text-black rounded-lg hover:border-black transition-colors font-medium"
-                                    >
-                                        View Details
-                                    </Link>
-                                    {/* <button className="px-4 py-2 border border-[#421c2d] text-[#421c2d] rounded-lg hover:bg-[#421c2d] hover:text-white transition-colors">
-                                        Select
-                                    </button> */}
-                                </div>
+                                {/* View Details Button */}
+                                <button className="w-full px-6 py-3 bg-gradient-to-r from-[#C0A04C] to-[#D4B563] text-[#3a1224] rounded-full font-black text-sm uppercase tracking-widest hover:shadow-lg transition-all group-hover:shadow-[#C0A04C]/30">
+                                    View Full Menu →
+                                </button>
                             </div>
-                        </div>
+                        </Link>
                     ))}
                 </div>
             )}
-
-            {/* Quick Stats */}
-            {/* <MenuStats menus={filteredMenus} /> */}
-
+            </div>
         </main>
     );
 }

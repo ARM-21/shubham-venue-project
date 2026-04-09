@@ -13,32 +13,8 @@ export default function FeaturedVenues() {
   const featuredVenues = hallsData?.halls || [];
 
   return (
-    <div className="px-6 py-5">
+    <div>
       <div className="max-w-8xl mx-auto">
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 px-4">
-          <div className="max-w-2xl text-center md:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#3a1224]/5 border border-[#3a1224]/10 text-[#3a1224] text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
-              Our Collection
-            </div>
-            <h2 className="text-4xl md:text-6xl font-display font-bold text-[#3a1224] tracking-tight">
-              Featured <span className="text-[#C0A04C] italic font-serif">Venues</span>
-            </h2>
-            <p className="mt-6 text-[#3a1224]/60 text-lg md:text-xl font-light leading-relaxed">
-              Find the perfect space for your big day. From grand halls to cozy rooms, we have it all.
-            </p>
-          </div>
-          <button 
-            onClick={() => router.push(ROUTES.SITE.VENUES())}
-            className="group flex items-center justify-center py-4 px-10 rounded-full bg-[#3a1224] text-white text-xs font-bold uppercase tracking-widest shadow-xl hover:-translate-y-1 transition-all duration-300"
-          >
-            See all venues
-            <svg className="w-4 h-4 ml-3 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </button>
-        </div>
-
         {error && (
           <div className="bg-red-50 border border-red-100 p-6 rounded-2xl text-red-600 text-center mb-8 font-medium">
             Failed to load venues
@@ -76,7 +52,7 @@ export default function FeaturedVenues() {
                     />
                     <div className="absolute top-4 right-4 z-10">
                       <div className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white uppercase tracking-widest border border-white/10">
-                        ₨ {v.price || 'Ask'}
+                        NPR {v.price ? v.price.toLocaleString() : 'Contact'}
                       </div>
                     </div>
                   </div>
@@ -104,10 +80,10 @@ export default function FeaturedVenues() {
 
                     <div className="flex items-center justify-between pt-4 border-t border-gray-50">
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Price Starts</span>
-                        <span className="text-sm font-bold text-[var(--maroon-primary)]">₨ {v.pricePerHour || v.price || 'Ask'}</span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Capacity</span>
+                        <span className="text-sm font-bold text-[#3a1224]">{v.capacity || 0} Guests</span>
                       </div>
-                      <div className="w-10 h-10 rounded-full bg-[var(--maroon-primary)]/5 text-[var(--maroon-primary)] flex items-center justify-center group-hover:bg-[var(--maroon-primary)] group-hover:text-white transition-all duration-300">
+                      <div className="w-10 h-10 rounded-full bg-[#3a1224]/5 text-[#3a1224] flex items-center justify-center group-hover:bg-[#3a1224] group-hover:text-white transition-all duration-300">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>

@@ -1,41 +1,58 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, Utensils, Users, Banknote, Leaf, Info, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, Utensils, Users, Banknote, Leaf, Info, CheckCircle2, ChevronDown } from "lucide-react";
 import MenuPageSkeletonLoading from "components/menu/page/MenuPageSkeletonLoading";
 import { ROUTES } from "config/routes";
 import { useQueryMenuBySlug } from "@queries/menu";
 
 export default function Page({ params }) {
-  const { menuSlug } = params;
+  const { menuSlug } = React.use(params);
   const { data: menu, isLoading, isError } = useQueryMenuBySlug(menuSlug);
+  const [expandedSections, setExpandedSections] = useState(new Set([0])); // First section open by default
+  const [expandedAllDishes, setExpandedAllDishes] = useState(new Set()); // Track which sections show all dishes
+  const [imageError, setImageError] = useState(false);
 
-  const STATIC_MENU_IMAGES = {
-    "gold-menu": "/assets/business-images/menu-images/gold.jpg",
-    "silver-menu": "/assets/business-images/menu-images/silver.jpg",
-    "diamond-menu": "/assets/business-images/menu-images/diamond.jpg",
+  const imageSrc = menu?.heroImage || null;
+
+  const toggleSection = (idx) => {
+    const newExpanded = new Set(expandedSections);
+    if (newExpanded.has(idx)) {
+      newExpanded.delete(idx);
+    } else {
+      newExpanded.add(idx);
+    }
+    setExpandedSections(newExpanded);
   };
 
-  const imageSrc = menu?.image || menu?.imageUrl || (menu?.slug ? (STATIC_MENU_IMAGES[menu.slug] ?? "/assets/business-images/menu-images/placeholder.jpg") : "/assets/business-images/menu-images/placeholder.jpg");
+  const toggleAllDishes = (idx) => {
+    const newExpanded = new Set(expandedAllDishes);
+    if (newExpanded.has(idx)) {
+      newExpanded.delete(idx);
+    } else {
+      newExpanded.add(idx);
+    }
+    setExpandedAllDishes(newExpanded);
+  };
 
   if (isLoading) return <MenuPageSkeletonLoading />;
 
   if (!menu || isError) {
     return (
-      <main className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
-        <div className="max-w-md w-full bg-white shadow-xl rounded-2xl p-8 text-center border border-gray-100">
-          <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-             <Info className="text-red-500 size-8" />
+      <main className="min-h-screen bg-[#fdfaf6] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-[2rem] p-8 text-center border border-[#3a1224]/5 shadow-sm">
+          <div className="bg-red-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
+             <Info className="text-red-500 w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Menu Not Found</h1>
-          <p className="text-gray-500 mb-8">
-            The menu <span className="font-semibold text-gray-800">"{menuSlug}"</span> doesn't exist or has been moved.
+          <h1 className="text-2xl font-black text-[#3a1224] mb-2 uppercase tracking-wider">Menu Not Found</h1>
+          <p className="text-[#3a1224]/60 mb-8 font-medium">
+            The menu <span className="font-black text-[#3a1224]">"{menuSlug}"</span> doesn't exist or has been moved.
           </p>
           <Link 
             href={ROUTES.HOME} 
-            className="block w-full py-3 bg-[#250815] text-white rounded-xl font-semibold hover:brightness-125 transition-all"
+            className="block w-full py-3 bg-gradient-to-r from-[#C0A04C] to-[#D4B563] text-[#3a1224] rounded-full font-black text-sm uppercase tracking-widest hover:shadow-lg transition-all"
           >
             Return to Home
           </Link>
@@ -45,130 +62,196 @@ export default function Page({ params }) {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-20">
-      {/* Sticky Top Navigation */}
-      <nav className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href={ROUTES.HOME} className="flex items-center gap-2 text-gray-600 hover:text-[#250815] transition-colors font-medium">
-            <ChevronLeft className="size-5" /> Back to Menus
-          </Link>
-          <div className="hidden md:block font-bold text-[#250815]">{menu.name}</div>
-          <button className="bg-[#250815] text-white px-5 py-2 rounded-lg text-sm font-bold hover:brightness-125 transition-all">
-            Select Menu
-          </button>
+    <main className="min-h-screen bg-[#fdfaf6]">
+      {/* Header/Navigation */}
+      <nav className="sticky top-0 z-30 bg-white/98 backdrop-blur-lg border-b border-[#3a1224]/10 shadow-sm">
+        <div className="mx-auto px-4 sm:px-6 lg:px-12">
+          <div className="h-16 flex items-center justify-between">
+            <Link href={ROUTES.SITE.MENUS} className="flex items-center gap-2 text-[#3a1224]/60 hover:text-[#C0A04C] transition-colors font-bold text-sm uppercase tracking-wider group">
+              <ChevronLeft className="size-5 group-hover:scale-110 transition-transform" /> Back to Menus
+            </Link>
+            <div className="hidden md:flex items-center gap-8">
+            <div className="text-right">
+                <h2 className="font-display font-black text-[#3a1224]">{menu.name}</h2>
+                <p className="text-[#C0A04C] text-sm font-bold mt-1">
+                  NPR {typeof menu.pricePerPerson === "number" ? menu.pricePerPerson.toLocaleString() : "Custom"} per person
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Mobile Menu Name */}
+          <div className="md:hidden px-2 py-3 border-t border-[#3a1224]/5">
+            <h3 className="font-display font-black text-[#3a1224] mb-2">{menu.name}</h3>
+            <div className="flex items-center justify-between text-xs font-semibold text-[#3a1224]/60">
+              <span>NPR {typeof menu.pricePerPerson === "number" ? menu.pricePerPerson.toLocaleString() : "Custom"} per person</span>
+              <span>•</span>
+              <span>{menu.dishCount ?? "—"} dishes</span>
+            </div>
+          </div>
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-6 mt-8">
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="mx-auto px-4 sm:px-6 lg:px-12 pt-10 pb-20 max-w-7xl">
+        <div className="bg-white rounded-[3rem] shadow-xl border border-[#3a1224]/5 overflow-hidden">
           {/* Hero Section */}
-          <div className="relative h-[350px] w-full">
-            <Image src={imageSrc} alt={menu.name} fill className="object-cover" priority />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            <div className="absolute bottom-8 left-8 text-white">
-              <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-widest mb-3 inline-block border border-white/30">
-                {menu.isCustomMenu ? "Custom Tier" : "Standard Tier"}
-              </span>
-              <h1 className="text-5xl font-black">{menu.name}</h1>
+          <div className="relative h-[300px] sm:h-[400px] lg:h-[550px] w-full bg-gradient-to-br from-[#3a1224] to-[#3a1224]/80 group">
+            {imageSrc && !imageError ? (
+              <Image 
+                src={imageSrc} 
+                alt={menu.name} 
+                fill 
+                className="object-cover group-hover:scale-105 transition-transform duration-500"
+                priority 
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#3a1224]/40 to-[#3a1224]">
+                <div className="text-center text-white/40">
+                  <Utensils className="w-16 h-16 mx-auto mb-3" />
+                  <p className="text-sm font-bold">Menu Image</p>
+                </div>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/90 via-[#3a1224]/40 to-transparent" />
+            <div className="absolute bottom-8 left-8 right-8 text-white">
+              <div className="flex items-center gap-3 mb-6">
+                <span className="px-4 py-2 bg-[#C0A04C]/20 backdrop-blur-lg rounded-full text-xs font-black uppercase tracking-widest border border-[#C0A04C]/40 inline-block">
+                  {menu.isCustomMenu ? "✨ Custom Tier" : "⭐ Standard Tier"}
+                </span>
+              </div>
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-black leading-tight mb-2">{menu.name}</h1>
+              <p className="text-white/80 text-lg font-medium max-w-2xl">{menu.description || "Carefully selected dishes for your special occasion"}</p>
             </div>
           </div>
 
-          <div className="p-8">
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-              <div className="bg-gray-50 p-4 rounded-2xl flex items-center gap-4 border border-gray-100">
-                <div className="bg-[#250815]/5 p-3 rounded-xl text-[#250815]"><Utensils className="size-6" /></div>
-                <div>
-                  <p className="text-xs text-gray-500 font-bold uppercase">Total Dishes</p>
-                  <p className="text-lg font-bold text-gray-900">{menu.dishCount ?? "—"}</p>
+          <div className="p-8 sm:p-12 lg:p-16 xl:p-20">
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-16 pb-16 border-b border-[#3a1224]/10">
+              <div className="bg-gradient-to-br from-[#fdfaf6] to-white p-8 rounded-2xl border border-[#3a1224]/5 hover:shadow-lg hover:border-[#C0A04C]/30 transition-all duration-300">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-gradient-to-br from-[#C0A04C]/20 to-[#C0A04C]/10 p-3 rounded-lg text-[#C0A04C]"><Utensils className="size-5" /></div>
+                  <p className="text-xs text-[#3a1224]/50 font-bold uppercase">Dishes</p>
                 </div>
+                <p className="text-4xl font-display font-black text-[#3a1224]">{menu.dishCount ?? "—"}</p>
               </div>
-              <div className="bg-gray-50 p-4 rounded-2xl flex items-center gap-4 border border-gray-100">
-                <div className="bg-emerald-50 p-3 rounded-xl text-emerald-600"><Banknote className="size-6" /></div>
-                <div>
-                  <p className="text-xs text-gray-500 font-bold uppercase">Price Per Guest</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {typeof menu.pricePerPerson === "number" ? `Rs. ${menu.pricePerPerson.toLocaleString()}` : "Price on Request"}
-                  </p>
+              
+              <div className="bg-gradient-to-br from-[#fdfaf6] to-white p-8 rounded-2xl border border-[#3a1224]/5 hover:shadow-lg hover:border-[#C0A04C]/30 transition-all duration-300">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-gradient-to-br from-emerald-100/50 to-emerald-50 p-3 rounded-lg text-emerald-600"><Banknote className="size-5" /></div>
+                  <p className="text-xs text-[#3a1224]/50 font-bold uppercase">Price Per Person</p>
                 </div>
+                <p className="text-4xl font-display font-black text-[#3a1224]">
+                  {typeof menu.pricePerPerson === "number" ? `NPR ${menu.pricePerPerson.toLocaleString()}` : "Custom"}
+                </p>
               </div>
-              <div className="bg-gray-50 p-4 rounded-2xl flex items-center gap-4 border border-gray-100">
-                <div className="bg-blue-50 p-3 rounded-xl text-blue-600"><Users className="size-6" /></div>
-                <div>
-                  <p className="text-xs text-gray-500 font-bold uppercase">Type</p>
-                  <p className="text-lg font-bold text-gray-900">{menu.isCustomMenu ? "Tailored" : "Fixed"}</p>
+              
+              <div className="bg-gradient-to-br from-[#fdfaf6] to-white p-8 rounded-2xl border border-[#3a1224]/5 hover:shadow-lg hover:border-[#C0A04C]/30 transition-all duration-300">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-gradient-to-br from-blue-100/50 to-blue-50 p-3 rounded-lg text-blue-600"><Users className="size-5" /></div>
+                  <p className="text-xs text-[#3a1224]/50 font-bold uppercase">Menu Type</p>
                 </div>
+                <p className="text-4xl font-display font-black text-[#3a1224]">{menu.isCustomMenu ? "Custom" : "Fixed"}</p>
               </div>
             </div>
 
-            <div className="mb-10">
-              <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-2">Description</h2>
-              <p className="text-gray-600 leading-relaxed text-lg">{menu.description || "No description provided for this menu tier."}</p>
-            </div>
+            {/* Description */}
+            {menu.description && (
+              <div className="mb-16 pb-12 border-b border-[#3a1224]/5">
+                <h3 className="text-sm font-black text-[#3a1224]/50 uppercase tracking-wider mb-4">About This Menu</h3>
+                <p className="text-[#3a1224]/70 leading-relaxed text-base font-medium">{menu.description}</p>
+              </div>
+            )}
 
-            {/* Sections */}
-            <div className="space-y-12">
-              <h2 className="text-2xl font-black text-gray-900 flex items-center gap-3">
-                Menu Composition <div className="h-1 flex-1 bg-gray-100" />
-              </h2>
-
-              {Array.isArray(menu.sections) && menu.sections.length > 0 ? (
-                <div className="grid grid-cols-1 gap-8">
-                  {menu.sections.map((s, idx) => {
+            {/* Sections - Collapsible */}
+            <div>
+              <div className="flex items-center gap-4 mb-8">
+                <h2 className="text-3xl sm:text-4xl font-display font-black text-[#3a1224]">Menu Items</h2>
+                <span className="text-xs font-black text-white bg-[#C0A04C] px-3 py-1.5 rounded-full">
+                  {Array.isArray(menu.sections) ? menu.sections.length : 0} sections
+                </span>
+              </div>
+              
+              <div className="space-y-4">
+                {Array.isArray(menu.sections) && menu.sections.length > 0 ? (                  <>                  {menu.sections.map((s, idx) => {
                     const sectionTitle = s.section?.title ?? `Section ${idx + 1}`;
+                    const isExpanded = expandedSections.has(idx);
+                    const dishCount = Array.isArray(s.dishes) ? s.dishes.length : 0;
+                    const previewDishes = s.dishes ? s.dishes.slice(0, 3) : [];
+                    const hasMore = dishCount > 3;
+
                     return (
-                      <div key={idx} className="group">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-xl font-bold text-gray-800 group-hover:text-[#250815] transition-colors">{sectionTitle}</h3>
-                          <span className="text-xs font-bold bg-gray-100 text-gray-500 px-3 py-1 rounded-full uppercase">
-                            Choose up to {s.selectLimit ?? 0}
-                          </span>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {Array.isArray(s.dishes) && s.dishes.map((d, dishIdx) => (
-                            <div key={dishIdx} className="p-4 rounded-2xl border border-gray-100 bg-white hover:border-[#250815]/20 hover:shadow-md transition-all flex justify-between items-start gap-3">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="font-bold text-gray-900">{d.name}</span>
-                                  {d.isVegetarian && <Leaf className="size-4 text-emerald-500" />}
+                      <div key={idx} className="border border-[#3a1224]/8 rounded-2xl overflow-hidden bg-white hover:shadow-lg hover:border-[#C0A04C]/30 transition-all">
+                        {/* Section Header - Clickable */}
+                        <button
+                          onClick={() => toggleSection(idx)}
+                          className="w-full px-8 py-6 flex items-center justify-between hover:bg-[#fdfaf6] transition-colors text-left group"
+                        >
+                          <div className="flex-1">
+                            <h3 className="text-lg sm:text-xl font-black text-[#3a1224] mb-1 group-hover:text-[#C0A04C] transition-colors">{sectionTitle}</h3>
+                            <p className="text-sm text-[#3a1224]/50 font-semibold">{dishCount} dish{dishCount !== 1 ? 'es' : ''}</p>
+                          </div>
+                          <ChevronDown
+                            className={`w-6 h-6 text-[#3a1224]/40 transition-transform flex-shrink-0 group-hover:text-[#C0A04C] ${
+                              isExpanded ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </button>
+
+                        {/* Expanded Content */}
+                        {isExpanded && (
+                          <div className="border-t border-[#3a1224]/8 bg-[#fdfaf6] px-8 py-6 space-y-3">
+                            {/* Show dishes - either preview or all */}
+                            {(expandedAllDishes.has(idx) ? s.dishes : previewDishes).map((d, dishIdx) => (
+                              <div
+                                key={dishIdx}
+                                className="p-4 rounded-xl bg-white border border-[#3a1224]/5 hover:border-[#C0A04C]/40 hover:shadow-md transition-all flex justify-between items-start gap-4"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-bold text-[#3a1224] text-sm">{d.name}</span>
+                                    {d.isVegetarian && <Leaf className="w-4 h-4 text-emerald-600 flex-shrink-0" />}
+                                  </div>
+                                  {d.description && (
+                                    <p className="text-xs text-[#3a1224]/50 line-clamp-2">{d.description}</p>
+                                  )}
                                 </div>
-                                {d.description && <p className="text-xs text-gray-500 line-clamp-2 leading-snug">{d.description}</p>}
+                                {d.price > 0 && (
+                                  <span className="text-sm font-black text-[#C0A04C] whitespace-nowrap flex-shrink-0">
+                                    +NPR {d.price}
+                                  </span>
+                                )}
                               </div>
-                              {d.price > 0 && (
-                                <span className="text-xs font-black text-[#250815] whitespace-nowrap">
-                                  + Rs. {d.price}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+
+                            {/* View More / View Less Button */}
+                            {hasMore && (
+                              <button
+                                onClick={() => toggleAllDishes(idx)}
+                                className="w-full mt-4 py-3 text-sm font-black text-[#C0A04C] border border-[#C0A04C]/40 rounded-xl hover:bg-[#C0A04C]/5 transition-all"
+                              >
+                                {expandedAllDishes.has(idx) 
+                                  ? `View Fewer Items` 
+                                  : `View All ${dishCount} Items`
+                                }
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
-                </div>
-              ) : (
-                <div className="text-center py-12 bg-gray-50 rounded-3xl border border-dashed border-gray-300">
-                  <p className="text-gray-500">Items for this menu are currently being curated.</p>
+                  </>
+                ) : (
+                <div className="text-center py-16 bg-[#fdfaf6] rounded-2xl border-2 border-dashed border-[#3a1224]/10">
+                  <Utensils className="w-8 h-8 text-[#3a1224]/20 mx-auto mb-3" />
+                  <p className="text-[#3a1224]/60 font-medium text-sm">No items available</p>
                 </div>
               )}
+              </div>
             </div>
 
-            {/* Bottom Call to Action */}
-            <div className="mt-16 p-8 rounded-3xl bg-[#250815] text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl shadow-[#250815]/20">
-              <div>
-                <h3 className="text-2xl font-bold mb-1">Ready to lock this in?</h3>
-                <p className="text-white/60 text-sm">You can further customize these selections in the next step.</p>
-              </div>
-              <div className="flex gap-4 w-full md:w-auto">
-                <Link href={ROUTES.HOME} className="flex-1 md:flex-none text-center px-8 py-4 border border-white/20 rounded-xl font-bold hover:bg-white/10 transition-all">
-                  Browse Others
-                </Link>
-                <button className="flex-1 md:flex-none px-8 py-4 bg-white text-[#250815] rounded-xl font-bold hover:bg-gray-100 transition-all flex items-center justify-center gap-2">
-                  <CheckCircle2 className="size-5" /> Select This Menu
-                </button>
-              </div>
-            </div>
+
           </div>
         </div>
       </div>

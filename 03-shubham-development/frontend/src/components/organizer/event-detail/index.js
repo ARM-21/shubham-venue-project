@@ -5,3 +5,4 @@ export { EventManagement } from './EventManagement';
 export { EntryTerminal } from './EntryTerminal';
 export { TicketInventory } from './TicketInventory';
 export { GuestManifest } from './GuestManifest';
+export { GuestDetailModal } from './GuestDetailModal';

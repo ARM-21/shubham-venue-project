@@ -1,4 +1,8 @@
+'use client';
+
+import { useState } from "react";
 import { Users, Search } from "lucide-react";
+import { GuestDetailModal } from "./GuestDetailModal";
 
 function formatDate(value) {
   try {
@@ -24,9 +28,23 @@ export function GuestManifest({
   onNextPage,
   isLoading,
 }) {
+  const [selectedGuest, setSelectedGuest] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const filteredAttendees = attendees;
 
+  const handleRowClick = (guest) => {
+    setSelectedGuest(guest);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedGuest(null);
+  };
+
   return (
+    <>
     <section className="bg-white rounded-2xl border border-[#3a1224]/5 p-8 shadow-sm overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
@@ -76,7 +94,11 @@ export function GuestManifest({
               </tr>
             ) : (
               filteredAttendees.map((a, index) => (
-                <tr key={a._id || `attendee-${index}`} className="hover:bg-[#fdfaf6] transition-colors">
+                <tr
+                  key={a._id || `attendee-${index}`}
+                  onClick={() => handleRowClick(a)}
+                  className="hover:bg-[#C0A04C]/5 transition-colors cursor-pointer"
+                >
                   <td className="py-4 px-4">
                     <div>
                       <p className="text-xs sm:text-sm font-black text-[#3a1224]">{a.attendee?.first_name} {a.attendee?.last_name}</p>
@@ -124,5 +146,7 @@ export function GuestManifest({
         </div>
       )}
     </section>
+    <GuestDetailModal guest={selectedGuest} isOpen={isModalOpen} onClose={handleCloseModal} />
+    </>
   );
 }
