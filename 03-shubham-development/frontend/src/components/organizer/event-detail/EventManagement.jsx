@@ -1,7 +1,13 @@
 import { useForm } from "react-hook-form";
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { Image as ImageIcon, Check, AlertCircle, Globe, Lock, FileText, CheckCircle2, XCircle, Upload, Trash2 } from "lucide-react";
+import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
+import { Image as ImageIcon, Check, AlertCircle, Globe, Lock, FileText, CheckCircle2, XCircle, Upload, Trash2, X, Grid3x3, Link2, Loader } from "lucide-react";
+import { useQueryUserUploads } from "@queries/organizer";
+import { USER_UPLOADS_QUERY_KEY } from "@api/organizer/user-uploads-fetcher";
+import { RichTextEditor } from "components/shared/RichTextEditor";
 
 // Define allowed status transitions matching backend rules
 const ALLOWED_STATUS_TRANSITIONS = {
@@ -26,16 +32,93 @@ function deriveEventTimeRange(slot) {
   return { startHour: 0, endHour: 24, displayStart: "12:00 AM", displayEnd: "12:00 AM" };
 }
 
+// Derive datetime based on booking date and slot
+function deriveEventDateTime(bookingDate, slot, isStartTime = true) {
+  if (!bookingDate || !slot) return null;
+  
+  const date = new Date(bookingDate);
+  const slotRange = deriveEventTimeRange(slot);
+  const hour = isStartTime ? slotRange.startHour : slotRange.endHour;
+  
+  date.setHours(hour, 0, 0, 0);
+  
+  // Convert to local input format (YYYY-MM-DDTHH:mm)
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
   const [bannerPreview, setBannerPreview] = useState(event?.bannerUrl || "");
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [uploadPreview, setUploadPreview] = useState(null);
+  const [showImageSelector, setShowImageSelector] = useState(false);
+  const [imageSelectorTab, setImageSelectorTab] = useState("my-uploads"); // "my-uploads", "gallery", "upload", "url"
+  const [customImageUrl, setCustomImageUrl] = useState("");
+
+  const queryClient = useQueryClient();
+  
+  // Fetch user's previously uploaded images using React Query
+  const { data: userUploads = [], isLoading: loadingUploads, refetch: refetchUploads } = useQueryUserUploads("banner", {
+    enabled: showImageSelector && imageSelectorTab === "my-uploads",
+  });
+
+  // Mutation for uploading banner to S3
+  const uploadBannerMutation = useMutation({
+    mutationFn: async (file) => {
+      if (!file) throw new Error("File required");
+
+      // Step 1: Get presigned upload URL
+      const urlRes = await axiosInstance.post(ROUTES.API.PROFILE.AVATAR_UPLOAD_URL, {
+        fileExtension: "." + file.name.split(".").pop(),
+        contentType: file.type,
+      });
+      const { url: presignedUrl, s3Key, publicUrl } = urlRes.data;
+
+      // Step 2: Upload file to S3
+      const uploadRes = await fetch(presignedUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error(`S3 upload failed: ${uploadRes.status}`);
+      }
+
+      // Step 3: Confirm upload in backend and track in uploads
+      await axiosInstance.post(ROUTES.API.PROFILE.AVATAR_CONFIRM, {
+        s3Key,
+        publicUrl,
+      });
+
+      return { s3Key, publicUrl };
+    },
+    onSuccess: () => {
+      // Invalidate user uploads query to refetch
+      queryClient.invalidateQueries({
+        queryKey: [USER_UPLOADS_QUERY_KEY],
+      });
+    },
+  });
+
+  // Stock event banner images (can be replaced with API call to fetch real images)
+  const suggestedImages = [
+    { url: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&h=400&fit=crop", label: "Conference" },
+    { url: "https://images.unsplash.com/photo-1519167758481-83f19106ae4f?w=1200&h=400&fit=crop", label: "Business Event" },
+    { url: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&h=400&fit=crop", label: "Workshop" },
+    { url: "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=1200&h=400&fit=crop", label: "Networking" },
+    { url: "https://images.unsplash.com/photo-1540575467063-178f50002c4b?w=1200&h=400&fit=crop", label: "Tech Event" },
+    { url: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=1200&h=400&fit=crop", label: "Wedding" },
+  ];
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -45,8 +128,13 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
       visibility: event?.isPublic ? "public" : "private",
       accessCode: event?.accessCode || "",
       bannerUrl: event?.bannerUrl || "",
-      startDateTime: toLocalInputValue(event?.startDateTime),
-      endDateTime: toLocalInputValue(event?.endDateTime),
+      expectedAttendees: event?.expectedAttendees || null,
+      // EVENT TIMES: Auto-derived from booking slot (locked, not editable)
+      startDateTime: deriveEventDateTime(event?.bookingId?.date || bookingDate, event?.bookingId?.slot, true) || toLocalInputValue(event?.startDateTime),
+      endDateTime: deriveEventDateTime(event?.bookingId?.date || bookingDate, event?.bookingId?.slot, false) || toLocalInputValue(event?.endDateTime),
+      // REGISTRATION WINDOW: When tickets can be sold (separate from event time)
+      registrationStartDate: event?.registrationStartDate ? new Date(event.registrationStartDate).toISOString().slice(0, 16) : "", // YYYY-MM-DDTHH:mm
+      registrationEndDate: event?.registrationEndDate ? new Date(event.registrationEndDate).toISOString().slice(0, 16) : "", // YYYY-MM-DDTHH:mm
       status: event?.status || "DRAFT",
       cancellationReason: event?.cancellationReason || "",
     },
@@ -55,11 +143,11 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
   const visibility = watch("visibility");
   const status = watch("status");
   const bannerUrl = watch("bannerUrl");
-  const startDateTime = watch("startDateTime");
-  const endDateTime = watch("endDateTime");
+  const registrationStartDate = watch("registrationStartDate");
+  const registrationEndDate = watch("registrationEndDate");
 
   // Validate registration window
-  const isEndBeforeStart = startDateTime && endDateTime && new Date(endDateTime) <= new Date(startDateTime);
+  const isRegEndBeforeStart = registrationStartDate && registrationEndDate && new Date(registrationEndDate) < new Date(registrationStartDate);
   
   // Validate event date (booking date)
   const isEventDateInPast = bookingDate && new Date(bookingDate) < new Date();
@@ -79,47 +167,67 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
       return;
     }
     
-    // Validate registration window: end must be after start
-    if (data.startDateTime && data.endDateTime) {
-      const startDate = new Date(data.startDateTime);
-      const endDate = new Date(data.endDateTime);
-      if (endDate <= startDate) {
-        toast.error("❌ Registration end time must be after start time");
+    // Validate registration window: end date must be after or on start date
+    if (data.registrationStartDate && data.registrationEndDate) {
+      const regStart = new Date(data.registrationStartDate);
+      const regEnd = new Date(data.registrationEndDate);
+      if (regEnd < regStart) {
+        toast.error("❌ Registration end date must be on or after start date");
         return;
       }
-
-      // NEW: Validate event times are within booking slot range
-      if (event?.bookingId?.slot) {
-        const slotRange = deriveEventTimeRange(event.bookingId.slot);
-        const startHour = startDate.getHours();
-        const endHour = endDate.getHours();
-
-        // Check if event times exceed slot boundaries
-        if (startHour < slotRange.startHour || endHour > slotRange.endHour) {
-          toast.error(
-            `❌ Event times must be within the ${event.bookingId.slot} slot (${slotRange.displayStart} to ${slotRange.displayEnd})\n\nYou selected: ${startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} to ${endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
-          );
-          return;
-        }
+      
+      // Registration must end before or on event date
+      const eventDate = new Date(event?.bookingId?.date || bookingDate);
+      if (regEnd > eventDate) {
+        toast.error("❌ Registration must end before or on event date");
+        return;
       }
     }
+    
+    // EVENT TIMES are auto-locked to slot - no manual editing or validation needed
+    // Just pass the slot-derived times that were set in defaultValues
     
     await onSave(data);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      setUploadedFile(file);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setUploadPreview(event.target?.result);
-        // Optionally set as banner preview
-        setBannerPreview(event.target?.result);
-      };
-      reader.readAsDataURL(file);
+    if (!file || !file.type.startsWith('image/')) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("❌ File size must be under 5MB");
+      return;
+    }
+
+    // Show local preview while uploading
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setUploadPreview(event.target?.result);
+      setBannerPreview(event.target?.result);
+    };
+    reader.readAsDataURL(file);
+
+    try {
+      // Upload to S3
+      const { publicUrl } = await uploadBannerMutation.mutateAsync(file);
+      
+      // Update form with uploaded image
+      setValue("bannerUrl", publicUrl, { shouldDirty: true });
+      setBannerPreview(publicUrl);
+      
+      // Refetch user uploads
+      await refetchUploads();
+      
+      toast.success("✅ Banner uploaded successfully!");
+      
+      // Close upload tab and go to my-uploads
+      setImageSelectorTab("my-uploads");
+    } catch (error) {
+      toast.error(`❌ Upload failed: ${error.message}`);
+      console.error("Upload error:", error);
     }
   };
 
@@ -164,16 +272,35 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
                 {...register("name", { required: "Name is required" })}
                 error={errors.name?.message}
               />
-              <FormField label="Category / Type" {...register("type")} />
+              <FormField 
+                label="Category / Type" 
+                {...register("type")} 
+              />
+              <FormField 
+                label="Expected Attendees" 
+                type="number" 
+                inputMode="numeric"
+                min="0"
+                {...register("expectedAttendees", {
+                  setValueAs: (value) => value ? parseInt(value) : null,
+                  validate: (value) => {
+                    if (value === null || value === undefined || value === "") return true;
+                    if (value < 0) return "Cannot be negative";
+                    if (value > (event?.hallId?.capacity || 0)) return `Cannot exceed hall capacity (${event?.hallId?.capacity})`;
+                    return true;
+                  }
+                })}
+                error={errors.expectedAttendees?.message}
+              />
             </div>
 
             <div>
               <label className="text-xs sm:text-sm font-bold text-[#3a1224]/40 uppercase tracking-widest block mb-3">Description</label>
-              <textarea
-                {...register("description")}
-                rows={4}
+              <RichTextEditor
+                value={watch("description")}
+                onChange={(html) => setValue("description", html, { shouldDirty: true })}
                 placeholder="Provide detailed description of your event..."
-                className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl px-4 py-3 text-sm sm:text-base font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none resize-none"
+                error={errors.description?.message}
               />
             </div>
           </div>
@@ -226,155 +353,323 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
         <div>
           <p className="text-sm sm:text-base font-bold text-[#3a1224]/40 uppercase tracking-widest mb-6 pb-3 border-b border-[#3a1224]/10">Banner Image Management</p>
           
-          {/* Before/After Comparison */}
+          {/* Current Banner Preview */}
           {(uploadPreview || event?.bannerUrl) && (
-            <div className="mb-6 bg-gradient-to-br from-[#3a1224]/5 to-[#C0A04C]/5 border border-[#3a1224]/10 rounded-2xl p-6">
-              <p className="text-xs sm:text-sm font-bold text-[#3a1224]/60 uppercase tracking-widest mb-4">Preview Comparison</p>
-              <div className={`grid gap-4 ${uploadPreview && event?.bannerUrl ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                {event?.bannerUrl && (
-                  <div>
-                    <div className="text-xs text-[#3a1224]/50 uppercase tracking-wider mb-2 px-1">Current</div>
-                    <div className="relative w-full h-40 rounded-xl overflow-hidden border-2 border-[#3a1224]/10 shadow-sm">
-                      <img src={event.bannerUrl} alt="Current banner" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/20 to-transparent" />
-                    </div>
-                  </div>
-                )}
-                {uploadPreview && (
-                  <div>
-                    <div className="text-xs text-[#C0A04C] uppercase tracking-wider mb-2 px-1">✓ New</div>
-                    <div className="relative w-full h-40 rounded-xl overflow-hidden border-2 border-[#C0A04C]/50 shadow-md ring-2 ring-[#C0A04C]/20">
-                      <img src={uploadPreview} alt="New banner" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/20 to-transparent" />
-                      <button
-                        type="button"
-                        onClick={clearUpload}
-                        className="absolute top-2 right-2 p-1.5 bg-[#3a1224]/80 hover:bg-[#3a1224] rounded-lg text-white transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
+            <div className="mb-6 relative w-full h-48 sm:h-56 rounded-2xl overflow-hidden border-2 border-[#3a1224]/10 shadow-lg group">
+              <img src={uploadPreview || event?.bannerUrl} alt="Banner preview" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/40 via-transparent to-transparent" />
+              
+              {/* Action Overlay */}
+              <div className="absolute inset-0 bg-[#3a1224]/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowImageSelector(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#C0A04C] text-[#3a1224] font-bold rounded-lg hover:bg-[#d4b454] transition-all text-sm"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  Change Image
+                </button>
+                <button
+                  type="button"
+                  onClick={clearUpload}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition-all text-sm"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Remove
+                </button>
               </div>
             </div>
           )}
 
-          {/* Upload/Input Methods */}
-          <div className="space-y-4">
-            {/* File Upload */}
-            <div>
-              <label className="text-xs sm:text-sm font-bold text-[#3a1224]/40 uppercase tracking-widest block mb-3">1. Upload Image File</label>
-              <label className="relative flex items-center justify-center w-full h-32 border-2 border-dashed border-[#3a1224]/30 rounded-xl bg-gradient-to-br from-[#fdfaf6] to-[#3a1224]/5 cursor-pointer hover:border-[#C0A04C]/60 hover:bg-[#C0A04C]/5 transition-all group">
-                <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                <div className="text-center pointer-events-none">
-                  <div className="w-10 h-10 bg-[#3a1224]/5 group-hover:bg-[#C0A04C]/10 rounded-lg flex items-center justify-center mx-auto mb-2 transition-colors">
-                    <Upload className="w-6 h-6 text-[#3a1224]/40 group-hover:text-[#C0A04C]" />
-                  </div>
-                  <p className="text-sm sm:text-base font-bold text-[#3a1224]/60 group-hover:text-[#3a1224] transition-colors">Drag image here or click to browse</p>
-                  <p className="text-xs text-[#3a1224]/40 mt-1">PNG, JPG, WebP • Max 5MB • 1200x400px recommended</p>
-                </div>
-              </label>
-            </div>
-
-            {/* URL Input */}
-            <div>
-              <label className="text-xs sm:text-sm font-bold text-[#3a1224]/40 uppercase tracking-widest block mb-3">2. Or Paste Image URL</label>
-              <input
-                {...register("bannerUrl")}
-                type="url"
-                placeholder="https://images.unsplash.com/photo-..."
-                className="w-full bg-gradient-to-r from-[#fdfaf6] to-[#3a1224]/5 border border-[#3a1224]/10 rounded-xl px-4 py-3 text-sm sm:text-base font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/30 outline-none transition-all"
-              />
-              <p className="text-xs text-[#3a1224]/50 font-bold mt-2">💡 Tip: Try Unsplash, Pexels, or Pixabay for free stock images</p>
-            </div>
-          </div>
+          {/* Quick Select Gallery */}
+          <button
+            type="button"
+            onClick={() => setShowImageSelector(true)}
+            className="w-full mb-4 px-6 py-4 bg-gradient-to-r from-[#3a1224] to-[#5a2844] text-white rounded-2xl font-bold uppercase tracking-widest hover:shadow-lg hover:shadow-[#3a1224]/20 transition-all text-sm sm:text-base flex items-center justify-center gap-3"
+          >
+            <Grid3x3 className="w-5 h-5" />
+            {event?.bannerUrl ? 'Change Banner from Gallery' : 'Select Banner Image'}
+          </button>
 
           {/* Info Box */}
-          <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex gap-3">
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex gap-3">
             <ImageIcon className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="text-xs sm:text-sm text-amber-800 font-bold leading-relaxed">
-              <p className="font-black mb-1">Perfect Banner Guidelines:</p>
+              <p className="font-black mb-1">📐 Perfect Banner Dimensions:</p>
               <ul className="space-y-1 ml-2">
-                <li>• Dimensions: 1200×400px (3:1 aspect ratio)</li>
-                <li>• Focus content in center area (20% margins)</li>
-                <li>• File size under 500KB for faster loading</li>
+                <li>• 1200×400px (3:1 aspect ratio) • File size under 500KB</li>
               </ul>
             </div>
           </div>
         </div>
 
+        {/* IMAGE SELECTOR MODAL */}
+        {showImageSelector && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto shadow-2xl">
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-gradient-to-r from-[#3a1224] to-[#5a2844] text-white px-6 py-4 flex items-center justify-between">
+                <h3 className="text-lg sm:text-xl font-black uppercase tracking-wider">Select Banner Image</h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowImageSelector(false);
+                    setImageSelectorTab("my-uploads");
+                    setCustomImageUrl("");
+                  }}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Tab Navigation */}
+              <div className="flex border-b border-[#3a1224]/10 sticky top-16 bg-white z-40 overflow-x-auto">
+                {[
+                  { id: "my-uploads", label: "My Uploads", icon: ImageIcon },
+                  { id: "gallery", label: "Templates", icon: Grid3x3 },
+                  { id: "upload", label: "Upload New", icon: Upload },
+                  { id: "url", label: "Paste URL", icon: Link2 },
+                ].map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setImageSelectorTab(id)}
+                    className={`flex-shrink-0 px-4 py-3 font-bold uppercase tracking-widest text-xs sm:text-sm flex items-center justify-center gap-2 transition-all whitespace-nowrap ${
+                      imageSelectorTab === id
+                        ? "bg-[#3a1224] text-white border-b-2 border-[#C0A04C]"
+                        : "text-[#3a1224]/60 hover:text-[#3a1224]"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="hidden sm:inline">{label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab Content */}
+              <div className="p-6 space-y-6">
+                {/* My Uploads Tab */}
+                {imageSelectorTab === "my-uploads" && (
+                  <div>
+                    {loadingUploads ? (
+                      <div className="text-center py-12">
+                        <div className="w-8 h-8 border-4 border-[#3a1224]/20 border-t-[#C0A04C] rounded-full animate-spin mx-auto mb-3" />
+                        <p className="text-sm text-[#3a1224]/60 font-bold">Loading your uploads...</p>
+                      </div>
+                    ) : userUploads.length === 0 ? (
+                      <div className="text-center py-12">
+                        <ImageIcon className="w-12 h-12 text-[#3a1224]/20 mx-auto mb-3" />
+                        <p className="text-sm text-[#3a1224]/60 font-bold mb-2">No uploaded images yet</p>
+                        <p className="text-xs text-[#3a1224]/40">Upload your first banner or choose from templates</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <h4 className="text-sm font-black text-[#3a1224]/60 uppercase tracking-widest mb-4">Your Uploads</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {userUploads.map((img, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setValue("bannerUrl", img.url || img, { shouldDirty: true });
+                                setBannerPreview(img.url || img);
+                                setShowImageSelector(false);
+                                toast.success("Banner image selected!");
+                              }}
+                              className="group relative aspect-video rounded-xl overflow-hidden border-2 border-[#3a1224]/10 hover:border-[#C0A04C]/60 transition-all hover:shadow-lg"
+                            >
+                              <img src={img.url || img} alt="User upload" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                              <div className="absolute inset-0 bg-[#3a1224]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <Check className="w-8 h-8 text-white" />
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Gallery Tab */}
+                {imageSelectorTab === "gallery" && (
+                  <div>
+                    <h4 className="text-sm font-black text-[#3a1224]/60 uppercase tracking-widest mb-4">Template Gallery</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {suggestedImages.map((img, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setValue("bannerUrl", img.url, { shouldDirty: true });
+                            setBannerPreview(img.url);
+                            setShowImageSelector(false);
+                            toast.success("Banner image selected!");
+                          }}
+                          className="group relative aspect-video rounded-xl overflow-hidden border-2 border-[#3a1224]/10 hover:border-[#C0A04C]/60 transition-all hover:shadow-lg"
+                        >
+                          <img src={img.url} alt={img.label} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                          <div className="absolute inset-0 bg-[#3a1224]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Check className="w-8 h-8 text-white" />
+                          </div>
+                          <p className="absolute bottom-0 left-0 right-0 text-xs font-bold text-white bg-[#3a1224]/80 px-2 py-1 translate-y-full group-hover:translate-y-0 transition-transform">{img.label}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Upload Tab */}
+                {imageSelectorTab === "upload" && (
+                  <div>
+                    <label className="relative flex items-center justify-center w-full h-48 border-2 border-dashed border-[#3a1224]/30 rounded-xl bg-gradient-to-br from-[#fdfaf6] to-[#3a1224]/5 cursor-pointer hover:border-[#C0A04C]/60 hover:bg-[#C0A04C]/5 transition-all group">
+                      <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                      <div className="text-center pointer-events-none">
+                        <div className="w-12 h-12 bg-[#3a1224]/5 group-hover:bg-[#C0A04C]/10 rounded-lg flex items-center justify-center mx-auto mb-2 transition-colors">
+                          <Upload className="w-6 h-6 text-[#3a1224]/40 group-hover:text-[#C0A04C]" />
+                        </div>
+                        <p className="text-sm sm:text-base font-bold text-[#3a1224]/60 group-hover:text-[#3a1224] transition-colors">Drag image here or click to browse</p>
+                        <p className="text-xs text-[#3a1224]/40 mt-1">PNG, JPG, WebP • Max 5MB • 1200x400px recommended</p>
+                      </div>
+                    </label>
+                    {uploadPreview && (
+                      <div className="mt-4">
+                        <p className="text-xs font-bold text-[#3a1224]/60 uppercase tracking-wide mb-2">Preview</p>
+                        <img src={uploadPreview} alt="Upload preview" className="w-full h-32 object-cover rounded-lg border border-[#C0A04C]" />
+                        <button
+                          type="button"
+                          disabled={uploadBannerMutation.isPending}
+                          onClick={() => {
+                            setValue("bannerUrl", uploadPreview, { shouldDirty: true });
+                            setBannerPreview(uploadPreview);
+                            setShowImageSelector(false);
+                            setImageSelectorTab("my-uploads");
+                          }}
+                          className={`w-full mt-3 px-4 py-2 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
+                            uploadBannerMutation.isPending
+                              ? "bg-gray-400 text-white cursor-not-allowed"
+                              : "bg-[#C0A04C] text-[#3a1224] hover:bg-[#d4b454]"
+                          }`}
+                        >
+                          {uploadBannerMutation.isPending && <Loader className="w-4 h-4 animate-spin" />}
+                          {uploadBannerMutation.isPending ? "Uploading..." : "Use This Image"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* URL Tab */}
+                {imageSelectorTab === "url" && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs sm:text-sm font-bold text-[#3a1224]/50 uppercase tracking-widest block mb-2">Image URL</label>
+                      <input
+                        type="url"
+                        value={customImageUrl}
+                        onChange={(e) => setCustomImageUrl(e.target.value)}
+                        placeholder="https://images.unsplash.com/photo-..."
+                        className="w-full bg-[#fdfaf6] border border-[#3a1224]/10 rounded-lg px-4 py-3 text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/30 outline-none transition-all"
+                      />
+                      <p className="text-xs text-[#3a1224]/50 font-bold mt-2">💡 Try: Unsplash, Pexels, or Pixabay</p>
+                    </div>
+                    {customImageUrl && (
+                      <div>
+                        <p className="text-xs font-bold text-[#3a1224]/60 uppercase tracking-wide mb-2">Preview</p>
+                        <img src={customImageUrl} alt="URL preview" className="w-full h-32 object-cover rounded-lg border border-[#3a1224]/10" onError={() => toast.error("Could not load image")} />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setValue("bannerUrl", customImageUrl, { shouldDirty: true });
+                            setBannerPreview(customImageUrl);
+                            setShowImageSelector(false);
+                            setImageSelectorTab("my-uploads");
+                            setCustomImageUrl("");
+                            toast.success("Banner image added!");
+                          }}
+                          className="w-full mt-3 px-4 py-2 bg-[#C0A04C] text-[#3a1224] font-bold rounded-lg hover:bg-[#d4b454] transition-all"
+                        >
+                          Use This Image
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Divider */}
         <div className="h-px bg-[#3a1224]/5" />
 
-        {/* Section 4: Registration Timeline */}
+        {/* Section 4: Event Time & Registration Window */}
         <div>
-          <p className="text-sm sm:text-base font-bold text-[#3a1224]/40 uppercase tracking-widest mb-4 pb-3 border-b border-[#3a1224]/10">Registration Window</p>
-          <div className="bg-gradient-to-br from-[#fdfaf6] to-[#f5ede0] border border-[#3a1224]/5 rounded-2xl p-5">
-            {/* Validation warning */}
-            {isEndBeforeStart && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2">
-                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                <p className="text-xs sm:text-sm text-red-800 font-bold">
-                  Registration end time must be after start time.
-                </p>
-              </div>
-            )}
-
-            {/* NEW: Slot restriction info */}
-            {event?.bookingId?.slot && (
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex gap-2">
-                <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="text-xs sm:text-sm text-blue-800 font-bold">
-                  <p>📅 Booked slot: <span className="uppercase font-black">{event.bookingId.slot}</span></p>
-                  <p className="mt-1 text-blue-700">Event times must stay within this slot range. Contact admin to change the booking slot.</p>
+          <p className="text-sm sm:text-base font-bold text-[#3a1224]/40 uppercase tracking-widest mb-4 pb-3 border-b border-[#3a1224]/10">Event Time & Registration</p>
+          <div className="bg-gradient-to-br from-[#fdfaf6] to-[#f5ede0] border border-[#3a1224]/5 rounded-2xl p-5 space-y-5">
+            
+            {/* EVENT TIME - READ ONLY (Derived from slot) */}
+            <div>
+              <p className="text-xs sm:text-sm font-black text-[#3a1224]/60 uppercase tracking-widest mb-3">📅 Actual Event Time (Locked to Booking Slot)</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white border border-emerald-200 rounded-lg px-4 py-3">
+                  <p className="text-xs text-emerald-700 font-bold uppercase tracking-wide mb-1">Event Date</p>
+                  <p className="text-base sm:text-lg font-black text-emerald-900">
+                    {event?.bookingId?.date ? new Date(event.bookingId.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                  </p>
+                </div>
+                <div className="bg-white border border-emerald-200 rounded-lg px-4 py-3">
+                  <p className="text-xs text-emerald-700 font-bold uppercase tracking-wide mb-1">Event Time (Slot)</p>
+                  <p className="text-base sm:text-lg font-black text-emerald-900">
+                    {slotTimingInfo ? `${slotTimingInfo.displayStart} - ${slotTimingInfo.displayEnd}` : '-'}
+                  </p>
                 </div>
               </div>
-            )}
+              <p className="text-xs text-emerald-700 mt-2 font-medium italic">This time is automatically locked based on your booking slot and cannot be changed here.</p>
+            </div>
 
-            {/* Slot timing guide */}
-            {slotTimingInfo && (
-              <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                <p className="text-xs sm:text-sm font-black text-emerald-900 uppercase tracking-widest mb-2">✓ Allowed Event Times</p>
-                <p className="text-sm sm:text-base font-bold text-emerald-700">{slotTimingInfo.displayStart} - {slotTimingInfo.displayEnd}</p>
-                <p className="text-xs text-emerald-700 mt-2 font-medium">Select times that fall between these hours</p>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs sm:text-sm font-bold text-[#3a1224]/50 uppercase tracking-widest block mb-2">Start Registration</label>
-                <input
-                  type="datetime-local"
-                  {...register("startDateTime")}
-                  className={`w-full bg-white border rounded-lg px-4 py-3 text-sm sm:text-base font-bold text-[#3a1224] focus:ring-2 outline-none transition-all ${
-                    isEndBeforeStart ? 'border-red-400 ring-red-200' : 'border-[#3a1224]/5 ring-[#C0A04C]/20'
-                  }`}
-                />
-                <p className="text-xs text-[#3a1224]/50 mt-2 font-medium">When registrations open</p>
-                {event?.bookingId?.date && (
-                  <p className="text-xs text-[#3a1224]/50 mt-1 font-medium">Before: {new Date(event.bookingId.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                )}
-              </div>
-              <div>
-                <label className="text-xs sm:text-sm font-bold text-[#3a1224]/50 uppercase tracking-widest block mb-2">End Registration</label>
-                <input
-                  type="datetime-local"
-                  {...register("endDateTime")}
-                  className={`w-full bg-white border rounded-lg px-4 py-3 text-sm sm:text-base font-bold text-[#3a1224] focus:ring-2 outline-none transition-all ${
-                    isEndBeforeStart ? 'border-red-400 ring-red-200' : 'border-[#3a1224]/5 ring-[#C0A04C]/20'
-                  }`}
-                />
-                <p className="text-xs text-[#3a1224]/50 mt-2 font-medium">
-                  {isEndBeforeStart ? (
-                    <span className="text-red-600 font-bold">❌ Must be after start time</span>
-                  ) : (
-                    <>When registrations close</>
-                  )}
-                </p>
-                {event?.bookingId?.date && (
-                  <p className="text-xs text-[#3a1224]/50 mt-1 font-medium">Before: {new Date(event.bookingId.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                )}
+            {/* REGISTRATION WINDOW - EDITABLE */}
+            <div className="border-t border-[#3a1224]/10 pt-5">
+              <p className="text-xs sm:text-sm font-black text-[#3a1224]/60 uppercase tracking-widest mb-3">🎫 Ticket Registration Window</p>
+              
+              {isRegEndBeforeStart && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs sm:text-sm text-red-800 font-bold">
+                    Registration end date must be on or after start date.
+                  </p>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs sm:text-sm font-bold text-[#3a1224]/50 uppercase tracking-widest block mb-2">Registration Opens</label>
+                  <input
+                    type="datetime-local"
+                    {...register("registrationStartDate")}
+                    className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg px-4 py-3 text-sm sm:text-base font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
+                  />
+                  <p className="text-xs text-[#3a1224]/50 mt-2 font-medium">
+                    Auto-filled with event start time (optional to override)
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs sm:text-sm font-bold text-[#3a1224]/50 uppercase tracking-widest block mb-2">Registration Closes</label>
+                  <input
+                    type="datetime-local"
+                    {...register("registrationEndDate")}
+                    className={`w-full bg-[#fdfaf6] border rounded-lg px-4 py-3 text-sm sm:text-base font-bold text-[#3a1224] focus:ring-2 outline-none transition-all ${
+                      isRegEndBeforeStart ? 'border-red-400 ring-red-200' : 'border-[#3a1224]/5 ring-[#C0A04C]/20'
+                    }`}
+                  />
+                  <p className="text-xs text-[#3a1224]/50 mt-2 font-medium">
+                    {isRegEndBeforeStart ? (
+                      <span className="text-red-600 font-bold">❌ Must be after or same as start date</span>
+                    ) : (
+                      <>Auto-filled with event end time (optional to override)</>
+                    )}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

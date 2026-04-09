@@ -50,11 +50,19 @@ export async function confirmAvatarUpload(userId, s3Key, publicUrl, UserModel) {
     const existingUser = await UserModel.findById(userId).select('profilePicture s3Key').lean();
     const oldS3Key = existingUser?.s3Key;
 
-    // Update user profile picture
+    // Update user profile picture and track upload
     await UserModel.findByIdAndUpdate(userId, {
       $set: {
         profilePicture: publicUrl,
         s3Key: s3Key,
+      },
+      $push: {
+        uploads: {
+          url: publicUrl,
+          s3Key: s3Key,
+          type: 'avatar',
+          uploadedAt: new Date(),
+        },
       },
     });
 
@@ -68,6 +76,35 @@ export async function confirmAvatarUpload(userId, s3Key, publicUrl, UserModel) {
     return user;
   } catch (err) {
     console.error('Confirm upload error:', err);
+    throw err;
+  }
+}
+
+// Generic function to track any upload type
+export async function trackUserUpload(userId, s3Key, publicUrl, uploadType = 'banner', label = null, UserModel) {
+  try {
+    // Valid upload types
+    const validTypes = ['banner', 'menu', 'decoration', 'avatar'];
+    if (!validTypes.includes(uploadType)) {
+      uploadType = 'banner'; // default to banner
+    }
+
+    // Add upload to user's uploads array
+    await UserModel.findByIdAndUpdate(userId, {
+      $push: {
+        uploads: {
+          url: publicUrl,
+          s3Key: s3Key,
+          type: uploadType,
+          uploadedAt: new Date(),
+          label: label,
+        },
+      },
+    });
+
+    return true;
+  } catch (err) {
+    console.error('Track upload error:', err);
     throw err;
   }
 }

@@ -178,72 +178,10 @@ router.post("/events", isAuthenticated, isOrganizer, async (req, res, next) => {
       return res.status(400).json({ message: "Private events require an accessCode (min 4 chars)" });
     }
 
-    let startValue = startDateTime ? new Date(startDateTime) : null;
-    let endValue = endDateTime ? new Date(endDateTime) : null;
-
-    if (startDateTime && Number.isNaN(startValue.getTime())) {
-      return res.status(400).json({ message: "Invalid startDateTime" });
-    }
-    if (endDateTime && Number.isNaN(endValue.getTime())) {
-      return res.status(400).json({ message: "Invalid endDateTime" });
-    }
-
-    if (!startValue || !endValue) {
-      const derived = deriveEventTimeRange(booking.date, booking.slot);
-      if (!startValue) startValue = derived.startDateTime;
-      if (!endValue) endValue = derived.endDateTime;
-    }
-
-    // Validate that event times match the booking slot
-    if (startValue && endValue && booking.slot) {
-      const derived = deriveEventTimeRange(booking.date, booking.slot);
-      const startHour = startValue.getHours();
-      const endHour = endValue.getHours();
-      const derivedStartHour = derived.startDateTime.getHours();
-      const derivedEndHour = derived.endDateTime.getHours();
-
-      // Check if event times are within the slot range (not exact match)
-      if (startHour < derivedStartHour || endHour > derivedEndHour) {
-        return res.status(400).json({ 
-          message: `Event times must be within the ${booking.slot} slot timing (${formatHourTo12(derivedStartHour)} to ${formatHourTo12(derivedEndHour)})`,
-          slotTiming: {
-            slot: booking.slot,
-            requiredStart: formatHourTo12(derivedStartHour),
-            requiredEnd: formatHourTo12(derivedEndHour),
-            receivedStart: formatHourTo12(startHour),
-            receivedEnd: formatHourTo12(endHour)
-          }
-        });
-      }
-    }
-
-    if (startValue && endValue && startValue >= endValue) {
-      return res.status(400).json({ message: "startDateTime must be before endDateTime" });
-    }
-
-    if (startValue && startValue < startOfToday()) {
-      return res.status(400).json({ message: "Event cannot start in the past" });
-    }
-
-    const conflictingEvents = await OrganizerEvent.findOne({
-      hallId: booking.hallId,
-      _id: { $ne: booking._id },
-      $or: [
-        { startDateTime: { $lt: endValue }, endDateTime: { $gt: startValue } }
-      ],
-      status: { $in: ["DRAFT", "PUBLISHED"] }
-    }).select("_id name startDateTime endDateTime");
-
-    if (conflictingEvents) {
-      return res.status(409).json({ 
-        message: "Hall is already booked for this time slot. Please choose different times.",
-        conflict: {
-          eventName: conflictingEvents.name,
-          start: conflictingEvents.startDateTime,
-          end: conflictingEvents.endDateTime
-        }
-      });
-    }
+    // Always derive times from slot (never use manual input)
+    const derived = deriveEventTimeRange(booking.date, booking.slot);
+    const startValue = derived.startDateTime;
+    const endValue = derived.endDateTime;
 
     const eventDoc = await OrganizerEvent.create({
       organizerId: req.currentUser._id,
@@ -258,6 +196,9 @@ router.post("/events", isAuthenticated, isOrganizer, async (req, res, next) => {
       eventDate: booking.date,
       startDateTime: startValue,
       endDateTime: endValue,
+      // Default registration times to event times
+      registrationStartDate: startValue,
+      registrationEndDate: endValue,
       status: "DRAFT",
     });
 
@@ -298,7 +239,7 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
     const event = await OrganizerEvent.findOne({
       _id: req.params.id,
       organizerId: req.currentUser._id,
-    });
+    }).populate({ path: "bookingId", select: "date slot" });
 
     if (!event) return res.status(404).json({ message: "Event not found" });
 
@@ -343,20 +284,33 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
       update.accessCode = targetPublic ? null : accessCodeValue;
     }
 
-    if (typeof startDateTime !== "undefined") {
-      const nextStart = new Date(startDateTime);
-      if (Number.isNaN(nextStart.getTime())) {
-        return res.status(400).json({ message: "Invalid startDateTime" });
+    // ALWAYS derive times from booking slot - this is the source of truth
+    // Event times are NEVER manually set, they always come from the slot
+    if (event.bookingId && event.bookingId.slot && event.bookingId.date) {
+      // Capture current times as registration times ONCE (only if not already set)
+      if (!event.registrationStartDate && event.startDateTime) {
+        update.registrationStartDate = new Date(event.startDateTime);
       }
-      update.startDateTime = nextStart;
+      if (!event.registrationEndDate && event.endDateTime) {
+        update.registrationEndDate = new Date(event.endDateTime);
+      }
+      
+      // ALWAYS update event times to correct slot times - this is mandatory
+      const derived = deriveEventTimeRange(event.bookingId.date, event.bookingId.slot);
+      update.startDateTime = derived.startDateTime;
+      update.endDateTime = derived.endDateTime;
+    } else {
+      // If no booking, validate times manually (shouldn't happen)
+      if (typeof startDateTime !== "undefined") update.startDateTime = startDateTime ? new Date(startDateTime) : null;
+      if (typeof endDateTime !== "undefined") update.endDateTime = endDateTime ? new Date(endDateTime) : null;
     }
 
-    if (typeof endDateTime !== "undefined") {
-      const nextEnd = new Date(endDateTime);
-      if (Number.isNaN(nextEnd.getTime())) {
-        return res.status(400).json({ message: "Invalid endDateTime" });
-      }
-      update.endDateTime = nextEnd;
+    // Apply registration times only if explicitly provided in request (don't override auto-captured)
+    if (typeof req.body.registrationStartDate !== "undefined") {
+      update.registrationStartDate = req.body.registrationStartDate ? new Date(req.body.registrationStartDate) : null;
+    }
+    if (typeof req.body.registrationEndDate !== "undefined") {
+      update.registrationEndDate = req.body.registrationEndDate ? new Date(req.body.registrationEndDate) : null;
     }
 
     if (typeof status !== "undefined") {
@@ -380,9 +334,9 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
         });
       }
       
-      // Check if transition is allowed
+      // Check if transition is allowed (allow keeping same status)
       const allowedTransitions = ALLOWED_STATUS_TRANSITIONS[event.status] || [];
-      if (!allowedTransitions.includes(status)) {
+      if (status !== event.status && !allowedTransitions.includes(status)) {
         return res.status(400).json({ 
           message: `Cannot change status from ${event.status} to ${status}. Allowed: ${allowedTransitions.join(", ") || "none"}`,
           currentStatus: event.status,
@@ -455,6 +409,7 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
       update.expectedAttendees = expectedNum;
     }
 
+    // Validate that times are logical (start < end)
     const nextStart = update.startDateTime || event.startDateTime;
     const nextEnd = update.endDateTime || event.endDateTime;
     if (nextStart && nextEnd && nextStart >= nextEnd) {
@@ -465,54 +420,26 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
       return res.status(400).json({ message: "Event cannot start in the past" });
     }
 
-    // Validate that updated times match the booking slot (if times are being updated)
-    if ((update.startDateTime || update.endDateTime) && event.bookingId) {
-      const booking = await Booking.findById(event.bookingId).select("date slot");
-      if (booking) {
-        // Validate slot timing
-        if (booking.slot) {
-          const derived = deriveEventTimeRange(booking.date, booking.slot);
-          const startHour = nextStart.getHours();
-          const endHour = nextEnd.getHours();
-          const derivedStartHour = derived.startDateTime.getHours();
-          const derivedEndHour = derived.endDateTime.getHours();
+    // Check for hall conflicts
+    if (nextStart && nextEnd) {
+      const conflictingEvents = await OrganizerEvent.findOne({
+        hallId: event.hallId,
+        _id: { $ne: event._id },
+        $or: [
+          { startDateTime: { $lt: nextEnd }, endDateTime: { $gt: nextStart } }
+        ],
+        status: { $in: ["DRAFT", "PUBLISHED"] }
+      }).select("_id name startDateTime endDateTime").lean();
 
-          // Check if event times are within the slot range (not exact match)
-          if (startHour < derivedStartHour || endHour > derivedEndHour) {
-            return res.status(400).json({ 
-              message: `Event times must be within the ${booking.slot} slot timing (${formatHourTo12(derivedStartHour)} to ${formatHourTo12(derivedEndHour)})`,
-              slotTiming: {
-                slot: booking.slot,
-                requiredStart: formatHourTo12(derivedStartHour),
-                requiredEnd: formatHourTo12(derivedEndHour),
-                receivedStart: formatHourTo12(startHour),
-                receivedEnd: formatHourTo12(endHour)
-              }
-            });
+      if (conflictingEvents) {
+        return res.status(409).json({ 
+          message: "Hall is already booked for this time slot. Please choose different times.",
+          conflict: {
+            eventName: conflictingEvents.name,
+            start: conflictingEvents.startDateTime,
+            end: conflictingEvents.endDateTime
           }
-        }
-
-        if (update.startDateTime || update.endDateTime) {
-          const conflictingEvents = await OrganizerEvent.findOne({
-            hallId: event.hallId,
-            _id: { $ne: event._id },
-            $or: [
-              { startDateTime: { $lt: nextEnd }, endDateTime: { $gt: nextStart } }
-            ],
-            status: { $in: ["DRAFT", "PUBLISHED"] }
-          }).select("_id name startDateTime endDateTime");
-
-          if (conflictingEvents) {
-            return res.status(409).json({ 
-              message: "Hall is already booked for this time slot. Please choose different times.",
-              conflict: {
-                eventName: conflictingEvents.name,
-                start: conflictingEvents.startDateTime,
-                end: conflictingEvents.endDateTime
-              }
-            });
-          }
-        }
+        });
       }
     }
 
@@ -1117,6 +1044,65 @@ router.get("/reputation", isAuthenticated, isOrganizer, async (req, res, next) =
         recentFlags: flags.slice(0, 5),
       },
       recommendations,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// Duplicate event
+router.post("/events/:id/duplicate", isAuthenticated, isOrganizer, async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid event id" });
+    }
+
+    const originalEvent = await OrganizerEvent.findOne({
+      _id: req.params.id,
+      organizerId: req.currentUser._id,
+    });
+
+    if (!originalEvent) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Get booking details for time derivation
+    const booking = await Booking.findById(originalEvent.bookingId).select("date slot");
+    if (!booking) {
+      return res.status(400).json({ message: "Associated booking not found" });
+    }
+
+    // Derive correct times from slot
+    const derived = deriveEventTimeRange(booking.date, booking.slot);
+
+    // Create duplicated event with new name
+    const duplicatedEvent = await OrganizerEvent.create({
+      organizerId: req.currentUser._id,
+      bookingId: originalEvent.bookingId,
+      hallId: originalEvent.hallId,
+      name: `${originalEvent.name} (Copy)`,
+      type: originalEvent.type,
+      description: originalEvent.description,
+      isPublic: originalEvent.isPublic,
+      accessCode: originalEvent.accessCode,
+      bannerUrl: originalEvent.bannerUrl,
+      eventDate: originalEvent.eventDate,
+      // Always derive times from slot
+      startDateTime: derived.startDateTime,
+      endDateTime: derived.endDateTime,
+      // Default registration times to event times
+      registrationStartDate: derived.startDateTime,
+      registrationEndDate: derived.endDateTime,
+      catering: originalEvent.catering,
+      cateringMenus: originalEvent.cateringMenus,
+      decoration: originalEvent.decoration,
+      requiresTicket: originalEvent.requiresTicket,
+      status: "DRAFT",
+    });
+
+    return res.status(201).json({ 
+      message: "Event duplicated successfully", 
+      event: duplicatedEvent 
     });
   } catch (err) {
     return next(err);

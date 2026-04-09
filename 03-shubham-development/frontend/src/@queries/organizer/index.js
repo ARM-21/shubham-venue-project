@@ -6,4 +6,5 @@ export { useQueryOrganizerBookings } from "./bookings";
 export { useQueryOrganizerAnalytics } from "./analytics";
 export { useQueryEventAttendees } from "./attendees";
 export { useQueryOrganizerReputation } from "./reputation";
+export { useQueryUserUploads } from "./uploads";
 

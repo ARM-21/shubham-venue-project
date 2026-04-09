@@ -435,3 +435,66 @@ export async function deleteUserAvatar(req, res) {
     });
   }
 }
+
+/**
+ * GET /api/v1/profile/uploads
+ * Get user's uploaded images by type (banner, menu, etc)
+ */
+export async function getUserUploads(req, res) {
+  try {
+    const userId = req.currentUser?._id;
+    const { type = 'banner' } = req.query;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authenticated"
+      });
+    }
+
+    // Validate type
+    const allowedTypes = ['banner', 'menu', 'decoration', 'avatar'];
+    const queryType = type.toLowerCase();
+    
+    if (!allowedTypes.includes(queryType)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid type. Allowed types: ${allowedTypes.join(', ')}`
+      });
+    }
+
+    // Get user uploads of specified type
+    const user = await User.findById(userId)
+      .select('uploads')
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Filter uploads by type and sort by most recent first
+    const filteredUploads = (user.uploads || [])
+      .filter(upload => upload.type === queryType)
+      .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+
+    return res.status(200).json({
+      success: true,
+      uploads: filteredUploads.map(upload => ({
+        url: upload.url,
+        s3Key: upload.s3Key,
+        type: upload.type,
+        uploadedAt: upload.uploadedAt,
+        label: upload.label
+      }))
+    });
+  } catch (err) {
+    console.error('Get uploads error:', err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to get uploads'
+    });
+  }
+}
