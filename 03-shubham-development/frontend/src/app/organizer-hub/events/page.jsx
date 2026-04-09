@@ -28,7 +28,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "lib/axios";
-import BreadcrumbNav from "components/organizer/BreadcrumbNav";
 import EventSearchFilter from "components/organizer/EventSearchFilter";
 import BulkActionsToolbar from "components/organizer/BulkActionsToolbar";
 import EmptyState from "components/organizer/EmptyState";
@@ -251,18 +250,14 @@ export default function OrganizerEventsPage() {
       {showFirstTimeHelpToast && events.length === 0 && (
         <HelpToast
           title="Welcome to Your Event Dashboard!"
-          message="Start by creating your first event. Use search & filters to manage your portfolio, and bulk actions to export or duplicate events."
+          message="Start by creating your first event. Use search & filters to manage your portfolio, and export events."
           onDismiss={() => setShowFirstTimeHelpToast(false)}
           autoClose={8000}
         />
       )}
-      {/* Breadcrumb */}
-      <div className="mb-4 sm:mb-6 lg:mb-8">
-        <BreadcrumbNav />
-      </div>
 
       {/* Header Section */}
-      <div className="flex flex-col gap-4 sm:gap-6">
+      <div className="flex flex-col gap-6 mb-8">
         <div>
           <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-6">
             <div className="w-8 sm:w-12 h-[1px] bg-[#C0A04C]/40" />

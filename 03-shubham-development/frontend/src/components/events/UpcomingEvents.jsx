@@ -13,29 +13,8 @@ export default function UpcomingEvents() {
   const events = eventsData?.events || [];
 
   return (
-    <div className="py-5 px-6 bg-[#FDFCFB]">
+    <div className="py-2 px-6 bg-[#FDFCFB]">
       <div className="max-w-8xl mx-auto">
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 mb-20">
-          <div className="max-w-2xl space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-[1px] bg-[#C0A04C]" />
-              <span className="text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">The Calendar</span>
-            </div>
-            <h2 className="text-4xl md:text-6xl font-black text-[#3a1224] uppercase tracking-tighter leading-none">
-              Upcoming <span className="text-[#C0A04C] italic serif lowercase">experiences</span>
-            </h2>
-            <p className="text-[#3a1224]/60 text-lg font-medium italic border-l-4 border-[#C0A04C]/20 pl-6 py-1">
-              "Join us for unforgettable celebrations, workshops, and grand community gatherings."
-            </p>
-          </div>
-          <button
-            onClick={() => router.push(ROUTES.SITE.EVENTS)}
-            className="group flex items-center justify-center py-5 px-12 rounded-2xl bg-white border-2 border-[#3a1224] text-[#3a1224] text-[11px] font-black uppercase tracking-[0.2em] shadow-xl hover:bg-[#3a1224] hover:text-white transition-all duration-500"
-          >
-            Full Calendar <ArrowRight size={16} className="ml-3 group-hover:translate-x-2 transition-transform" />
-          </button>
-        </div>
 
         {error ? (
           <div className="bg-red-50 p-8 rounded-[2rem] text-red-600 text-center font-black uppercase text-[10px] tracking-widest">
@@ -95,7 +74,7 @@ export default function UpcomingEvents() {
                       <div className="flex items-center gap-2 text-white/60">
                         <MapPin size={10} className="text-[#C0A04C]" />
                         <p className="text-[10px] font-bold uppercase tracking-widest truncate">
-                          {event.hallId?.name || "The Grand Palace"}
+                          {event.hallId?.name || "Hosted Venue"}
                         </p>
                       </div>
                     </div>
