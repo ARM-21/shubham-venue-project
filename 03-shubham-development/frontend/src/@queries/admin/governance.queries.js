@@ -101,8 +101,10 @@ export const useQueryOrganizersReputation = (options = {}) => {
   return useQuery({
     queryKey: ['organizersReputation', suspended, hasFlags, page, limit],
     queryFn: () => fetchOrganizers({ suspended, hasFlags, page, limit }),
-    staleTime: 60 * 1000, // Reduced to 1 minute for fresher trust score updates
+    staleTime: 15 * 1000, // Low stale time (15 seconds) for real-time data
     gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    refetchOnWindowFocus: true, // Refetch when user returns to window
+    refetchOnMount: 'stale', // Refetch if data is stale on mount
   });
 };
 

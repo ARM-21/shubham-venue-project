@@ -511,17 +511,61 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
       });
     }
 
-    // When event is cancelled, send cancellation emails to all ticket holders
+    // When event is cancelled, send cancellation emails to all ticket holders and mark tickets as cancelled
     if (updated.status === "CANCELLED" && event.status !== "CANCELLED") {
       const cancellationReason = req.body?.cancellationReason || "";
       const refundFormUrl = ENV.REFUND_FORM_URL;
       
-      // Get all tickets for this event to find attendees
-      const tickets = await Ticket.find({ eventId: event._id }).select("attendeeEmail").lean();
+      let tickets = [];
       
-      if (tickets.length > 0) {
-        // Get unique attendee emails
-        const attendeeEmails = [...new Set(tickets.map(t => t.attendeeEmail).filter(email => email))];
+      // Start transaction for atomic ticket and payment updates during cancellation
+      const session = await mongoose.startSession();
+      session.startTransaction();
+      
+      try {
+        // Get all tickets for this event with owner user details
+        tickets = await Ticket.find({ eventId: event._id })
+          .populate({
+            path: "ownerUserId",
+            select: "email firstName lastName",
+            model: "User"
+          })
+          .session(session)
+          .lean();
+        
+        if (tickets.length > 0) {
+          // Mark all tickets as CANCELLED atomically
+          await Ticket.updateMany(
+            { eventId: event._id, status: "ACTIVE" },
+            { status: "CANCELLED" },
+            { session, multi: true }
+          );
+          
+          // Also mark related ticket payments as FAILED (refund pending)
+          await TicketPayment.updateMany(
+            { eventId: event._id, status: "COMPLETED" },
+            { status: "FAILED" },
+            { session }
+          );
+        }
+        
+        await session.commitTransaction();
+      } catch (error) {
+        await session.abortTransaction();
+        console.error("Error updating tickets during event cancellation:", error);
+        // Don't block response but log the error
+      } finally {
+        await session.endSession();
+      }
+      
+      if (tickets && tickets.length > 0) {
+        
+        // Get unique attendee emails from populated user data
+        const attendeeEmails = [...new Set(
+          tickets
+            .map(t => t.ownerUserId?.email)
+            .filter(email => email)
+        )];
         
         // Send cancellation emails (non-blocking)
         attendeeEmails.forEach((email) => {

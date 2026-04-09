@@ -36,11 +36,11 @@ router.get("/events/:eventId/attendees/export", async (req, res, next) => {
     // Verify organizer owns this event
     const event = await OrganizerEvent.findById(eventId);
     if (!event) {
-      return httpError(res, 404, "Event not found");
+      return next(httpError(404, "Event not found"));
     }
 
     if (event.organizerId.toString() !== organizerId.toString()) {
-      return httpError(res, 403, "You don't have permission to export attendees for this event");
+      return next(httpError(403, "You don't have permission to export attendees for this event"));
     }
 
     // Generate CSV
@@ -52,7 +52,7 @@ router.get("/events/:eventId/attendees/export", async (req, res, next) => {
     res.send(csv);
   } catch (error) {
     console.error("[Export Attendees Error]", error);
-    httpError(res, 500, error.message || "Failed to export attendees");
+    next(error);
   }
 });
 
@@ -68,11 +68,11 @@ router.get("/events/:eventId/attendees/export-all", async (req, res, next) => {
     // Verify organizer owns this event
     const event = await OrganizerEvent.findById(eventId);
     if (!event) {
-      return httpError(res, 404, "Event not found");
+      return next(httpError(404, "Event not found"));
     }
 
     if (event.organizerId.toString() !== organizerId.toString()) {
-      return httpError(res, 403, "You don't have permission to export attendees for this event");
+      return next(httpError(403, "You don't have permission to export attendees for this event"));
     }
 
     // Generate CSV
@@ -84,7 +84,7 @@ router.get("/events/:eventId/attendees/export-all", async (req, res, next) => {
     res.send(csv);
   } catch (error) {
     console.error("[Export All Attendees Error]", error);
-    httpError(res, 500, error.message || "Failed to export attendees");
+    next(error);
   }
 });
 

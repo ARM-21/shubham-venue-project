@@ -207,7 +207,7 @@ export function GuestDetailModal({ guest, isOpen, onClose }) {
                       <p className="text-xs font-bold text-[#3a1224]/60 mb-1">Ticket Type</p>
                       <p className="text-sm font-bold text-[#3a1224]">{ticketName}</p>
                       {ticketPrice !== "—" && (
-                        <p className="text-xs text-[#3a1224]/60 mt-1">₹ {ticketPrice}</p>
+                        <p className="text-xs text-[#3a1224]/60 mt-1">NPR {ticketPrice}</p>
                       )}
                     </div>
                   </div>

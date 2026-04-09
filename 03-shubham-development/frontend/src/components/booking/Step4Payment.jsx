@@ -30,6 +30,7 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    let bookingId = null; // Declare here for access in catch block
 
     try {
       // 1. Create booking
@@ -39,7 +40,7 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
         paymentMethod,
       });
 
-      const bookingId = bookingRes.data.booking._id;
+      bookingId = bookingRes.data.booking._id;
 
       const fallbackRedirect = data?.hallSlug ? ROUTES.SITE.VENUES(data.hallSlug) : ROUTES.HOME;
 
@@ -65,6 +66,17 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
       window.location.href = paymentRes.data.paymentUrl;
 
     } catch (error) {
+      // If booking was created but payment init failed, cancel the booking
+      if (bookingId && error.response?.status !== 404) {
+        try {
+          await axiosInstance.put(ROUTES.API.BOOKINGS.ROOT, {
+            id: bookingId,
+            status: 'CANCELLED'
+          });
+        } catch (cancelErr) {
+          console.error('Failed to cancel orphaned booking:', cancelErr);
+        }
+      }
       toast.error(error.response?.data?.message || "Booking failed");
       setIsSubmitting(false);
     }
