@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Users, Search, Download } from "lucide-react";
 import toast from "react-hot-toast";
+import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
 import { GuestDetailModal } from "./GuestDetailModal";
 
@@ -50,29 +51,25 @@ export function GuestManifest({
   const handleExportCheckedIn = async () => {
     try {
       setExporting(true);
-      const response = await fetch(ROUTES.API.ORGANIZER.EVENT_ATTENDEES_EXPORT(eventId), {
-        method: 'GET',
-        credentials: 'include',
+      const response = await axiosInstance.get(ROUTES.API.ORGANIZER.EVENT_ATTENDEES_EXPORT(eventId), {
+        responseType: 'blob',
       });
 
-      if (!response.ok) {
-        throw new Error('Export failed');
-      }
-
-      const blob = await response.blob();
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `attendees-export-${Date.now()}.csv`;
-      document.body.appendChild(a);
-      a.click();
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `attendees-export-${Date.now()}.csv`;
+      document.body.appendChild(link);
+      link.click();
       window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      document.body.removeChild(link);
 
       toast.success('Attendees exported successfully');
     } catch (error) {
       console.error('Export error:', error);
-      toast.error('Failed to export attendees');
+      const errorMsg = error?.response?.data?.message || error.message || 'Failed to export attendees';
+      toast.error(errorMsg);
     } finally {
       setExporting(false);
     }
@@ -81,29 +78,25 @@ export function GuestManifest({
   const handleExportAll = async () => {
     try {
       setExporting(true);
-      const response = await fetch(ROUTES.API.ORGANIZER.EVENT_ATTENDEES_EXPORT_ALL(eventId), {
-        method: 'GET',
-        credentials: 'include',
+      const response = await axiosInstance.get(ROUTES.API.ORGANIZER.EVENT_ATTENDEES_EXPORT_ALL(eventId), {
+        responseType: 'blob',
       });
 
-      if (!response.ok) {
-        throw new Error('Export failed');
-      }
-
-      const blob = await response.blob();
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `attendees-all-export-${Date.now()}.csv`;
-      document.body.appendChild(a);
-      a.click();
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `attendees-all-export-${Date.now()}.csv`;
+      document.body.appendChild(link);
+      link.click();
       window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      document.body.removeChild(link);
 
       toast.success('All attendees exported successfully');
     } catch (error) {
       console.error('Export error:', error);
-      toast.error('Failed to export attendees');
+      const errorMsg = error?.response?.data?.message || error.message || 'Failed to export attendees';
+      toast.error(errorMsg);
     } finally {
       setExporting(false);
     }

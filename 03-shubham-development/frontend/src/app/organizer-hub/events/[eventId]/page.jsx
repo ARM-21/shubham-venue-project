@@ -16,6 +16,7 @@ import {
   EntryTerminal,
   TicketInventory,
   GuestManifest,
+  CancellationTerminal,
 } from "components/organizer/event-detail";
 import { Fingerprint } from "lucide-react";
 
@@ -39,6 +40,7 @@ export default function OrganizerEventDetailPage() {
 
   const [checkinCode, setCheckinCode] = useState("");
   const [checkinLoading, setCheckinLoading] = useState(false);
+  const [cancellationData, setCancellationData] = useState(null);
 
   const { data: statusData } = useQueryOrganizerStatus({ enabled: !!user });
   const { data: attendeesData, isLoading: attendeesLoading, refetch: refetchAttendees } = useQueryEventAttendees(eventId, {
@@ -110,6 +112,7 @@ export default function OrganizerEventDetailPage() {
         startDateTime: values.startDateTime || undefined,
         endDateTime: values.endDateTime || undefined,
         status: values.status,
+        cancellationReason: values.status === "CANCELLED" ? values.cancellationReason?.trim() : null,
         expectedAttendees: values.expectedAttendees || null,
         // Include registration window dates with time components
         registrationStartDate: regStart || undefined,
@@ -118,6 +121,11 @@ export default function OrganizerEventDetailPage() {
       const res = await axiosInstance.patch(ROUTES.API.ORGANIZER.EVENT(eventId), payload);
       setEvent(res.data?.event || null);
       
+      // Capture cancellation data if event was cancelled
+      if (values.status === "CANCELLED" && res.data?.cancellation) {
+        setCancellationData(res.data.cancellation);
+      }
+      
       // Show specific success message based on status change
       if (values.status !== event?.status) {
         if (values.status === "PUBLISHED") {
@@ -125,7 +133,7 @@ export default function OrganizerEventDetailPage() {
         } else if (values.status === "DRAFT") {
           toast.success("✓ Event moved back to draft");
         } else if (values.status === "CANCELLED") {
-          toast.success("✓ Event cancelled");
+          toast.success("✓ Event cancelled - All attendees have been notified");
         }
       } else {
         toast.success("Event updated");
@@ -329,6 +337,11 @@ export default function OrganizerEventDetailPage() {
         
         {/* Metrics Cards */}
         {event && <EventMetrics event={event} />}
+
+        {/* Cancellation Terminal - shown when event is cancelled */}
+        {event?.status === "CANCELLED" && cancellationData && (
+          <CancellationTerminal cancellationData={cancellationData} />
+        )}
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

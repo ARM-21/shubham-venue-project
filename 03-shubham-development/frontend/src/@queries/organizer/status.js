@@ -11,7 +11,7 @@ export function useQueryOrganizerStatus(options) {
   return useQuery({
     queryKey: [ORGANIZER_STATUS_QUERY_KEY],
     queryFn: organizerStatusFetcher,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 15 * 1000, // 15 seconds
     cacheTime: 10 * 60 * 1000, // 10 minutes
     ...options,
   });

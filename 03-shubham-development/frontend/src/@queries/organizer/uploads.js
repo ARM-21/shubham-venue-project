@@ -12,7 +12,7 @@ export function useQueryUserUploads(type = "banner", options) {
   return useQuery({
     queryKey: [USER_UPLOADS_QUERY_KEY, type],
     queryFn: () => userUploadsFetcher(type),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 15 * 1000, // 15 seconds
     gcTime: 10 * 60 * 1000, // 10 minutes
     ...options,
   });

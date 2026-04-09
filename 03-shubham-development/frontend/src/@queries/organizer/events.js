@@ -31,7 +31,7 @@ export function useQueryOrganizerEvent(id, options) {
     queryKey: [ORGANIZER_EVENT_QUERY_KEY, id],
     queryFn: async () => organizerEventDetailFetcher(id),
     enabled: !!id,
-    staleTime: 3 * 60 * 1000, // 3 minutes
+    staleTime: 15 * 1000, // 15 seconds
     cacheTime: 10 * 60 * 1000, // 10 minutes
     ...options,
   });

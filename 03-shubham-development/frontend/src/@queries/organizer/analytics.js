@@ -15,7 +15,7 @@ export function useQueryOrganizerAnalytics(options = {}) {
   return useQuery({
     queryKey: [ORGANIZER_ANALYTICS_QUERY_KEY],
     queryFn: () => organizerAnalyticsFetcher(),
-    staleTime: isEventActive ? 10 * 1000 : 5 * 60 * 1000, // 10 sec if active, 5 min otherwise
+    staleTime: isEventActive ? 10 * 1000 : 2 * 60 * 1000, // 10 sec if active, 2 min otherwise
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
     refetchInterval: isEventActive ? 15 * 1000 : false, // Auto-poll every 15 seconds during active events
     refetchOnWindowFocus: true, // Refetch when window regains focus
