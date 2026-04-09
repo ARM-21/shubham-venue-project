@@ -13,7 +13,7 @@ export function useQueryOrganizerBookings(options) {
   return useQuery({
     queryKey: [ORGANIZER_BOOKINGS_QUERY_KEY, params],
     queryFn: async () => organizerBookingsFetcher(params),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 15 * 1000, // 15 seconds
     cacheTime: 5 * 60 * 1000, // 5 minutes
     ...queryOptions,
   });

@@ -503,6 +503,8 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
       .populate({ path: "bookingId", select: "date slot status" })
       .lean();
 
+    let cancellationMetadata = null;
+
     // When event is successfully published, increment eventsApproved counter
     if (updated.status === "PUBLISHED" && event.status !== "PUBLISHED") {
       await onEventApproved(req.currentUser._id).catch((err) => {
@@ -517,6 +519,7 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
       const refundFormUrl = ENV.REFUND_FORM_URL;
       
       let tickets = [];
+      let attendeeNotificationCount = 0;
       
       // Start transaction for atomic ticket and payment updates during cancellation
       const session = await mongoose.startSession();
@@ -567,6 +570,8 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
             .filter(email => email)
         )];
         
+        attendeeNotificationCount = attendeeEmails.length;
+        
         // Send cancellation emails (non-blocking)
         attendeeEmails.forEach((email) => {
           sendEventCancellationEmail(
@@ -580,9 +585,72 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
           });
         });
       }
+      
+      // Notify all admins about event cancellation
+      try {
+        const organizer = await User.findById(req.currentUser._id).select("firstName lastName email");
+        const admins = await User.find({ role: "admin" }).select("_id email");
+        
+        for (const admin of admins) {
+          await AdminNotification.create({
+            adminId: admin._id,
+            type: "event_cancelled",
+            title: `Event Cancelled: ${event.name}`,
+            message: `${organizer?.firstName} ${organizer?.lastName} cancelled "${event.name}" with ${attendeeNotificationCount} attendees notified${cancellationReason ? '. Reason: ' + cancellationReason : ''}`,
+            eventId: event._id,
+            organizerId: req.currentUser._id,
+            requestUserId: req.currentUser._id,
+            requestUserName: `${organizer?.firstName} ${organizer?.lastName}`,
+            requestUserEmail: organizer?.email,
+            actionPath: `/admin/governance/organizer-events?search=${event.name}`,
+            metadata: {
+              attendeesNotified: attendeeNotificationCount,
+              cancellationReason: cancellationReason,
+              ticketsCancelled: tickets.length
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to send admin notifications:", err.message);
+        // Don't block response if admin notifications fail
+      }
+      
+      // Create audit log for event cancellation
+      try {
+        await createAuditLog({
+          action: "event_cancelled",
+          performedBy: req.currentUser._id,
+          entityType: "OrganizerEvent",
+          entityId: event._id,
+          changes: {
+            status: { from: event.status, to: "CANCELLED" },
+            cancellationReason,
+            attendeesNotified: attendeeNotificationCount,
+            ticketsCancelled: tickets.length
+          },
+          relatedOrganizerId: req.currentUser._id,
+          description: `Event "${event.name}" cancelled by organizer with reason: ${cancellationReason || "None provided"}`
+        });
+      } catch (err) {
+        console.warn("Failed to create audit log:", err.message);
+      }
+      
+      // Capture cancellation metadata for frontend display
+      cancellationMetadata = {
+        attendeesNotified: attendeeNotificationCount,
+        cancellationReason: cancellationReason,
+        ticketsCancelled: tickets.length,
+        adminNotified: true,
+        auditLogged: true,
+        timestamp: new Date().toISOString()
+      };
     }
 
-    return res.json({ message: "Event updated", event: updated });
+    return res.json({ 
+      message: "Event updated", 
+      event: updated,
+      ...(cancellationMetadata && { cancellation: cancellationMetadata })
+    });
   } catch (err) {
     return next(err);
   }

@@ -29,7 +29,7 @@ export const useQueryFlags = (options = {}) => {
   return useQuery({
     queryKey: ['flags', status, severity, eventId, organizerId, page, limit],
     queryFn: () => fetchFlags({ status, severity, eventId, organizerId, page, limit }),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 15  * 1000, // 15 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
 };
@@ -42,7 +42,7 @@ export const useQueryFlagDetail = (flagId) => {
     queryKey: ['flag', flagId],
     queryFn: () => fetchFlagDetail(flagId),
     enabled: !!flagId,
-    staleTime: 1 * 60 * 1000, // 1 minute
+    staleTime: 15 * 1000, // 15 seconds
   });
 };
 
@@ -53,7 +53,7 @@ export const useQueryFlagDashboard = () => {
   return useQuery({
     queryKey: ['flagDashboard'],
     queryFn: () => fetchFlagDashboard(),
-    staleTime: 3 * 60 * 1000, // 3 minutes
+    staleTime: 15 * 1000, // 15 seconds
   });
 };
 
@@ -66,7 +66,7 @@ export const useQueryOrganizerEventsReview = (options = {}) => {
   return useQuery({
     queryKey: ['organizerEventsReview', status, page, limit],
     queryFn: () => fetchOrganizerEvents({ status, page, limit }),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 15 * 1000,
   });
 };
 
@@ -77,7 +77,7 @@ export const useQueryPendingReviewEvents = (page = 1, limit = 20) => {
   return useQuery({
     queryKey: ['pendingReviewEvents', page, limit],
     queryFn: () => fetchOrganizerEvents({ status: 'pending', page, limit }),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 15 * 1000,
   });
 };
 
@@ -139,7 +139,7 @@ export const useQuerySuspensionStats = () => {
   return useQuery({
     queryKey: ['suspensionStats'],
     queryFn: () => fetchSuspensionStats(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 15 * 1000,
   });
 };
 

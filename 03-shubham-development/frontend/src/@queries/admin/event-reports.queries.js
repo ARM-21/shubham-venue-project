@@ -20,8 +20,8 @@ export const useQueryEventReports = (filters = {}) => {
       limit, 
       search
     }),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 15 * 1000, // 15 sec 
+    gcTime: 2 * 60 * 1000, // 2 minutes
   });
 };
 
