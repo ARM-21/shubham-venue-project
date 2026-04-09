@@ -169,6 +169,7 @@ export function TicketsSection({
                                 : "bg-[#3a1224] text-white hover:bg-[#C0A04C] hover:text-[#3a1224] hover:shadow-lg hover:shadow-[#C0A04C]/20 group-hover:shadow-[#C0A04C]/20"
                             }`}
                           >
+                          
                             {registrationNotStarted
                               ? "COMING SOON"
                               : eventEnded
