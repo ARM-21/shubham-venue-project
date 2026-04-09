@@ -88,6 +88,18 @@ export default function OrganizerEventDetailPage() {
     }
 
     try {
+      // Format registration dates to include time if only date is provided
+      let regStart = values.registrationStartDate;
+      let regEnd = values.registrationEndDate;
+      
+      // If registration dates are provided but missing time component, append midnight
+      if (regStart && !regStart.includes('T')) {
+        regStart = `${regStart}T00:00`;
+      }
+      if (regEnd && !regEnd.includes('T')) {
+        regEnd = `${regEnd}T23:59`;
+      }
+
       const payload = {
         name: values.name?.trim(),
         type: values.type?.trim(),
@@ -98,6 +110,10 @@ export default function OrganizerEventDetailPage() {
         startDateTime: values.startDateTime || undefined,
         endDateTime: values.endDateTime || undefined,
         status: values.status,
+        expectedAttendees: values.expectedAttendees || null,
+        // Include registration window dates with time components
+        registrationStartDate: regStart || undefined,
+        registrationEndDate: regEnd || undefined,
       };
       const res = await axiosInstance.patch(ROUTES.API.ORGANIZER.EVENT(eventId), payload);
       setEvent(res.data?.event || null);

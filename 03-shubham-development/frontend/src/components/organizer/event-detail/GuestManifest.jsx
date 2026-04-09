@@ -75,8 +75,8 @@ export function GuestManifest({
                 </td>
               </tr>
             ) : (
-              filteredAttendees.map((a) => (
-                <tr key={a._id} className="hover:bg-[#fdfaf6] transition-colors">
+              filteredAttendees.map((a, index) => (
+                <tr key={a._id || `attendee-${index}`} className="hover:bg-[#fdfaf6] transition-colors">
                   <td className="py-4 px-4">
                     <div>
                       <p className="text-xs sm:text-sm font-black text-[#3a1224]">{a.attendee?.first_name} {a.attendee?.last_name}</p>

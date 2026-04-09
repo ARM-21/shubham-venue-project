@@ -197,6 +197,30 @@ const userSchema = new mongoose.Schema(
         liftedBy: mongoose.Schema.Types.ObjectId,
       },
     ],
+
+    // User uploads tracking (banners, menu images, etc.)
+    uploads: [
+      {
+        url: {
+          type: String,
+          required: true,
+        },
+        s3Key: {
+          type: String,
+          required: true,
+        },
+        type: {
+          type: String,
+          enum: ['banner', 'menu', 'decoration', 'avatar'],
+          default: 'banner',
+        },
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        label: String, // Optional label/name for the upload
+      },
+    ],
   },
   {
     timestamps: true

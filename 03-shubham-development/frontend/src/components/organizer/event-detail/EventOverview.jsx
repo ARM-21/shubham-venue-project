@@ -1,3 +1,5 @@
+import { RichTextDisplay } from "components/shared/RichTextDisplay";
+
 export function EventOverview({ event }) {
   return (
     <section className="bg-white rounded-2xl border border-[#3a1224]/5 p-8 shadow-sm">
@@ -17,9 +19,13 @@ export function EventOverview({ event }) {
 
       <div className="border-t border-[#3a1224]/5 pt-6">
         <p className="text-sm sm:text-base font-bold text-[#3a1224]/40 uppercase tracking-widest mb-3">Description</p>
-        <p className="text-sm sm:text-base text-[#3a1224]/70 leading-relaxed font-medium whitespace-pre-wrap">
-          {event.description || 'No description provided'}
-        </p>
+        {event.description ? (
+          <RichTextDisplay content={event.description} className="text-[#3a1224]/70" />
+        ) : (
+          <p className="text-sm sm:text-base text-[#3a1224]/70 leading-relaxed font-medium">
+            No description provided
+          </p>
+        )}
       </div>
 
       {event.specialRequirements && (

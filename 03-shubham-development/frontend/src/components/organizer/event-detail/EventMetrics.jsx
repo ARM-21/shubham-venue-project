@@ -15,20 +15,26 @@ function formatDate(value) {
 }
 
 export function EventMetrics({ event }) {
+  const hallCapacity = event.hallId?.capacity || 0;
+  
   const metrics = [
     {
       icon: Users,
       label: "Hall Capacity",
-      value: event.hallId?.capacity,
-      subtitle: event.hallId?.name,
+      value: hallCapacity > 0 ? hallCapacity : "—",
+      subtitle: event.hallId?.name || "No hall assigned",
       color: "from-[#C0A04C] to-[#A68A3C]",
       delay: 0
     },
     {
       icon: Activity,
       label: "Expected",
-      value: event.expectedAttendees,
-      subtitle: `${Math.round((event.expectedAttendees / event.hallId?.capacity) * 100)}% capacity`,
+      value: event.expectedAttendees || 0,
+      subtitle: `${
+        event.expectedAttendees && hallCapacity > 0
+          ? Math.round((event.expectedAttendees / hallCapacity) * 100)
+          : "—"
+      }% capacity`,
       color: "from-emerald-400 to-emerald-600",
       delay: 0.05
     },
