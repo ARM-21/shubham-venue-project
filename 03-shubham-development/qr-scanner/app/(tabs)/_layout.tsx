@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { useAuth } from '@/contexts/AuthContext';
-import { AppTheme } from '@/constants/appTheme';
+import { AppTheme } from '../../constants/appTheme';
 
 export default function TabLayout() {
   const { logout } = useAuth();

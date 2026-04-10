@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import ErrorHandler, { ApiError } from '@/utils/errorHandler';
+import ErrorHandler, { ApiError } from 'utils/errorHandler';
 
 interface User {
   id: string;

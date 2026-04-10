@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { AppTheme } from '@/constants/appTheme';
-import { useAuth } from '@/contexts/AuthContext';
+import { AppTheme } from 'constants/appTheme';
+import { useAuth } from 'contexts/AuthContext';
 import * as SecureStore from 'expo-secure-store';
 
 export default function SettingsScreen() {

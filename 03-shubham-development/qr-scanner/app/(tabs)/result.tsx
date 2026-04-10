@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AppTheme } from '@/constants/appTheme';
+import { AppTheme } from '../../constants/appTheme';
 
 export default function ResultScreen() {
   const { status, ticketName, message, eventId, checkedInAt, ticketType } =
