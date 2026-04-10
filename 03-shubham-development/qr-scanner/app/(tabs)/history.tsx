@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { AppTheme } from '@/constants/appTheme';
+import { AppTheme } from '../../constants/appTheme';
 import * as SecureStore from 'expo-secure-store';
 
 interface ScanRecord {

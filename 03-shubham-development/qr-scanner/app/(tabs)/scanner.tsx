@@ -15,7 +15,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { scanQRMutator, type ScanQRResponse } from '@/@api/scanner/scan-fetcher';
 import ErrorHandler from '@/utils/errorHandler';
-import { AppTheme } from '@/constants/appTheme';
+import { AppTheme } from '../../constants/appTheme';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function ScannerScreen() {

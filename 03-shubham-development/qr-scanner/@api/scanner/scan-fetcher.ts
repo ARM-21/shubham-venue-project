@@ -1,5 +1,5 @@
-import api from '@/lib/api';
-import ErrorHandler from '@/utils/errorHandler';
+import api from 'lib/api';
+import ErrorHandler from 'utils/errorHandler';
 
 export interface ScanQRRequest {
   qrCode: string;

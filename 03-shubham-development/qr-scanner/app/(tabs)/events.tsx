@@ -11,7 +11,7 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScannerEvents } from '@/@queries/scanner/events';
-import { AppTheme } from '@/constants/appTheme';
+import { AppTheme } from '../../constants/appTheme';
 import type { Event } from '@/@api/scanner/events-fetcher';
 
 

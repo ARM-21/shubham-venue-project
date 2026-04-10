@@ -1,5 +1,5 @@
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
-import { eventsFetcher, EventsResponse } from '@/@api/scanner/events-fetcher';
+import { eventsFetcher, EventsResponse } from '@api/scanner/events-fetcher';
 
 export const EVENTS_QUERY_KEY = ['scanner', 'events'] as const;
 

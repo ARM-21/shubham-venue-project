@@ -3,11 +3,10 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, Text } from 'react-native';
-import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { QueryClientProviderWrapper } from '@/providers/query-client-provider';
+import { useColorScheme } from 'hooks/use-color-scheme';
+import { AuthProvider, useAuth } from 'contexts/AuthContext';
+import { QueryClientProviderWrapper } from 'providers/query-client-provider';
 
 export const unstable_settings = {
   anchor: '(tabs)',
