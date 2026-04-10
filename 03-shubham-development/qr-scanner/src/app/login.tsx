@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppTheme } from '@/constants/appTheme';
 
@@ -21,6 +22,7 @@ interface LoginFormData {
 
 export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { login, error, clearError } = useAuth();
   const {
     control,
@@ -109,16 +111,28 @@ export default function LoginScreen() {
                 },
               }}
               render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  style={[styles.input, errors.password ? styles.inputError : null]}
-                  placeholder="Enter your password"
-                  placeholderTextColor={AppTheme.colors.textMuted}
-                  secureTextEntry
-                  editable={!loading}
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                />
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={[styles.input, styles.passwordInput, errors.password ? styles.inputError : null]}
+                    placeholder="Enter your password"
+                    placeholderTextColor={AppTheme.colors.textMuted}
+                    secureTextEntry={!showPassword}
+                    editable={!loading}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                  />
+                  <TouchableOpacity
+                    style={styles.passwordToggle}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color={AppTheme.colors.maroonPrimary}
+                    />
+                  </TouchableOpacity>
+                </View>
               )}
               name="password"
             />
@@ -231,6 +245,20 @@ const styles = StyleSheet.create({
     fontSize: AppTheme.fonts.sizes.xs,
     color: AppTheme.colors.error,
     fontWeight: AppTheme.fonts.weights.medium as any,
+  } as const,
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+  } as const,
+  passwordInput: {
+    flex: 1,
+    paddingRight: AppTheme.spacing.xl + AppTheme.spacing.lg,
+  } as const,
+  passwordToggle: {
+    position: 'absolute',
+    right: AppTheme.spacing.md,
+    padding: AppTheme.spacing.sm,
   } as const,
   loginButton: {
     backgroundColor: AppTheme.colors.maroonPrimary,
