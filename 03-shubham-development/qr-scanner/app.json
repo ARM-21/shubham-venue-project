@@ -3,6 +3,7 @@
     "name": "qr-scanner",
     "slug": "qr-scanner",
     "version": "1.0.0",
+    "sourceRoot": "src",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "qrscanner",
@@ -43,6 +44,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "21631496-c0e2-4052-a6b0-1f8624e36118"
+      }
     }
   }
 }
