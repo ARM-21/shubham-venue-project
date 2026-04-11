@@ -1,4 +1,5 @@
 import express from "express";
+import { uploadLimiter } from "../../../config/rateLimit.config.js";
 import {
   adminListHallsHandler,
   adminCreateHallHandler,
@@ -10,7 +11,7 @@ import {
 
 const router = express.Router();
 
-router.post("/upload-url", adminHallUploadUrlHandler);
+router.post("/upload-url", uploadLimiter, adminHallUploadUrlHandler);
 router.get("/", adminListHallsHandler);
 router.post("/", adminCreateHallHandler);
 router.get("/:id", adminGetHallHandler);

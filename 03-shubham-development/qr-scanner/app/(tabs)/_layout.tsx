@@ -1,6 +1,6 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -8,7 +8,31 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AppTheme } from '../../constants/appTheme';
 
 export default function TabLayout() {
-  const { logout } = useAuth();
+  const { logout, isLogoutLoading } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', onPress: () => {}, style: 'cancel' },
+        {
+          text: 'Sign Out',
+          onPress: async () => {
+            try {
+              await logout();
+              // Navigate to login after logout
+              router.replace('/login');
+            } catch (error) {
+              console.error('Logout failed:', error);
+            }
+          },
+          style: 'destructive',
+        },
+      ]
+    );
+  };
 
   // Professional Header Components
   const HeaderLeft = ({ title, icon }: { title: string; icon: any }) => (
@@ -19,8 +43,16 @@ export default function TabLayout() {
   );
 
   const HeaderRight = () => (
-    <Pressable onPress={logout} style={styles.logoutButton}>
-      <Ionicons name="log-out" size={22} color={AppTheme.colors.textWhite} />
+    <Pressable 
+      onPress={handleLogout} 
+      style={styles.logoutButton}
+      disabled={isLogoutLoading}
+    >
+      <Ionicons 
+        name="log-out" 
+        size={22} 
+        color={isLogoutLoading ? '#ccc' : AppTheme.colors.textWhite} 
+      />
     </Pressable>
   );
 

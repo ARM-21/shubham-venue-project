@@ -32,6 +32,7 @@ export default function EventsScreen() {
     enabled: true,
   });
 
+  console.log(events)
   // Refetch when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -97,7 +98,7 @@ export default function EventsScreen() {
             {item.eventName}
           </Text>
           <Text style={styles.hallName}>
-            📍 {item.hall?.hallName || 'Hall TBD'}
+            {item.hall?.hallName || 'Hall information unavailable'}
           </Text>
         </View>
         <View style={styles.gateBadge}>
@@ -106,8 +107,8 @@ export default function EventsScreen() {
       </View>
 
       <View style={styles.eventFooter}>
-        <Text style={styles.eventDate}>📅 {formatDate(item.eventDate)}</Text>
-        <Text style={styles.actionText}>Tap to scan →</Text>
+        <Text style={styles.eventDate}>{formatDate(item.eventDate)}</Text>
+        <Text style={styles.actionText}>Start Scanning</Text>
       </View>
     </TouchableOpacity>
   );
@@ -136,7 +137,7 @@ export default function EventsScreen() {
       <View style={styles.container}>
         <View style={styles.centerContent}>
           <View style={styles.errorIcon}>
-            <Text style={styles.errorIconText}>⚠️</Text>
+            <Text style={styles.errorIconText}>!</Text>
           </View>
           <Text style={styles.errorTitle}>Unable to Load Events</Text>
           <Text style={styles.errorMessage}>{errorMessage}</Text>
@@ -169,12 +170,11 @@ export default function EventsScreen() {
       <View style={styles.container}>
         <View style={styles.centerContent}>
           <View style={styles.emptyIcon}>
-            <Text style={styles.emptyIconText}>📭</Text>
+            <Text style={styles.emptyIconText}>-</Text>
           </View>
           <Text style={styles.emptyTitle}>No Events Assigned</Text>
           <Text style={styles.emptyMessage}>
-            You do not have any events assigned yet. Contact your admin to assign
-            you to an event.
+            You do not have any events assigned yet. Contact your administrator to assign you to an event.
           </Text>
 
           <TouchableOpacity
@@ -194,7 +194,7 @@ export default function EventsScreen() {
       {isError && events.length > 0 && (
         <View style={styles.warningBanner}>
           <Text style={styles.warningText}>
-            ⚠️ Failed to refresh. Showing cached data.
+            Warning: Failed to refresh. Showing cached data.
           </Text>
         </View>
       )}
@@ -245,9 +245,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: AppTheme.spacing.lg,
+    borderWidth: 2,
+    borderColor: '#ff6b6b',
   } as const,
   errorIconText: {
     fontSize: AppTheme.fonts.sizes['3xl'],
+    color: '#ff6b6b',
+    fontWeight: 'bold',
   } as const,
   errorTitle: {
     fontSize: AppTheme.fonts.sizes.lg,
@@ -269,9 +273,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: AppTheme.spacing.lg,
+    borderRadius: 50,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
   } as const,
   emptyIconText: {
-    fontSize: AppTheme.fonts.sizes['4xl'],
+    fontSize: AppTheme.fonts.sizes['3xl'],
+    color: '#999',
+    fontWeight: 'bold',
   } as const,
   emptyTitle: {
     fontSize: AppTheme.fonts.sizes.lg,
@@ -380,6 +390,7 @@ const styles = StyleSheet.create({
     fontSize: AppTheme.fonts.sizes.sm,
     color: AppTheme.colors.textSecondary,
     fontWeight: AppTheme.fonts.weights.medium as any,
+    marginTop: AppTheme.spacing.xs,
   } as const,
   gateBadge: {
     backgroundColor: AppTheme.colors.maroonPrimary,

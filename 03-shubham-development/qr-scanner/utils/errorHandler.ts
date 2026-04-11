@@ -35,8 +35,23 @@ export class ErrorHandler {
    * Parse error from API response or exception
    */
   static parseError(error: any): ApiError {
-    // Network errors
-    if (!error.response || error.code === 'ECONNABORTED') {
+    // If already an ApiError, return as-is
+    if (error.code && error.message && typeof error.status === 'number' && !error.response) {
+      return error as ApiError;
+    }
+
+    // Timeout errors first
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      return {
+        ...this.ERRORS.TIMEOUT,
+        status: 0,
+        originalError: error,
+      };
+    }
+
+    // Actual network connection errors only
+    const networkCodes = ['ECONNREFUSED', 'ENOTFOUND', 'ENETUNREACH', 'EHOSTUNREACH', 'ECONNRESET'];
+    if (networkCodes.includes(error.code)) {
       return {
         ...this.ERRORS.NETWORK,
         status: 0,
@@ -44,11 +59,14 @@ export class ErrorHandler {
       };
     }
 
-    // Timeout errors
-    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+    // Check for valid response before treating as network error
+    if (!error.response) {
+      // Plain Error objects (likely from validation or client-side)
+      // are validation errors, not network errors
       return {
-        ...this.ERRORS.TIMEOUT,
-        status: 0,
+        code: 'VALIDATION_ERROR',
+        message: error.message || this.ERRORS.VALIDATION_ERROR.message,
+        status: 400,
         originalError: error,
       };
     }
@@ -126,15 +144,12 @@ export class ErrorHandler {
   }
 
   /**
-   * Log error with context
+   * Log error with context (minimized for production)
    */
   static logError(context: string, error: ApiError, metadata?: any): void {
-    console.error(`[${context}] ${error.code}:`, error.message);
-    if (metadata) {
-      console.error(`  Metadata:`, metadata);
-    }
-    if (error.originalError) {
-      console.error(`  Original:`, error.originalError);
+    // Only log in development to avoid console clutter during scanning
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.warn(`[${context}] ${error.code}: ${error.message}`);
     }
   }
 
@@ -149,7 +164,12 @@ export class ErrorHandler {
    * Check if error is retriable
    */
   static isRetriable(error: ApiError): boolean {
+    // Only retry on transient server errors and network issues
     const retriableCodes = ['NETWORK_ERROR', 'TIMEOUT_ERROR', 'SERVER_ERROR'];
+    // Ensure we never retry on client errors (4xx)
+    if (error.status >= 400 && error.status < 500) {
+      return false;
+    }
     return retriableCodes.includes(error.code);
   }
 
@@ -173,7 +193,7 @@ export class ErrorHandler {
         const apiError = ErrorHandler.parseError(error);
 
         if (!this.isRetriable(apiError) || attempt === maxAttempts) {
-          throw error;
+          throw apiError;
         }
 
         const delay = initialDelay * Math.pow(2, attempt - 1);

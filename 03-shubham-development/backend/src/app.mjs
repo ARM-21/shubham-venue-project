@@ -9,6 +9,7 @@ import { corsOptions } from "./config/cors.config.js";
 import { sessionMiddleware } from "./config/session.config.js";
 import errorMiddleware from "./middleware/error.middleware.js";
 import { maintenanceMiddleware } from "./middleware/maintenance.middleware.js";
+import { generalLimiter } from "./config/rateLimit.config.js";
 
 const app = express();
 
@@ -19,13 +20,14 @@ if (ENV.NODE_ENV === "production") {
   app.set("trust proxy", ENV.TRUST_PROXY_HOPS);
 }
 
-
-
 app.use(cors(corsOptions));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(sessionMiddleware());
 app.use(maintenanceMiddleware);
+
+// Apply general rate limiting to all API routes
+app.use("/api/v1", generalLimiter);
 
 app.get("/_health", (req, res) => {
   return res.status(200).json({ ok: true, pid: process.pid });
