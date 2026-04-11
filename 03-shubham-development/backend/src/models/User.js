@@ -221,6 +221,29 @@ const userSchema = new mongoose.Schema(
         label: String, // Optional label/name for the upload
       },
     ],
+
+    // Push notification tokens for mobile apps
+    pushTokens: [
+      {
+        token: {
+          type: String,
+          required: true,
+        },
+        platform: {
+          type: String,
+          enum: ['ios', 'android'],
+        },
+        registeredAt: {
+          type: Date,
+          default: Date.now,
+        },
+        lastUsed: Date,
+        isActive: {
+          type: Boolean,
+          default: true,
+        },
+      },
+    ],
   },
   {
     timestamps: true

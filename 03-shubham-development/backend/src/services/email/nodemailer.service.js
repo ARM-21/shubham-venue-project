@@ -407,3 +407,131 @@ export const sendEventCancellationEmail = async (attendeeEmail, eventName, cance
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Send staff scanner assignment notification email
+ */
+export const sendStaffAssignmentEmail = async (user, event, gate) => {
+  const eventDate = event.startDateTime || event.eventDate;
+  const formattedDate = new Date(eventDate).toLocaleDateString("en-NP", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const formattedTime = new Date(eventDate).toLocaleTimeString("en-NP", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+      <h2 style="text-align: center; color: #8b3a3a;">🎉 New Scanner Assignment</h2>
+      
+      <p>Dear ${user.first_name || user.username},</p>
+      
+      <p>You have been assigned as a scanner for an upcoming event at <strong>Shubham Venue</strong>. Below are the details:</p>
+      
+      <div style="background: #f5f5f5; border-left: 4px solid #8b3a3a; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 10px 0;"><strong>Event Name:</strong> ${event.name}</p>
+        <p style="margin: 10px 0;"><strong>Date:</strong> ${formattedDate}</p>
+        <p style="margin: 10px 0;"><strong>Time:</strong> ${formattedTime}</p>
+        <p style="margin: 10px 0;"><strong>Gate/Entrance:</strong> <span style="background: #8b3a3a; color: #fff; padding: 5px 10px; border-radius: 4px; display: inline-block;">${gate}</span></p>
+        ${event.hall ? `<p style="margin: 10px 0;"><strong>Hall:</strong> ${event.hall.name || "N/A"}</p>` : ""}
+      </div>
+      
+      <p><strong>Your Responsibilities:</strong></p>
+      <ul style="margin: 10px 0;">
+        <li>Check in attendees using the QR scanner app</li>
+        <li>Verify ticket validity before check-in</li>
+        <li>Report any issues or suspicious activity</li>
+        <li>Maintain security at your assigned gate</li>
+      </ul>
+      
+      <p><strong>What You Need to Do:</strong></p>
+      <ol style="margin: 10px 0;">
+        <li>Download or update the Shubham QR Scanner mobile app</li>
+        <li>Log in with your credentials</li>
+        <li>Review the event details in the app</li>
+        <li>Be ready 30 minutes before the event starts</li>
+      </ol>
+      
+      <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 5px 0;">⏰ <strong>Important:</strong> It is crucial to arrive at your gate at least 30 minutes before the event starts. Contact event organizers if you have any conflicts.</p>
+      </div>
+      
+      <p>If you have any questions or need to reschedule, please contact us at <strong>${ENV.SUPPORT_EMAIL || "contact@shubham-venue.me"}</strong></p>
+      
+      <p style="margin-top: 30px;">Best regards,<br/><strong>Shubham Venue Staff Management Team</strong></p>
+      
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;"/>
+      <footer style="text-align: center; font-size: 12px; color: #888;">
+        Shubham Venue, Waling BP Road, Syangja <br/>
+        📞 9849320765 | ✉️ contact@shubham-venue.me<br/>
+        <a href="https://shubham-venue.me" style="color: #8b3a3a; text-decoration: none;">Visit our website</a>
+      </footer>
+    </div>
+  `;
+
+  const mailOptions = {
+    from: `"Shubham Venue" <${ENV.SMTP_USER}>`,
+    to: user.email,
+    subject: `📋 New Scanner Assignment - ${event.name}`,
+    html,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Staff assignment email sent successfully:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending staff assignment email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send staff assignment cancellation notification email
+ */
+export const sendStaffAssignmentCancelledEmail = async (user, event, reason = "") => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+      <h2 style="text-align: center; color: #d32f2f;">⚠️ Assignment Cancelled</h2>
+      
+      <p>Dear ${user.first_name || user.username},</p>
+      
+      <p>Your scanner assignment for the following event has been cancelled:</p>
+      
+      <div style="background: #ffebee; border-left: 4px solid #d32f2f; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 10px 0;"><strong>Event:</strong> ${event.name}</p>
+        <p style="margin: 10px 0;"><strong>Cancellation Reason:</strong> ${reason || "No reason provided"}</p>
+      </div>
+      
+      <p>If you believe this is an error or have questions, please contact us at <strong>${ENV.SUPPORT_EMAIL || "contact@shubham-venue.me"}</strong></p>
+      
+      <p style="margin-top: 30px;">Best regards,<br/><strong>Shubham Venue Staff Management Team</strong></p>
+      
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;"/>
+      <footer style="text-align: center; font-size: 12px; color: #888;">
+        Shubham Venue, Waling BP Road, Syangja <br/>
+        📞 9849320765 | ✉️ contact@shubham-venue.me
+      </footer>
+    </div>
+  `;
+
+  const mailOptions = {
+    from: `"Shubham Venue" <${ENV.SMTP_USER}>`,
+    to: user.email,
+    subject: `Assignment Cancelled - ${event.name}`,
+    html,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Staff assignment cancellation email sent successfully:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending staff assignment cancellation email:', error);
+    return { success: false, error: error.message };
+  }
+};

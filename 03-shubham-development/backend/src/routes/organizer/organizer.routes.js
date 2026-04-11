@@ -17,6 +17,7 @@ import { onEventApproved } from "../../services/trustScore.service.js";
 import { sendEventCancellationEmail } from "../../services/email/nodemailer.service.js";
 import { generateEventBannerUploadUrl } from "../../services/event/upload.service.js";
 import ENV from "../../config/env.config.js";
+import { createAuditLog } from "../../middleware/audit.middleware.js";
 
 const router = express.Router();
 
@@ -1227,8 +1228,6 @@ router.post("/events/:id/duplicate", isAuthenticated, isOrganizer, async (req, r
  * POST /api/v1/organizer/events/banner/upload-url
  * Get presigned URL for event banner upload
  */
-import { uploadLimiter } from "../../config/rateLimit.config.js";
-
 router.post("/events/banner/upload-url", isAuthenticated, isOrganizer, uploadLimiter, async (req, res, next) => {
   try {
     const { fileExtension, contentType } = req.body || {};

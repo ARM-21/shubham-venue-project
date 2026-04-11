@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import EventStaffAssignment from "../../models/EventStaffAssignment.js";
 import User from "../../models/User.js";
 import OrganizerEvent from "../../models/OrganizerEvent.js";
+import { notifyStaffAssignment, notifyAssignmentCancelled } from "../../services/notification.service.js";
 
 /**
  * Assign an existing user as scanner for an event
@@ -28,8 +29,8 @@ export async function assignScannerToEvent(req, res, next) {
     }
 
     // ===== CONVERT IDS TO OBJECTID =====
-    eventId = mongoose.Types.ObjectId(eventId);
-    userId = mongoose.Types.ObjectId(userId);
+    eventId = new mongoose.Types.ObjectId(eventId);
+    userId = new mongoose.Types.ObjectId(userId);
 
     // ===== CHECK EVENT EXISTS =====
     const event = await OrganizerEvent.findById(eventId);
@@ -63,6 +64,14 @@ export async function assignScannerToEvent(req, res, next) {
       gate,
       active: true,
     });
+
+    // ===== SEND EMAIL TO STAFF & NOTIFY ADMINS =====
+    try {
+      await notifyStaffAssignment(user, event, gate);
+    } catch (notifyError) {
+      console.error("Failed to send notifications:", notifyError);
+      // Don't fail the assignment if notifications fail
+    }
 
     return res.status(201).json({
       message: "Scanner assignment created",
@@ -125,18 +134,36 @@ export async function getEventScanners(req, res, next) {
 export async function removeScannerAssignment(req, res, next) {
   try {
     const { assignmentId } = req.params;
+    const { reason } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(assignmentId)) {
       return res.status(400).json({ message: "Invalid assignmentId" });
     }
 
-    const assignment = await EventStaffAssignment.findById(assignmentId);
+    const assignment = await EventStaffAssignment.findById(assignmentId)
+      .populate("userId")
+      .populate("eventId");
+    
     if (!assignment) {
       return res.status(404).json({ message: "Assignment not found" });
     }
 
     assignment.active = false;
     await assignment.save();
+
+    // ===== SEND CANCELLATION NOTIFICATIONS (EMAIL & PUSH) =====
+    try {
+      if (assignment.userId && assignment.eventId) {
+        await notifyAssignmentCancelled(
+          assignment.userId,
+          assignment.eventId,
+          reason || ""
+        );
+      }
+    } catch (notifyError) {
+      console.error("Failed to send cancellation notifications:", notifyError);
+      // Don't fail the removal if notifications fail
+    }
 
     return res.json({
       message: "Scanner assignment removed",
