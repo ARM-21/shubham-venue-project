@@ -8,7 +8,7 @@ import {
   sendOrganizerWarningEmail,
   sendFlagNotificationEmail,
   sendEventSuspensionEmail,
-} from '../../services/email/nodemailer.service.js';
+} from '../../services/email/email.service.js';
 
 /**
  * Submit an event report (user/organizer initiated)
