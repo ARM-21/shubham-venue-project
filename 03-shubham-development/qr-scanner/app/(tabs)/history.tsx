@@ -1,52 +1,59 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Pressable,
+  ActivityIndicator,
+  StatusBar,
+  ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { AppTheme } from '../../constants/appTheme';
-import * as SecureStore from 'expo-secure-store';
-
-interface ScanRecord {
-  id: string;
-  ticketId: string;
-  attendeeName: string;
-  eventName: string;
-  scanTime: string;
-  status: 'valid' | 'rejected' | 'already_checked';
-  qrCode: string;
-}
+import { fetchStaffAnalytics, type StaffAnalyticsResponse } from '@/@api/scanner/staff-analytics-fetcher';
+import ErrorHandler from '@/utils/errorHandler';
 
 export default function HistoryScreen() {
-  const [scans, setScans] = useState<ScanRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filter, setFilter] = useState<'all' | 'success' | 'failed'>('all');
 
-  useEffect(() => {
-    loadScanHistory();
-  }, [selectedDate]);
+  // Fetch staff analytics using React Query
+  const {
+    data: analyticsData,
+    isLoading,
+    error,
+    refetch,
+    isFetching,
+  } = useQuery({
+    queryKey: ['staffAnalytics'],
+    queryFn: fetchStaffAnalytics,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+  });
 
-  const loadScanHistory = async () => {
-    try {
-      setLoading(true);
-      const cachedScans = await SecureStore.getItemAsync(`scans_${selectedDate}`);
-      if (cachedScans) {
-        setScans(JSON.parse(cachedScans));
-      } else {
-        setScans([]);
-      }
-    } catch (error) {
-      console.error('Error loading scan history:', error);
-      Alert.alert('Error', 'Failed to load scan history');
-    } finally {
-      setLoading(false);
+  // Filter scans based on selected filter
+  const filteredScans = useMemo(() => {
+    if (!analyticsData?.recentScans) return [];
+
+    switch (filter) {
+      case 'success':
+        return analyticsData.recentScans.filter((s) => s.status === 'SUCCESS');
+      case 'failed':
+        return analyticsData.recentScans.filter((s) => s.status !== 'SUCCESS');
+      default:
+        return analyticsData.recentScans;
     }
-  };
+  }, [analyticsData?.recentScans, filter]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'valid':
+      case 'SUCCESS':
         return AppTheme.colors.success;
-      case 'rejected':
+      case 'REJECTED':
         return AppTheme.colors.error;
-      case 'already_checked':
+      case 'ALREADY_CHECKED_IN':
         return AppTheme.colors.warning;
       default:
         return AppTheme.colors.textMuted;
@@ -55,174 +62,269 @@ export default function HistoryScreen() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'valid':
+      case 'SUCCESS':
         return 'checkmark-circle';
-      case 'rejected':
+      case 'REJECTED':
         return 'close-circle';
-      case 'already_checked':
+      case 'ALREADY_CHECKED_IN':
         return 'alert-circle';
       default:
         return 'help-circle';
     }
   };
 
-  const handleClearHistory = () => {
-    Alert.alert(
-      'Clear History',
-      `Are you sure you want to delete all scans from ${selectedDate}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await SecureStore.setItemAsync(`scans_${selectedDate}`, '');
-              setScans([]);
-              Alert.alert('Success', 'Scan history cleared');
-            } catch (_) {
-              Alert.alert('Error', 'Failed to clear history');
-            }
-          },
-        },
-      ]
-    );
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'SUCCESS':
+        return 'Checked In';
+      case 'REJECTED':
+        return 'Rejected';
+      case 'ALREADY_CHECKED_IN':
+        return 'Already In';
+      default:
+        return status;
+    }
   };
 
-  const renderScanItem = ({ item }: { item: ScanRecord }) => (
+  const renderScanItem = ({ item }: { item: any }) => (
     <View style={[styles.scanCard, { borderLeftColor: getStatusColor(item.status) }]}>
       <View style={styles.scanCardLeft}>
         <Ionicons
-          name={getStatusIcon(item.status)}
+          name={getStatusIcon(item.status) as any}
           size={24}
           color={getStatusColor(item.status)}
         />
       </View>
       <View style={styles.scanCardContent}>
-        <Text style={styles.attendeeName}>{item.attendeeName}</Text>
-        <Text style={styles.eventName}>{item.eventName}</Text>
-        <Text style={styles.scanTime}>{item.scanTime}</Text>
+        <Text style={styles.attendeeName} numberOfLines={1}>
+          {item.attendeeName}
+        </Text>
+        <Text style={styles.attendeeEmail} numberOfLines={1}>
+          {item.attendeeEmail}
+        </Text>
+        <Text style={styles.eventName} numberOfLines={1}>
+          {item.eventName}
+        </Text>
       </View>
       <View style={styles.scanCardRight}>
-        <Text style={[styles.statusBadge, { color: getStatusColor(item.status) }]}>
-          {item.status === 'already_checked' ? 'Already In' : item.status}
+        <Text
+          style={[styles.statusBadge, { color: getStatusColor(item.status) }]}
+        >
+          {getStatusLabel(item.status)}
+        </Text>
+        <Text style={styles.scanTime}>
+          {new Date(item.checkedInAt).toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
         </Text>
       </View>
     </View>
   );
 
-  const stats = {
-    total: scans.length,
-    valid: scans.filter(s => s.status === 'valid').length,
-    rejected: scans.filter(s => s.status === 'rejected').length,
-    alreadyChecked: scans.filter(s => s.status === 'already_checked').length,
-  };
+  // Error state
+  if (error) {
+    const apiError = error as any;
+    return (
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor={AppTheme.colors.lightBg} />
+        <View style={styles.errorContainer}>
+          <Ionicons
+            name="alert-circle-outline"
+            size={48}
+            color={AppTheme.colors.error}
+          />
+          <Text style={styles.errorTitle}>Failed to Load Analytics</Text>
+          <Text style={styles.errorMessage}>
+            {apiError?.message || 'An error occurred while fetching your analytics.'}
+          </Text>
+          <Pressable style={styles.retryButton} onPress={() => refetch()}>
+            <Ionicons name="refresh" size={20} color={AppTheme.colors.textWhite} />
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <StatusBar barStyle="dark-content" backgroundColor={AppTheme.colors.lightBg} />
+        <ActivityIndicator
+          size="large"
+          color={AppTheme.colors.maroonPrimary}
+        />
+        <Text style={styles.loadingText}>Loading analytics...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {/* Professional Page Header */}
-      <View style={styles.pageHeader}>
-        <View style={styles.pageHeaderLeft}>
-          <Ionicons name="time" size={28} color={AppTheme.colors.maroonPrimary} />
+      <StatusBar barStyle="dark-content" backgroundColor={AppTheme.colors.lightBg} />
+
+      {/* Staff Header */}
+      <View style={styles.staffHeader}>
+        <View style={styles.staffInfo}>
+          <View style={styles.staffAvatar}>
+            <Ionicons name="person" size={24} color={AppTheme.colors.textWhite} />
+          </View>
           <View>
-            <Text style={styles.pageHeaderTitle}>Scan History</Text>
-            <Text style={styles.pageHeaderSubtitle}>Track all your scans</Text>
+            <Text style={styles.staffName}>{analyticsData?.staff.name}</Text>
+            <Text style={styles.staffRole}>Scanner Staff</Text>
           </View>
         </View>
       </View>
 
-      {/* Date Selector */}
-      <View style={styles.dateSelector}>
-        <Pressable
-          onPress={() => {
-            const date = new Date(selectedDate);
-            date.setDate(date.getDate() - 1);
-            setSelectedDate(date.toISOString().split('T')[0]);
-          }}
-          style={styles.dateButton}
-        >
-          <Ionicons name="chevron-back" size={24} color={AppTheme.colors.maroonPrimary} />
-        </Pressable>
-
-        <Pressable
-          onPress={() => {
-            // Open date picker
-          }}
-          style={styles.dateDisplay}
-        >
-          <Ionicons name="calendar" size={20} color={AppTheme.colors.maroonPrimary} />
-          <Text style={styles.dateText}>{selectedDate}</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => {
-            const date = new Date(selectedDate);
-            date.setDate(date.getDate() + 1);
-            // Don't allow future dates
-            if (date <= new Date()) {
-              setSelectedDate(date.toISOString().split('T')[0]);
-            }
-          }}
-          style={styles.dateButton}
-        >
-          <Ionicons name="chevron-forward" size={24} color={AppTheme.colors.maroonPrimary} />
-        </Pressable>
-      </View>
-
-      {/* Stats Overview */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.total}</Text>
+      {/* Summary Stats */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.statsScroll}
+      >
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{analyticsData?.summary.totalScans}</Text>
           <Text style={styles.statLabel}>Total Scans</Text>
         </View>
-        <View style={[styles.statItem, { borderLeftColor: AppTheme.colors.success, borderLeftWidth: 2 }]}>
-          <Text style={[styles.statValue, { color: AppTheme.colors.success }]}>{stats.valid}</Text>
-          <Text style={styles.statLabel}>Valid</Text>
+        <View
+          style={[
+            styles.statCard,
+            { borderLeftColor: AppTheme.colors.success, borderLeftWidth: 3 },
+          ]}
+        >
+          <Text
+            style={[styles.statValue, { color: AppTheme.colors.success }]}
+          >
+            {analyticsData?.summary.successfulScans}
+          </Text>
+          <Text style={styles.statLabel}>Successful</Text>
         </View>
-        <View style={[styles.statItem, { borderLeftColor: AppTheme.colors.error, borderLeftWidth: 2 }]}>
-          <Text style={[styles.statValue, { color: AppTheme.colors.error }]}>{stats.rejected}</Text>
-          <Text style={styles.statLabel}>Rejected</Text>
+        <View
+          style={[
+            styles.statCard,
+            { borderLeftColor: AppTheme.colors.error, borderLeftWidth: 3 },
+          ]}
+        >
+          <Text
+            style={[styles.statValue, { color: AppTheme.colors.error }]}
+          >
+            {analyticsData?.summary.failedScans}
+          </Text>
+          <Text style={styles.statLabel}>Failed</Text>
         </View>
-        <View style={[styles.statItem, { borderLeftColor: AppTheme.colors.warning, borderLeftWidth: 2 }]}>
-          <Text style={[styles.statValue, { color: AppTheme.colors.warning }]}>{stats.alreadyChecked}</Text>
-          <Text style={styles.statLabel}>Already In</Text>
+        <View
+          style={[
+            styles.statCard,
+            { borderLeftColor: AppTheme.colors.warning, borderLeftWidth: 3 },
+          ]}
+        >
+          <Text
+            style={[styles.statValue, { color: AppTheme.colors.warning }]}
+          >
+            {analyticsData?.summary.successRate}%
+          </Text>
+          <Text style={styles.statLabel}>Success Rate</Text>
         </View>
+      </ScrollView>
+
+      {/* Filter Buttons */}
+      <View style={styles.filterContainer}>
+        <Pressable
+          style={[
+            styles.filterButton,
+            filter === 'all' && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter('all')}
+        >
+          <Text
+            style={[
+              styles.filterButtonText,
+              filter === 'all' && styles.filterButtonTextActive,
+            ]}
+          >
+            All
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[
+            styles.filterButton,
+            filter === 'success' && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter('success')}
+        >
+          <Ionicons
+            name="checkmark-circle"
+            size={16}
+            color={filter === 'success' ? AppTheme.colors.textWhite : AppTheme.colors.success}
+          />
+          <Text
+            style={[
+              styles.filterButtonText,
+              filter === 'success' && styles.filterButtonTextActive,
+            ]}
+          >
+            Success
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[
+            styles.filterButton,
+            filter === 'failed' && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter('failed')}
+        >
+          <Ionicons
+            name="close-circle"
+            size={16}
+            color={filter === 'failed' ? AppTheme.colors.textWhite : AppTheme.colors.error}
+          />
+          <Text
+            style={[
+              styles.filterButtonText,
+              filter === 'failed' && styles.filterButtonTextActive,
+            ]}
+          >
+            Failed
+          </Text>
+        </Pressable>
       </View>
 
-      {/* Scan List */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={AppTheme.colors.maroonPrimary} />
+      {/* Recent Scans List */}
+      <Text style={styles.sectionTitle}>Recent Scans</Text>
+      {isFetching && !isLoading && (
+        <View style={styles.refreshingIndicator}>
+          <ActivityIndicator size="small" color={AppTheme.colors.maroonPrimary} />
+          <Text style={styles.refreshingText}>Syncing...</Text>
         </View>
-      ) : scans.length === 0 ? (
+      )}
+      {filteredScans.length > 0 ? (
+        <FlatList
+          data={filteredScans}
+          renderItem={renderScanItem}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={styles.listContent}
+          scrollEnabled={false}
+        />
+      ) : (
         <View style={styles.emptyContainer}>
           <Ionicons
             name="document-outline"
             size={48}
             color={AppTheme.colors.textMuted}
-            style={styles.emptyIcon}
           />
-          <Text style={styles.emptyText}>No scans recorded for this date</Text>
-          <Text style={styles.emptySubtext}>Scans will appear here as you check in attendees</Text>
+          <Text style={styles.emptyText}>
+            {filter === 'all'
+              ? 'No scans yet'
+              : `No ${filter} scans`}
+          </Text>
+          <Text style={styles.emptySubtext}>
+            Scans will appear here as you check in attendees
+          </Text>
         </View>
-      ) : (
-        <>
-          <FlatList
-            data={scans}
-            renderItem={renderScanItem}
-            keyExtractor={(item) => item.id}
-            scrollEnabled
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-          />
-          <Pressable
-            onPress={handleClearHistory}
-            style={[styles.clearButton, { marginTop: AppTheme.spacing.md }]}
-          >
-            <Ionicons name="trash" size={20} color={AppTheme.colors.error} />
-            <Text style={[styles.clearButtonText, { color: AppTheme.colors.error }]}>Clear History</Text>
-          </Pressable>
-        </>
       )}
     </View>
   );
@@ -233,85 +335,155 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: AppTheme.colors.lightBg,
   } as const,
-  pageHeader: {
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  } as const,
+  loadingText: {
+    marginTop: AppTheme.spacing.lg,
+    fontSize: AppTheme.fonts.sizes.base,
+    color: AppTheme.colors.textMuted,
+    fontWeight: AppTheme.fonts.weights.medium as any,
+  } as const,
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: AppTheme.spacing.lg,
+  } as const,
+  errorTitle: {
+    marginTop: AppTheme.spacing.lg,
+    fontSize: AppTheme.fonts.sizes.lg,
+    fontWeight: AppTheme.fonts.weights.bold as any,
+    color: AppTheme.colors.textPrimary,
+  } as const,
+  errorMessage: {
+    marginTop: AppTheme.spacing.md,
+    fontSize: AppTheme.fonts.sizes.sm,
+    color: AppTheme.colors.textMuted,
+    textAlign: 'center',
+  } as const,
+  retryButton: {
+    marginTop: AppTheme.spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: AppTheme.spacing.sm,
+    paddingHorizontal: AppTheme.spacing.lg,
+    paddingVertical: AppTheme.spacing.md,
+    backgroundColor: AppTheme.colors.maroonPrimary,
+    borderRadius: AppTheme.radius.md,
+  } as const,
+  retryButtonText: {
+    fontSize: AppTheme.fonts.sizes.sm,
+    fontWeight: AppTheme.fonts.weights.semibold as any,
+    color: AppTheme.colors.textWhite,
+  } as const,
+  staffHeader: {
     paddingHorizontal: AppTheme.spacing.lg,
     paddingVertical: AppTheme.spacing.md,
     backgroundColor: AppTheme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: AppTheme.colors.border,
   } as const,
-  pageHeaderLeft: {
+  staffInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: AppTheme.spacing.md,
-    flex: 1,
   } as const,
-  pageHeaderTitle: {
-    fontSize: AppTheme.fonts.sizes.lg,
-    fontWeight: '700',
+  staffAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: AppTheme.colors.maroonPrimary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  } as const,
+  staffName: {
+    fontSize: AppTheme.fonts.sizes.base,
+    fontWeight: AppTheme.fonts.weights.bold as any,
     color: AppTheme.colors.textPrimary,
   } as const,
-  pageHeaderSubtitle: {
+  staffRole: {
     fontSize: AppTheme.fonts.sizes.xs,
     color: AppTheme.colors.textMuted,
     marginTop: 2,
   } as const,
-  dateSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: AppTheme.spacing.lg,
-    paddingVertical: AppTheme.spacing.md,
-    backgroundColor: AppTheme.colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: AppTheme.colors.border,
-  } as const,
-  dateButton: {
-    padding: AppTheme.spacing.sm,
-  } as const,
-  dateDisplay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: AppTheme.spacing.sm,
-    paddingHorizontal: AppTheme.spacing.md,
-    paddingVertical: AppTheme.spacing.sm,
-    backgroundColor: AppTheme.colors.lightBg,
-    borderRadius: AppTheme.radius.md,
-  } as const,
-  dateText: {
-    fontSize: AppTheme.fonts.sizes.sm,
-    fontWeight: '600',
-    color: AppTheme.colors.maroonPrimary,
-  } as const,
-  statsContainer: {
-    flexDirection: 'row',
+  statsScroll: {
     paddingHorizontal: AppTheme.spacing.lg,
     paddingVertical: AppTheme.spacing.md,
     gap: AppTheme.spacing.sm,
-    backgroundColor: AppTheme.colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: AppTheme.colors.border,
   } as const,
-  statItem: {
-    flex: 1,
+  statCard: {
     paddingHorizontal: AppTheme.spacing.md,
     paddingVertical: AppTheme.spacing.md,
-    backgroundColor: AppTheme.colors.lightBg,
+    backgroundColor: AppTheme.colors.white,
     borderRadius: AppTheme.radius.md,
-    alignItems: 'center',
+    minWidth: 140,
+    borderLeftWidth: 3,
+    borderLeftColor: AppTheme.colors.maroonPrimary,
   } as const,
   statValue: {
     fontSize: AppTheme.fonts.sizes.lg,
-    fontWeight: '700',
+    fontWeight: AppTheme.fonts.weights.bold as any,
     color: AppTheme.colors.maroonPrimary,
   } as const,
   statLabel: {
     fontSize: AppTheme.fonts.sizes.xs,
     color: AppTheme.colors.textMuted,
     marginTop: AppTheme.spacing.xs,
+  } as const,
+  filterContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: AppTheme.spacing.lg,
+    paddingVertical: AppTheme.spacing.md,
+    gap: AppTheme.spacing.sm,
+    backgroundColor: AppTheme.colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: AppTheme.colors.border,
+  } as const,
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppTheme.spacing.xs,
+    paddingHorizontal: AppTheme.spacing.md,
+    paddingVertical: AppTheme.spacing.sm,
+    borderRadius: AppTheme.radius.md,
+    borderWidth: 1,
+    borderColor: AppTheme.colors.border,
+    backgroundColor: AppTheme.colors.white,
+  } as const,
+  filterButtonActive: {
+    backgroundColor: AppTheme.colors.maroonPrimary,
+    borderColor: AppTheme.colors.maroonPrimary,
+  } as const,
+  filterButtonText: {
+    fontSize: AppTheme.fonts.sizes.sm,
+    fontWeight: AppTheme.fonts.weights.semibold as any,
+    color: AppTheme.colors.textPrimary,
+  } as const,
+  filterButtonTextActive: {
+    color: AppTheme.colors.textWhite,
+  } as const,
+  refreshingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppTheme.spacing.sm,
+    paddingHorizontal: AppTheme.spacing.lg,
+    paddingVertical: AppTheme.spacing.sm,
+    backgroundColor: `${AppTheme.colors.maroonPrimary}10`,
+  } as const,
+  refreshingText: {
+    fontSize: AppTheme.fonts.sizes.xs,
+    color: AppTheme.colors.maroonPrimary,
+    fontWeight: AppTheme.fonts.weights.semibold as any,
+  } as const,
+  sectionTitle: {
+    fontSize: AppTheme.fonts.sizes.base,
+    fontWeight: AppTheme.fonts.weights.bold as any,
+    color: AppTheme.colors.textPrimary,
+    paddingHorizontal: AppTheme.spacing.lg,
+    paddingVertical: AppTheme.spacing.md,
+    backgroundColor: AppTheme.colors.white,
   } as const,
   listContent: {
     paddingHorizontal: AppTheme.spacing.lg,
@@ -335,67 +507,50 @@ const styles = StyleSheet.create({
   } as const,
   attendeeName: {
     fontSize: AppTheme.fonts.sizes.sm,
-    fontWeight: '600',
+    fontWeight: AppTheme.fonts.weights.semibold as any,
     color: AppTheme.colors.textPrimary,
+  } as const,
+  attendeeEmail: {
+    fontSize: AppTheme.fonts.sizes.xs,
+    color: AppTheme.colors.textMuted,
+    marginTop: AppTheme.spacing.xs,
   } as const,
   eventName: {
     fontSize: AppTheme.fonts.sizes.xs,
     color: AppTheme.colors.textMuted,
     marginTop: AppTheme.spacing.xs,
   } as const,
+  scanCardRight: {
+    alignItems: 'flex-end',
+    marginLeft: AppTheme.spacing.md,
+  } as const,
+  statusBadge: {
+    fontSize: AppTheme.fonts.sizes.xs,
+    fontWeight: AppTheme.fonts.weights.semibold as any,
+  } as const,
   scanTime: {
     fontSize: AppTheme.fonts.sizes.xs,
     color: AppTheme.colors.textMuted,
     marginTop: AppTheme.spacing.xs,
   } as const,
-  scanCardRight: {
-    marginLeft: AppTheme.spacing.md,
-  } as const,
-  statusBadge: {
-    fontSize: AppTheme.fonts.sizes.xs,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  } as const,
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  } as const,
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  } as const,
-  emptyIcon: {
-    marginBottom: AppTheme.spacing.lg,
-    opacity: 0.5,
+    paddingHorizontal: AppTheme.spacing.lg,
   } as const,
   emptyText: {
+    marginTop: AppTheme.spacing.lg,
     fontSize: AppTheme.fonts.sizes.base,
-    fontWeight: '600',
+    fontWeight: AppTheme.fonts.weights.semibold as any,
     color: AppTheme.colors.textPrimary,
-    marginBottom: AppTheme.spacing.sm,
   } as const,
   emptySubtext: {
+    marginTop: AppTheme.spacing.sm,
     fontSize: AppTheme.fonts.sizes.sm,
     color: AppTheme.colors.textMuted,
-  } as const,
-  clearButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: AppTheme.spacing.sm,
-    paddingHorizontal: AppTheme.spacing.lg,
-    paddingVertical: AppTheme.spacing.md,
-    backgroundColor: AppTheme.colors.white,
-    borderRadius: AppTheme.radius.md,
-    borderWidth: 1,
-    borderColor: AppTheme.colors.border,
-    marginHorizontal: AppTheme.spacing.lg,
-    marginBottom: AppTheme.spacing.lg,
-  } as const,
-  clearButtonText: {
-    fontSize: AppTheme.fonts.sizes.sm,
-    fontWeight: '600',
+    textAlign: 'center',
   } as const,
 });
+
+   
