@@ -10,6 +10,7 @@ const transporter = nodemailer.createTransport({
     user: ENV.SMTP_USER,
     pass: ENV.SMTP_PASSWORD,
   },
+  family: 4
 });
 
 /**
