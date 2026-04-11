@@ -13,7 +13,10 @@ export default function Index() {
   const { isLoading, isAuthenticated, token } = useAuth();
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading) {
+      console.debug('Auth loading...');
+      return;
+    }
 
     // Delay navigation slightly to ensure routes are ready
     const timer = setTimeout(() => {
@@ -34,7 +37,7 @@ export default function Index() {
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8f9fa' }}>
       <ActivityIndicator size="large" color="#007AFF" />
       <Text style={{ marginTop: 16, fontSize: 14, color: '#666', fontWeight: '500' }}>
-        Initializing...
+        {isLoading ? 'Restoring session...' : 'Initializing...'}
       </Text>
     </View>
   );

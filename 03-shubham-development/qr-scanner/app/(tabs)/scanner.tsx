@@ -7,19 +7,22 @@ import {
   ActivityIndicator,
   Vibration,
   StatusBar,
+  FlatList,
+  ScrollView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Device from 'expo-device';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { scanQRMutator, type ScanQRResponse } from '@/@api/scanner/scan-fetcher';
 import ErrorHandler from '@/utils/errorHandler';
 import { AppTheme } from '../../constants/appTheme';
 import { Ionicons } from '@expo/vector-icons';
+import api from '@/lib/api';
 
 export default function ScannerScreen() {
-  const { eventId } = useLocalSearchParams();
+  const { eventId, viewHistory } = useLocalSearchParams();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [lastScanTime, setLastScanTime] = useState(0);
@@ -27,6 +30,16 @@ export default function ScannerScreen() {
   const cameraRef = useRef<CameraView>(null);
   const { token } = useAuth();
   const router = useRouter();
+
+  // Fetch history if viewHistory param is set
+  const { data: historyData, isLoading: historyLoading } = useQuery({
+    queryKey: ['scanHistory', eventId],
+    queryFn: async () => {
+      const response = await api.get(`/scanner/events/${eventId}/checkins`);
+      return response.data;
+    },
+    enabled: !!viewHistory && !!eventId,
+  });
 
   // Helper to get error-specific icon and color
   const getErrorUI = (error: Error | null) => {
@@ -183,6 +196,114 @@ export default function ScannerScreen() {
             <Text style={styles.permissionButtonText}>Grant Permission</Text>
           </TouchableOpacity>
         </View>
+      </View>
+    );
+  }
+
+  // Show history view if viewHistory param is set
+  if (viewHistory === 'true') {
+    return (
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor={AppTheme.colors.lightBg} />
+        
+        {historyLoading ? (
+          <View style={styles.centerContent}>
+            <ActivityIndicator size="large" color={AppTheme.colors.maroonPrimary} />
+            <Text style={styles.loadingText}>Loading history...</Text>
+          </View>
+        ) : (
+          <ScrollView style={styles.historyContainer} contentContainerStyle={styles.historyContent}>
+            {/* Summary Stats */}
+            <View style={styles.statsSummary}>
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>{historyData?.successfulScans || 0}</Text>
+                <Text style={styles.statLabel}>Successful</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={[styles.statValue, { color: AppTheme.colors.error }]}>
+                  {historyData?.failedScans || 0}
+                </Text>
+                <Text style={styles.statLabel}>Failed</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={[styles.statValue, { color: '#999' }]}>
+                  {historyData?.totalScans || 0}
+                </Text>
+                <Text style={styles.statLabel}>Total</Text>
+              </View>
+            </View>
+
+            {/* Check-ins List */}
+            <Text style={styles.historyTitle}>Check-in Records</Text>
+            {historyData?.checkins && historyData.checkins.length > 0 ? (
+              historyData.checkins.map((checkin: any) => (
+                <View key={checkin._id} style={styles.checkinCard}>
+                  <View style={styles.checkinHeader}>
+                    <View style={styles.checkinInfo}>
+                      <Text style={styles.attendeeName} numberOfLines={1}>
+                        {checkin.attendeeName}
+                      </Text>
+                      <Text style={styles.attendeeEmail} numberOfLines={1}>
+                        {checkin.attendeeEmail}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        {
+                          backgroundColor:
+                            checkin.status === 'SUCCESS'
+                              ? '#10B981'
+                              : checkin.status === 'ALREADY_CHECKED_IN'
+                              ? '#F59E0B'
+                              : '#EF4444',
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={
+                          checkin.status === 'SUCCESS'
+                            ? 'checkmark-circle'
+                            : checkin.status === 'ALREADY_CHECKED_IN'
+                            ? 'alert-circle'
+                            : 'close-circle'
+                        }
+                        size={16}
+                        color="#fff"
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.checkinFooter}>
+                    <Text style={styles.checkinTime}>
+                      {new Date(checkin.checkedInAt).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                    <Text style={styles.checkinGate}>{checkin.gate}</Text>
+                  </View>
+                  {checkin.note && <Text style={styles.checkinNote}>{checkin.note}</Text>}
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="document-outline" size={48} color="#ccc" />
+                <Text style={styles.emptyStateText}>No check-ins yet</Text>
+              </View>
+            )}
+          </ScrollView>
+        )}
+
+        {/* Back Button */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="chevron-back" size={24} color={AppTheme.colors.textWhite} />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -449,6 +570,133 @@ const styles = StyleSheet.create({
   scanCountHighlight: {
     color: AppTheme.colors.success,
     fontWeight: '700',
+  } as const,
+  
+  /* History View Styles */
+  historyContainer: {
+    flex: 1,
+    backgroundColor: AppTheme.colors.lightBg,
+  } as const,
+  historyContent: {
+    paddingHorizontal: AppTheme.spacing.md,
+    paddingVertical: AppTheme.spacing.lg,
+  } as const,
+  statsSummary: {
+    flexDirection: 'row' as const,
+    gap: AppTheme.spacing.md,
+    marginBottom: AppTheme.spacing.lg,
+  } as const,
+  statCard: {
+    flex: 1,
+    backgroundColor: AppTheme.colors.white,
+    borderRadius: AppTheme.radius.md,
+    paddingHorizontal: AppTheme.spacing.md,
+    paddingVertical: AppTheme.spacing.lg,
+    alignItems: 'center',
+    ...AppTheme.shadows.md,
+  } as const,
+  statValue: {
+    fontSize: 28,
+    fontWeight: AppTheme.fonts.weights.bold as any,
+    color: '#10B981',
+    marginBottom: AppTheme.spacing.xs,
+  } as const,
+  statLabel: {
+    fontSize: AppTheme.fonts.sizes.xs,
+    color: AppTheme.colors.textSecondary,
+    fontWeight: AppTheme.fonts.weights.semibold as any,
+  } as const,
+  historyTitle: {
+    fontSize: AppTheme.fonts.sizes.base,
+    fontWeight: AppTheme.fonts.weights.bold as any,
+    color: AppTheme.colors.textPrimary,
+    marginBottom: AppTheme.spacing.md,
+  } as const,
+  checkinCard: {
+    backgroundColor: AppTheme.colors.white,
+    borderRadius: AppTheme.radius.md,
+    padding: AppTheme.spacing.md,
+    marginBottom: AppTheme.spacing.md,
+    ...AppTheme.shadows.sm,
+  } as const,
+  checkinHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: AppTheme.spacing.sm,
+  } as const,
+  checkinInfo: {
+    flex: 1,
+  } as const,
+  attendeeName: {
+    fontSize: AppTheme.fonts.sizes.sm,
+    fontWeight: AppTheme.fonts.weights.semibold as any,
+    color: AppTheme.colors.textPrimary,
+    marginBottom: 2,
+  } as const,
+  attendeeEmail: {
+    fontSize: AppTheme.fonts.sizes.xs,
+    color: AppTheme.colors.textSecondary,
+  } as const,
+  statusBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  } as const,
+  checkinFooter: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: AppTheme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  } as const,
+  checkinTime: {
+    fontSize: AppTheme.fonts.sizes.xs,
+    color: AppTheme.colors.textMuted,
+    fontWeight: AppTheme.fonts.weights.medium as any,
+  } as const,
+  checkinGate: {
+    fontSize: AppTheme.fonts.sizes.xs,
+    color: AppTheme.colors.maroonPrimary,
+    fontWeight: AppTheme.fonts.weights.semibold as any,
+  } as const,
+  checkinNote: {
+    fontSize: AppTheme.fonts.sizes.xs,
+    color: '#FF9500',
+    fontStyle: 'italic' as const,
+    marginTop: AppTheme.spacing.sm,
+  } as const,
+  emptyState: {
+    alignItems: 'center' as const,
+    justifyContent: 'center',
+    paddingVertical: 60,
+  } as const,
+  emptyStateText: {
+    fontSize: AppTheme.fonts.sizes.sm,
+    color: AppTheme.colors.textMuted,
+    marginTop: AppTheme.spacing.md,
+  } as const,
+  backButton: {
+    position: 'absolute' as const,
+    bottom: 20,
+    right: 20,
+    backgroundColor: AppTheme.colors.maroonPrimary,
+    borderRadius: 50,
+    width: 56,
+    height: 56,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    flexDirection: 'row' as const,
+    gap: 4,
+    ...AppTheme.shadows.lg,
+  } as const,
+  backButtonText: {
+    color: AppTheme.colors.textWhite,
+    fontSize: AppTheme.fonts.sizes.xs,
+    fontWeight: AppTheme.fonts.weights.bold as any,
   } as const,
 });
 

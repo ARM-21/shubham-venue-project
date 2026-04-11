@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppTheme } from 'constants/appTheme';
 import { useAuth } from 'contexts/AuthContext';
 import * as SecureStore from 'expo-secure-store';
+import { requestNotificationPermissions, checkNotificationPermissions } from '@/lib/notifications';
+
+type PermissionStatus = 'granted' | 'denied' | 'undetermined' | 'error' | 'not_available';
 
 export default function SettingsScreen() {
   const { logout, user } = useAuth();
@@ -12,7 +15,27 @@ export default function SettingsScreen() {
     vibrationEnabled: true,
     errorSound: true,
     offlineMode: false,
+    notificationsEnabled: true,
   });
+  const [permissionStatus, setPermissionStatus] = useState<PermissionStatus>('undetermined');
+  const [isCheckingPermissions, setIsCheckingPermissions] = useState(false);
+
+  // Check notification permissions on mount
+  useEffect(() => {
+    const checkPermissions = async () => {
+      setIsCheckingPermissions(true);
+      try {
+        const result = await checkNotificationPermissions();
+        setPermissionStatus(result.status as PermissionStatus);
+      } catch (error) {
+        console.error('Error checking permissions:', error);
+        setPermissionStatus('error');
+      } finally {
+        setIsCheckingPermissions(false);
+      }
+    };
+    checkPermissions();
+  }, []);
 
   const handleToggle = async (key: keyof typeof settings) => {
     try {
@@ -25,6 +48,59 @@ export default function SettingsScreen() {
     } catch (error) {
       console.error(`Error saving ${key}:`, error);
       Alert.alert('Error', 'Failed to save setting');
+    }
+  };
+
+  const handleRequestPermissions = async () => {
+    try {
+      setIsCheckingPermissions(true);
+      const granted = await requestNotificationPermissions();
+      const result = await checkNotificationPermissions();
+      setPermissionStatus(result.status as PermissionStatus);
+      
+      if (granted) {
+        Alert.alert('Success', 'Notification permissions granted! You will now receive assignment notifications.');
+      } else if (result.canAskAgain === false) {
+        Alert.alert(
+          'Permissions Denied',
+          'You have permanently denied notification permissions. To enable notifications:\n\n1. Go to your device settings\n2. Find this app\n3. Enable notifications',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Permissions Denied', 'You denied notification permissions. You can enable them anytime in settings.');
+      }
+    } catch (error) {
+      console.error('Error requesting permissions:', error);
+      Alert.alert('Error', 'Failed to request notification permissions');
+    } finally {
+      setIsCheckingPermissions(false);
+    }
+  };
+
+  const getPermissionStatusColor = () => {
+    switch (permissionStatus) {
+      case 'granted':
+        return AppTheme.colors.maroonPrimary;
+      case 'denied':
+      case 'error':
+        return '#d32f2f';
+      default:
+        return AppTheme.colors.textMuted;
+    }
+  };
+
+  const getPermissionStatusText = () => {
+    switch (permissionStatus) {
+      case 'granted':
+        return 'Enabled';
+      case 'denied':
+        return 'Disabled';
+      case 'undetermined':
+        return 'Not yet requested';
+      case 'not_available':
+        return 'Not available on this device';
+      default:
+        return 'Unknown';
     }
   };
 
@@ -189,6 +265,23 @@ export default function SettingsScreen() {
           type="toggle"
           value={settings.vibrationEnabled}
           onToggle={() => handleToggle('vibrationEnabled')}
+        />
+
+        <SettingRow
+          icon="shield-checkmark"
+          title="Notification Permissions"
+          subtitle={`Status: ${getPermissionStatusText()}`}
+          type="action"
+          onPress={handleRequestPermissions}
+        />
+
+        <SettingRow
+          icon="mail"
+          title="Assignment Notifications"
+          subtitle="Get notified when assigned to events"
+          type="toggle"
+          value={settings.notificationsEnabled}
+          onToggle={() => handleToggle('notificationsEnabled')}
         />
 
         <SettingRow
