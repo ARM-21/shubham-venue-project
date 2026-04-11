@@ -55,6 +55,11 @@ export default function EventsScreen() {
   };
 
   const handleEventPress = (event: Event) => {
+    // Prevent navigation if event has ended
+    if (event.isEnded) {
+      alert('This event has ended. Scanning is disabled.');
+      return;
+    }
 
     router.push({
       pathname: '/(tabs)/scanner',
@@ -62,6 +67,18 @@ export default function EventsScreen() {
         eventId: event.eventId,
         eventName: event.eventName,
         gate: event.gate,
+      },
+    });
+  };
+
+  const handleViewHistory = (event: Event) => {
+    router.push({
+      pathname: '/(tabs)/scanner',
+      params: {
+        eventId: event.eventId,
+        eventName: event.eventName,
+        gate: event.gate,
+        viewHistory: 'true',
       },
     });
   };
@@ -88,27 +105,50 @@ export default function EventsScreen() {
 
   const renderEventItem = ({item}: {item: Event}) => (
     <TouchableOpacity
-      style={styles.eventCard}
+      style={[
+        styles.eventCard,
+        item.isEnded && styles.eventCardDisabled
+      ]}
       onPress={() => handleEventPress(item)}
-      activeOpacity={0.7}
+      activeOpacity={item.isEnded ? 1 : 0.7}
+      disabled={item.isEnded}
     >
       <View style={styles.eventHeader}>
         <View style={styles.eventInfo}>
-          <Text style={styles.eventName} numberOfLines={2}>
-            {item.eventName}
-          </Text>
+          <View style={styles.eventTitleContainer}>
+            <Text style={styles.eventName} numberOfLines={2}>
+              {item.eventName}
+            </Text>
+            {item.isEnded && (
+              <Text style={styles.endedBadge}>ENDED</Text>
+            )}
+          </View>
           <Text style={styles.hallName}>
             {item.hall?.hallName || 'Hall information unavailable'}
           </Text>
         </View>
-        <View style={styles.gateBadge}>
+        <View style={[
+          styles.gateBadge,
+          item.isEnded && styles.gateBadgeDisabled
+        ]}>
           <Text style={styles.gateBadgeText}>{item.gate}</Text>
         </View>
       </View>
 
       <View style={styles.eventFooter}>
         <Text style={styles.eventDate}>{formatDate(item.eventDate)}</Text>
-        <Text style={styles.actionText}>Start Scanning</Text>
+        <View style={styles.actionButtons}>
+          {item.isEnded ? (
+            <TouchableOpacity
+              style={styles.historyButton}
+              onPress={() => handleViewHistory(item)}
+            >
+              <Text style={styles.historyButtonText}>View History</Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.actionText}>Start Scanning</Text>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -369,6 +409,24 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   } as const,
+  eventCardDisabled: {
+    backgroundColor: '#f5f5f5',
+    opacity: 0.7,
+  } as const,
+  eventTitleContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center',
+    gap: AppTheme.spacing.sm,
+  } as const,
+  endedBadge: {
+    backgroundColor: '#FF3B30',
+    color: AppTheme.colors.textWhite,
+    fontSize: AppTheme.fonts.sizes.xs,
+    fontWeight: AppTheme.fonts.weights.bold as any,
+    paddingHorizontal: AppTheme.spacing.sm,
+    paddingVertical: 2,
+    borderRadius: AppTheme.radius.sm,
+  } as const,
   eventHeader: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between',
@@ -398,6 +456,9 @@ const styles = StyleSheet.create({
     paddingVertical: AppTheme.spacing.sm,
     borderRadius: AppTheme.radius.md,
   } as const,
+  gateBadgeDisabled: {
+    backgroundColor: '#bdbdbd',
+  } as const,
   gateBadgeText: {
     color: AppTheme.colors.textWhite,
     fontSize: AppTheme.fonts.sizes.xs,
@@ -417,9 +478,24 @@ const styles = StyleSheet.create({
     color: AppTheme.colors.textMuted,
     fontWeight: AppTheme.fonts.weights.medium as any,
   } as const,
+  actionButtons: {
+    flexDirection: 'row' as const,
+    alignItems: 'center',
+  } as const,
   actionText: {
     fontSize: AppTheme.fonts.sizes.xs,
     color: AppTheme.colors.maroonPrimary,
+    fontWeight: AppTheme.fonts.weights.semibold as any,
+  } as const,
+  historyButton: {
+    paddingHorizontal: AppTheme.spacing.md,
+    paddingVertical: AppTheme.spacing.sm,
+    backgroundColor: '#FFD700',
+    borderRadius: AppTheme.radius.md,
+  } as const,
+  historyButtonText: {
+    fontSize: AppTheme.fonts.sizes.xs,
+    color: AppTheme.colors.textPrimary,
     fontWeight: AppTheme.fonts.weights.semibold as any,
   } as const,
 });

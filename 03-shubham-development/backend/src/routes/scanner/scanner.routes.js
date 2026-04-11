@@ -7,6 +7,7 @@ import EventStaffAssignment from "../../models/EventStaffAssignment.js";
 import Ticket from "../../models/Ticket.js";
 import OrganizerEvent from "../../models/OrganizerEvent.js";
 import TicketCheckin from "../../models/TicketCheckin.js";
+import Hall from "../../models/Hall.js";
 import { hashToken } from "../../utils/token.utils.js";
 
 const router = express.Router();
@@ -19,38 +20,54 @@ const router = express.Router();
 router.get("/my-events", isAuthenticated, async (req, res, next) => {
   try {
     const userId = req.currentUser._id;
+    const now = new Date();
 
-    // Query for assignments where userId matches (convert both to string for comparison to handle type mismatch)
+    // Query for assignments where userId matches
     const assignments = await EventStaffAssignment.find({
       $or: [
-        { userId: userId }, // Try direct ObjectId match
-        { userId: userId.toString() }, // Try string match (in case data was stored as string)
+        { userId: userId },
+        { userId: userId.toString() },
       ],
       active: true,
     })
       .populate({
         path: "eventId",
-        select: "name eventDate startDateTime status hallId",
-        populate: {
-          path: "hallId",
-          select: "name"
-        }
+        select: "name eventDate startDateTime endDateTime status hallId",
       })
-      .sort({ createdAt: -1 });
+      .lean();
+
+    // Populate halls for the events
+    const hallIds = assignments
+      .map((a) => a.eventId?.hallId)
+      .filter((id) => id && id.toString());
+
+    const halls = await Hall
+      .find({ _id: { $in: hallIds } })
+      .select("_id name")
+      .lean();
+
+    const hallMap = new Map(halls.map((h) => [h._id.toString(), h.name]));
 
     return res.json({
-      events: assignments.map((a) => ({
-        _id: a._id,
-        eventId: a.eventId._id,
-        eventName: a.eventId.name,
-        eventDate: a.eventId.eventDate || a.eventId.startDateTime,
-        gate: a.gate,
-        status: a.eventId.status,
-        hall: {
-          hallName: a.eventId.hallId?.name || "N/A",
-        },
-        assignedAt: a.createdAt,
-      })),
+      events: assignments.map((a) => {
+        const eventEndTime = a.eventId.endDateTime || a.eventId.eventDate;
+        const isEnded = eventEndTime && new Date(eventEndTime) < now;
+        
+        return {
+          _id: a._id,
+          eventId: a.eventId._id,
+          eventName: a.eventId.name,
+          eventDate: a.eventId.eventDate || a.eventId.startDateTime,
+          gate: a.gate,
+          status: a.eventId.status,
+          isEnded, // Flag to show if event has ended
+          canScan: !isEnded, // Disable scanning for ended events
+          hall: {
+            hallName: hallMap.get(a.eventId.hallId?.toString()) || "N/A",
+          },
+          assignedAt: a.createdAt,
+        };
+      }),
     });
   } catch (err) {
     return next(err);
@@ -90,6 +107,24 @@ router.post("/events/:eventId/checkins/scan", isAuthenticated, scannerLimiter, a
     if (!assignment) {
       return res.status(403).json({
         message: "You are not assigned to scan for this event",
+      });
+    }
+
+    // ===== CHECK EVENT HAS NOT ENDED =====
+    const event = await OrganizerEvent.findById(eventId)
+      .select("endDateTime eventDate status")
+      .lean();
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    const now = new Date();
+    const eventEndTime = event.endDateTime || event.eventDate;
+    if (eventEndTime && new Date(eventEndTime) < now) {
+      return res.status(400).json({
+        message: "Cannot scan for ended events",
+        status: "EVENT_ENDED",
       });
     }
 
@@ -168,12 +203,6 @@ router.post("/events/:eventId/checkins/scan", isAuthenticated, scannerLimiter, a
     }
 
     // ===== CHECK EVENT STATUS =====
-    const event = await OrganizerEvent.findById(eventId).select("status").lean();
-
-    if (!event) {
-      return res.status(404).json({ message: "Event not found" });
-    }
-
     if (event.status === "CANCELLED") {
       await TicketCheckin.create({
         eventId,
@@ -194,7 +223,6 @@ router.post("/events/:eventId/checkins/scan", isAuthenticated, scannerLimiter, a
     }
 
     // ===== UPDATE TICKET - MARK AS CHECKED IN =====
-    const now = new Date();
     const updatedTicket = await Ticket.findOneAndUpdate(
       {
         _id: ticket._id,

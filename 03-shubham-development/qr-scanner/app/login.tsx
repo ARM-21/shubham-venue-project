@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   TextInput,
@@ -13,6 +13,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppTheme } from '../constants/appTheme';
@@ -25,9 +26,10 @@ interface LoginFormData {
 }
 
 export default function LoginScreen() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, error, clearError } = useAuth();
+  const { login, error, clearError, isAuthenticated, token } = useAuth();
   const {
     control,
     handleSubmit,
@@ -39,6 +41,14 @@ export default function LoginScreen() {
       password: '',
     },
   });
+
+  // Navigate to events page when login is successful
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      console.debug('Login successful - navigating to events');
+      router.replace('/(tabs)/events');
+    }
+  }, [isAuthenticated, token, router]);
 
   const onSubmit = async (data: LoginFormData) => {
     try {
@@ -69,8 +79,8 @@ export default function LoginScreen() {
 
         {/* Title Section */}
         <View style={styles.header}>
-          <Text style={styles.title}>Shubham QR Scanner</Text>
-          <Text style={styles.subtitle}>Professional Event Entry Management</Text>
+          <Text style={styles.title}>QR Scanner</Text>
+          <Text style={styles.subtitle}>Event Entry Management</Text>
         </View>
 
         {/* Main Form Card */}
