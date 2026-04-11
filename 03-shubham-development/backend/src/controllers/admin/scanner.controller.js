@@ -134,7 +134,7 @@ export async function getEventScanners(req, res, next) {
 export async function removeScannerAssignment(req, res, next) {
   try {
     const { assignmentId } = req.params;
-    const { reason } = req.body;
+    const reason = req.body?.reason || "";
 
     if (!mongoose.Types.ObjectId.isValid(assignmentId)) {
       return res.status(400).json({ message: "Invalid assignmentId" });

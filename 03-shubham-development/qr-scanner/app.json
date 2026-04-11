@@ -13,7 +13,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.arm21.qrscanner",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIUserInterfaceStyle": "Automatic",
+        "NSUserNotificationUsageDescription": "We need your permission to send notifications about scanner assignments"
       },
       "icon": "./assets/images/shubham-mono.png"
     },
@@ -24,7 +26,10 @@
             },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.arm21.qrscanner"
+      "package": "com.arm21.qrscanner",
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "output": "static",
@@ -32,6 +37,16 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/shubham-mono.png",
+          "color": "#8b3a3a",
+          "sounds": [
+            "./assets/notification-sound.wav"
+          ]
+        }
+      ],
       [
         "expo-splash-screen",
         {

@@ -37,6 +37,47 @@ export default function SettingsScreen() {
     checkPermissions();
   }, []);
 
+  // Load settings from SecureStore on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const savedSettings = { ...settings };
+        
+        // Load each setting from SecureStore
+        const soundEnabledStr = await SecureStore.getItemAsync('setting_soundEnabled');
+        if (soundEnabledStr !== null) {
+          savedSettings.soundEnabled = soundEnabledStr === 'true';
+        }
+        
+        const vibrationEnabledStr = await SecureStore.getItemAsync('setting_vibrationEnabled');
+        if (vibrationEnabledStr !== null) {
+          savedSettings.vibrationEnabled = vibrationEnabledStr === 'true';
+        }
+        
+        const errorSoundStr = await SecureStore.getItemAsync('setting_errorSound');
+        if (errorSoundStr !== null) {
+          savedSettings.errorSound = errorSoundStr === 'true';
+        }
+        
+        const offlineModeStr = await SecureStore.getItemAsync('setting_offlineMode');
+        if (offlineModeStr !== null) {
+          savedSettings.offlineMode = offlineModeStr === 'true';
+        }
+        
+        const notificationsEnabledStr = await SecureStore.getItemAsync('setting_notificationsEnabled');
+        if (notificationsEnabledStr !== null) {
+          savedSettings.notificationsEnabled = notificationsEnabledStr === 'true';
+        }
+        
+        setSettings(savedSettings);
+      } catch (error) {
+        console.error('Error loading settings from SecureStore:', error);
+      }
+    };
+    
+    loadSettings();
+  }, []);
+
   const handleToggle = async (key: keyof typeof settings) => {
     try {
       const newValue = !settings[key];
