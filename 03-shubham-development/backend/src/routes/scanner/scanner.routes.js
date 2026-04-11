@@ -266,4 +266,200 @@ router.post("/events/:eventId/checkins/scan", isAuthenticated, scannerLimiter, a
   }
 });
 
+/**
+ * GET /scanner/events/:eventId/checkins
+ * Get check-in history for a specific event
+ * Authenticated + assigned to event required
+ */
+router.get("/events/:eventId/checkins", isAuthenticated, async (req, res, next) => {
+  try {
+    const eventId = req.params.eventId;
+    const userId = req.currentUser._id;
+
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: "Invalid event id" });
+    }
+
+    // ===== CHECK USER IS ASSIGNED TO EVENT =====
+    const assignment = await EventStaffAssignment.findOne({
+      eventId,
+      $or: [
+        { userId: userId },
+        { userId: userId.toString() },
+      ],
+      active: true,
+    }).lean();
+
+    if (!assignment) {
+      return res.status(403).json({
+        message: "You are not assigned to this event",
+      });
+    }
+
+    // ===== GET CHECK-IN HISTORY =====
+    const checkins = await TicketCheckin.find({
+      eventId,
+    })
+      .populate({
+        path: "ticketId",
+        select: "qrCodeValue ownerUserId",
+        populate: {
+          path: "ownerUserId",
+          select: "email first_name last_name username",
+        },
+      })
+      .sort({ checkedInAt: -1 })
+      .lean();
+
+    // ===== FORMAT RESPONSE =====
+    const formattedCheckins = checkins.map((checkin) => ({
+      _id: checkin._id,
+      ticketId: checkin.ticketId?._id,
+      attendeeName: 
+        checkin.ticketId?.ownerUserId?.first_name || 
+        checkin.ticketId?.ownerUserId?.username ||
+        "Unknown",
+      attendeeEmail: checkin.ticketId?.ownerUserId?.email || "N/A",
+      checkedInAt: checkin.checkedInAt,
+      checkedInBy: checkin.checkedInBy,
+      status: checkin.status,
+      note: checkin.note,
+      gate: checkin.gate,
+    }));
+
+    return res.json({
+      eventId,
+      totalScans: formattedCheckins.length,
+      successfulScans: formattedCheckins.filter((c) => c.status === "SUCCESS")
+        .length,
+      failedScans: formattedCheckins.filter((c) => c.status !== "SUCCESS")
+        .length,
+      checkins: formattedCheckins,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+/**
+ * GET /scanner/analytics
+ * Get staff member's overall scan analytics
+ * Authenticated required
+ */
+router.get("/analytics", isAuthenticated, async (req, res, next) => {
+  try {
+    const userId = req.currentUser._id;
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // ===== GET ALL EVENTS ASSIGNED TO THIS USER =====
+    const assignments = await EventStaffAssignment.find({
+      $or: [
+        { userId: userId },
+        { userId: userId.toString() },
+      ],
+      active: true,
+    })
+      .select("eventId")
+      .lean();
+
+    const eventIds = assignments.map((a) => a.eventId);
+
+    // ===== GET ALL CHECK-INS FOR THIS USER ACROSS ALL ASSIGNED EVENTS =====
+    const allCheckins = await TicketCheckin.find({
+      checkedInBy: userId,
+    })
+      .populate({
+        path: "ticketId",
+        select: "ownerUserId eventId",
+        populate: {
+          path: "ownerUserId",
+          select: "email first_name last_name username",
+        },
+      })
+      .populate({
+        path: "eventId",
+        select: "name startDateTime endDateTime",
+      })
+      .sort({ checkedInAt: -1 })
+      .lean();
+
+    // ===== AGGREGATE STATISTICS =====
+    const totalScans = allCheckins.length;
+    const successfulScans = allCheckins.filter(
+      (c) => c.status === "SUCCESS"
+    ).length;
+    const failedScans = allCheckins.filter((c) => c.status !== "SUCCESS")
+      .length;
+    const alreadyChecked = allCheckins.filter(
+      (c) => c.status === "ALREADY_CHECKED_IN"
+    ).length;
+
+    // ===== GET STATS BY EVENT =====
+    const statsByEvent = {};
+    allCheckins.forEach((checkin) => {
+      const eventId = checkin.eventId?._id?.toString();
+      if (!eventId) return;
+
+      if (!statsByEvent[eventId]) {
+        statsByEvent[eventId] = {
+          eventId,
+          eventName: checkin.eventId?.name || "Unknown",
+          eventDate: checkin.eventId?.startDateTime,
+          totalScans: 0,
+          successfulScans: 0,
+          failedScans: 0,
+          alreadyChecked: 0,
+        };
+      }
+
+      statsByEvent[eventId].totalScans++;
+      if (checkin.status === "SUCCESS") {
+        statsByEvent[eventId].successfulScans++;
+      } else if (checkin.status === "ALREADY_CHECKED_IN") {
+        statsByEvent[eventId].alreadyChecked++;
+      } else {
+        statsByEvent[eventId].failedScans++;
+      }
+    });
+
+    // ===== GET RECENT SCANS (LAST 20) =====
+    const recentScans = allCheckins.slice(0, 20).map((checkin) => ({
+      _id: checkin._id,
+      ticketId: checkin.ticketId?._id,
+      attendeeName:
+        checkin.ticketId?.ownerUserId?.first_name ||
+        checkin.ticketId?.ownerUserId?.username ||
+        "Unknown",
+      attendeeEmail: checkin.ticketId?.ownerUserId?.email || "N/A",
+      eventName: checkin.eventId?.name || "Unknown",
+      checkedInAt: checkin.checkedInAt,
+      status: checkin.status,
+      note: checkin.note,
+      gate: checkin.gate,
+    }));
+
+    return res.json({
+      staff: {
+        id: userId,
+        name: req.currentUser.first_name || req.currentUser.username,
+      },
+      summary: {
+        totalScans,
+        successfulScans,
+        failedScans,
+        alreadyChecked,
+        successRate:
+          totalScans > 0
+            ? ((successfulScans / totalScans) * 100).toFixed(1)
+            : 0,
+      },
+      byEvent: Object.values(statsByEvent),
+      recentScans,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 export default router;
