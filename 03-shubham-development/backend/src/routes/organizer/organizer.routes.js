@@ -14,10 +14,11 @@ import Flag from "../../models/Flag.js";
 import Review from "../../models/Review.js";
 import AdminNotification from "../../models/AdminNotification.js";
 import { onEventApproved } from "../../services/trustScore.service.js";
-import { sendEventCancellationEmail } from "../../services/email/nodemailer.service.js";
+import { sendEventCancellationEmail } from "../../services/email/email.service.js";
 import { generateEventBannerUploadUrl } from "../../services/event/upload.service.js";
 import ENV from "../../config/env.config.js";
 import { createAuditLog } from "../../middleware/audit.middleware.js";
+// import { sendEventCancellationEmail } from "../../services/email/nodemailer.service.js";
 
 const router = express.Router();
 

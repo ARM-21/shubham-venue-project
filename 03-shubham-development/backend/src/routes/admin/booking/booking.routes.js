@@ -2,13 +2,14 @@ import express from "express";
 import mongoose from "mongoose";
 import Booking from "../../../models/Booking.js";
 import Payment from "../../../models/Payment.js";
-import { sendInvoiceEmail, sendPaymentConfirmationEmail } from "../../../services/email/nodemailer.service.js";
+import { sendInvoiceEmail, sendPaymentConfirmationEmail } from "../../../services/email/email.service.js";
 import { streamBookingInvoice } from "../../../services/invoice/bookingInvoice.service.js";
 import Menu from "../../../models/menu/Menu.js";
 import DecorationScheme from "../../../models/DecorationScheme.js";
 import User from "../../../models/User.js";
 import Hall from "../../../models/Hall.js";
 import { sendBookingConfirmationEmail, sendAdminBookingNotificationEmail } from "../../../services/email/email.service.js";
+// import { sendInvoiceEmail, sendPaymentConfirmationEmail } from "../../../services/email/nodemailer.service.js";
 
 const router = express.Router();
 

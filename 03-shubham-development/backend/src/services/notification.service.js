@@ -1,5 +1,5 @@
 import User from "../models/User.js";
-import { sendStaffAssignmentEmail, sendStaffAssignmentCancelledEmail } from "./email/nodemailer.service.js";
+import { sendStaffAssignmentEmail, sendStaffAssignmentCancelledEmail } from "./email/email.service.js";
 import axios from "axios";
 
 const EXPO_PUSH_API = "https://exp.host/--/api/v2/push/send";
