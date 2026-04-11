@@ -12,6 +12,8 @@ export interface Event {
   gate: string;
   status: string;
   assignedAt: string;
+  isEnded?: boolean;
+  canScan?: boolean;
 }
 
 export interface EventsResponse {

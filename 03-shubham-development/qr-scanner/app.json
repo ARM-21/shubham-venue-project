@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Shubham QR Scanner",
+    "name": "Shubham Scan",
     "slug": "qr-scanner",
     "version": "1.0.0",
     "sourceRoot": "app",
@@ -19,10 +19,9 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/shubham-logo.png",
-        "backgroundImage": "./assets/images/shubham-bg.png",
-        "monochromeImage": "./assets/images/shubham-mono.png"
-      },
+             "foregroundImage": "./assets/images/shubham-logo.png",
+        "backgroundColor": "#FFFFFF"
+            },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.arm21.qrscanner"
@@ -37,13 +36,15 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/shubham-logo.png",
-          "imageWidth": 300,
+          "imageWidth": 150,
           "resizeMode": "contain",
           "backgroundImage": "./assets/images/shubham-logo.png",
           "backgroundResizeMode": "contain",
+          "backgroundColor": "#ffffff",
           "dark": {
             "image": "./assets/images/shubham-logo.png",
-            "backgroundImage": "./assets/images/shubham-logo.png"
+            "backgroundImage": "./assets/images/shubham-logo.png",
+            "backgroundColor": "#000000"
           }
         }
       ]

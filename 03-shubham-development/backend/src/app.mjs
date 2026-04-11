@@ -16,6 +16,9 @@ const app = express();
 assertEnv();
 await getDBConnection();
 
+// Security: Disable x-powered-by header
+app.disable('x-powered-by');
+
 if (ENV.NODE_ENV === "production") {
   app.set("trust proxy", ENV.TRUST_PROXY_HOPS);
 }
