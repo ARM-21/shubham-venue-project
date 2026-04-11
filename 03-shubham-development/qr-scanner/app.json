@@ -41,10 +41,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/shubham-mono.png",
-          "color": "#8b3a3a",
-          "sounds": [
-            "./assets/notification-sound.wav"
-          ]
+          "color": "#8b3a3a"
         }
       ],
       [
