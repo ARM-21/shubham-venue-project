@@ -1,6 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import { isAuthenticated } from "../../middleware/auth.middleware.js";
+import { scannerLimiter } from "../../config/rateLimit.config.js";
 import User from "../../models/User.js";
 import EventStaffAssignment from "../../models/EventStaffAssignment.js";
 import Ticket from "../../models/Ticket.js";
@@ -27,8 +28,14 @@ router.get("/my-events", isAuthenticated, async (req, res, next) => {
       ],
       active: true,
     })
-      .populate("eventId", "name eventDate startDateTime status hallId")
-      .populate("eventId.hallId", "name")
+      .populate({
+        path: "eventId",
+        select: "name eventDate startDateTime status hallId",
+        populate: {
+          path: "hallId",
+          select: "name"
+        }
+      })
       .sort({ createdAt: -1 });
 
     return res.json({
@@ -61,7 +68,7 @@ router.get("/my-events", isAuthenticated, async (req, res, next) => {
  *   deviceId: "device_123"  (optional)
  * }
  */
-router.post("/events/:eventId/checkins/scan", isAuthenticated, async (req, res, next) => {
+router.post("/events/:eventId/checkins/scan", isAuthenticated, scannerLimiter, async (req, res, next) => {
   try {
     const eventId = req.params.eventId;
     const userId = req.currentUser._id;

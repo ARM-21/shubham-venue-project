@@ -1,4 +1,5 @@
 import express from "express";
+import { uploadLimiter } from "../../../config/rateLimit.config.js";
 import { getMenusAndDishes, createMenu, updateDishStatus, updateDishDetails, updateMenuDetails, updateMenuStatus, removeMenu, getMenuDetail, adminMenuUploadUrlHandler, adminDishUploadUrlHandler, getDishesBySection, createDishHandler, deleteDishHandler } from "../../../controllers/admin/menu.controller.js";
 import { getSectionsHandler, createSectionHandler, updateSectionHandler, deleteSectionHandler, reorderSectionsHandler, getMenuSections, createMenuSection, updateMenuSection, deleteMenuSection, reorderMenuSections, attachMenuSection, detachMenuSection } from "../../../controllers/admin/menu.section.controller.js";
 
@@ -6,8 +7,9 @@ const router = express.Router();
 
 router.get("/", getMenusAndDishes);
 router.post("/", createMenu);
-router.post("/upload-url", adminMenuUploadUrlHandler);
-router.post("/upload-url/dish", adminDishUploadUrlHandler);
+
+router.post("/upload-url", uploadLimiter, adminMenuUploadUrlHandler);
+router.post("/upload-url/dish", uploadLimiter, adminDishUploadUrlHandler);
 router.get("/sections", getSectionsHandler);
 router.post("/sections", createSectionHandler);
 router.patch("/sections/:id", updateSectionHandler);

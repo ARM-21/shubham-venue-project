@@ -1,6 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import { isAuthenticated, isOrganizer } from "../../middleware/auth.middleware.js";
+import { uploadLimiter } from "../../config/rateLimit.config.js";
 import { formatHourTo12 } from "../../utils/time.utils.js";
 import Booking from "../../models/Booking.js";
 import Hall from "../../models/Hall.js";
@@ -1226,7 +1227,9 @@ router.post("/events/:id/duplicate", isAuthenticated, isOrganizer, async (req, r
  * POST /api/v1/organizer/events/banner/upload-url
  * Get presigned URL for event banner upload
  */
-router.post("/events/banner/upload-url", isAuthenticated, isOrganizer, async (req, res, next) => {
+import { uploadLimiter } from "../../config/rateLimit.config.js";
+
+router.post("/events/banner/upload-url", isAuthenticated, isOrganizer, uploadLimiter, async (req, res, next) => {
   try {
     const { fileExtension, contentType } = req.body || {};
     

@@ -1,6 +1,7 @@
 import express from "express";
 import ENV from "../../config/env.config.js";
 import { resetMaintenanceCache } from "../../middleware/maintenance.middleware.js";
+import { uploadLimiter } from "../../config/rateLimit.config.js";
 import SystemConfig from "../../models/SystemConfig.js";
 import User from "../../models/User.js";
 import { generateImageUploadUrl } from "../../services/upload/presigned.service.js";
@@ -84,7 +85,7 @@ router.put("/config", async (req, res, next) => {
   }
 });
 
-router.post("/config/logo-upload", async (req, res, next) => {
+router.post("/config/logo-upload", uploadLimiter, async (req, res, next) => {
   try {
     const { fileExtension, contentType } = req.body || {};
     if (!fileExtension || !contentType) {

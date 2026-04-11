@@ -26,10 +26,6 @@ export async function scanQRMutator({
   eventId,
 }: ScanQRRequest): Promise<ScanQRResponse> {
   try {
-    console.debug('MUTATOR: POST /scanner/events/:eventId/checkins/scan');
-    console.debug('Event ID:', eventId);
-    console.debug('QR Code length:', qrCode.length);
-
     const response = await ErrorHandler.retry(
       async () => {
         const result = await api.post(
@@ -40,18 +36,22 @@ export async function scanQRMutator({
           }
         );
 
-        console.debug('QR Scan result:', result.data?.status);
         return result.data;
       },
       2,
-      800,
-      (attempt) => console.log(`Scanning QR code (attempt ${attempt}/2)...`)
+      800
     );
 
     return response;
   } catch (error: any) {
     const apiError = ErrorHandler.parseError(error);
     ErrorHandler.logError('SCAN_QR_MUTATOR', apiError);
-    throw apiError;
+    
+    // Throw error with user-friendly message
+    const userMessage = ErrorHandler.getUserMessage(apiError);
+    const err = new Error(userMessage);
+    (err as any).code = apiError.code;
+    (err as any).status = apiError.status;
+    throw err;
   }
 }

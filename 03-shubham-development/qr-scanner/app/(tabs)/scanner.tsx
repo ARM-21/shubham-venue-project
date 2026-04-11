@@ -28,6 +28,34 @@ export default function ScannerScreen() {
   const { token } = useAuth();
   const router = useRouter();
 
+  // Helper to get error-specific icon and color
+  const getErrorUI = (error: Error | null) => {
+    if (!error) return { icon: 'alert-circle', color: AppTheme.colors.error, label: 'Error' };
+    
+    const code = (error as any).code;
+    const message = error.message || '';
+
+    if (message.includes('Missing required') || code === 'VALIDATION_ERROR') {
+      return { icon: 'information-circle', color: '#FF9500', label: 'Setup Required' };
+    }
+    if (message.includes('internet') || message.includes('network')) {
+      return { icon: 'cloud-offline', color: '#FF9500', label: 'Network Error' };
+    }
+    if (message.includes('not found') || code === 'NOT_FOUND') {
+      return { icon: 'close-circle', color: '#FF3B30', label: 'Ticket Not Found' };
+    }
+    if (message.includes('already') || code === 'TICKET_ALREADY_CHECKED_IN') {
+      return { icon: 'checkmark-circle', color: '#FF9500', label: 'Already Checked In' };
+    }
+    if (message.includes('session') || message.includes('expired')) {
+      return { icon: 'lock', color: '#FF3B30', label: 'Session Expired' };
+    }
+    if (message.includes('event') || message.includes('valid')) {
+      return { icon: 'alert-circle', color: '#FF3B30', label: 'Invalid Event' };
+    }
+    return { icon: 'alert-circle', color: AppTheme.colors.error, label: 'Error' };
+  };
+
   // Direct useMutation from @tanstack/react-query with @api mutator
   const {
     mutate: scanQRCode,
@@ -37,8 +65,6 @@ export default function ScannerScreen() {
   } = useMutation({
     mutationFn: scanQRMutator,
     onSuccess: (result: ScanQRResponse) => {
-      console.debug('SCAN SUCCESSFUL:', result.status);
-
       // Vibration feedback
       Vibration.vibrate(200);
       setScanCount((prev) => prev + 1);
@@ -62,8 +88,6 @@ export default function ScannerScreen() {
       }, 2500);
     },
     onError: (error: Error) => {
-      console.error('SCAN ERROR:', error.message);
-
       // Haptic feedback for error
       Vibration.vibrate([100, 100, 100]);
 
@@ -101,9 +125,15 @@ export default function ScannerScreen() {
       const deviceId = Device.modelId || 'unknown-device';
       const qrCodeValue = data.trim();
 
-      // Validate inputs
-      if (!eventId || !token || !qrCodeValue) {
-        throw new Error('Missing required information. Please go back and try again.');
+      // Validate inputs with specific messaging
+      if (!eventId) {
+        throw new Error('Event ID is missing. Please select an event first.');
+      }
+      if (!token) {
+        throw new Error('Authentication token is missing. Please login again.');
+      }
+      if (!qrCodeValue) {
+        throw new Error('Invalid QR code. Please try again.');
       }
 
       // Trigger mutation with inline parameters
@@ -113,7 +143,6 @@ export default function ScannerScreen() {
         eventId: eventId as string,
       });
     } catch (error: any) {
-      console.error('Input validation error:', error.message);
       const apiError = ErrorHandler.parseError(error);
       ErrorHandler.logError('QR_SCAN_VALIDATION', apiError);
 
@@ -189,12 +218,21 @@ export default function ScannerScreen() {
       {/* Error Message */}
       {scanError && (
         <View style={styles.errorBanner}>
-          <Ionicons name="alert-circle" size={20} color={AppTheme.colors.error} />
-          <Text style={styles.errorText} numberOfLines={2}>
-            {scanError instanceof Error
-              ? scanError.message
-              : 'An error occurred while scanning'}
-          </Text>
+          <View style={styles.errorContent}>
+            <View style={[styles.errorIconContainer, { backgroundColor: `${getErrorUI(scanError).color}20` }]}>
+              <Ionicons 
+                name={getErrorUI(scanError).icon as any} 
+                size={24} 
+                color={getErrorUI(scanError).color} 
+              />
+            </View>
+            <View style={styles.errorTextContainer}>
+              <Text style={styles.errorLabel}>{getErrorUI(scanError).label}</Text>
+              <Text style={styles.errorText} numberOfLines={2}>
+                {scanError.message}
+              </Text>
+            </View>
+          </View>
         </View>
       )}
 
@@ -321,20 +359,41 @@ const styles = StyleSheet.create({
     marginTop: AppTheme.spacing.md,
   } as const,
   errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: `${AppTheme.colors.error}15`,
+    backgroundColor: 'rgba(0,0,0,0.85)',
     paddingHorizontal: AppTheme.spacing.lg,
     paddingVertical: AppTheme.spacing.md,
     borderTopWidth: 1,
-    borderTopColor: `${AppTheme.colors.error}30`,
+    borderTopColor: 'rgba(255,59,48,0.3)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,59,48,0.3)',
+  } as const,
+  errorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: AppTheme.spacing.md,
   } as const,
-  errorText: {
+  errorIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  } as const,
+  errorTextContainer: {
     flex: 1,
-    color: AppTheme.colors.error,
+  } as const,
+  errorLabel: {
+    color: AppTheme.colors.textWhite,
+    fontSize: AppTheme.fonts.sizes.xs,
+    fontWeight: '700',
+    marginBottom: 2,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  } as const,
+  errorText: {
+    color: 'rgba(255,255,255,0.9)',
     fontSize: AppTheme.fonts.sizes.sm,
-    fontWeight: '600',
+    fontWeight: '500',
     lineHeight: 18,
   } as const,
   instructions: {
