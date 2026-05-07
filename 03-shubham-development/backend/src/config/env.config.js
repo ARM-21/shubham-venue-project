@@ -58,6 +58,9 @@ const ENV = Object.freeze({
 
   // Event Configuration
   REFUND_FORM_URL: process.env.REFUND_FORM_URL || "https://forms.google.com/refund",
+
+  // AI/RAG Configuration
+  GOOGLE_GEMINI_API_KEY: process.env.GOOGLE_GEMINI_API_KEY,
 });
 
 export default ENV;
