@@ -21,6 +21,7 @@ import reviewRoutes from "./review/review.routes.js"
 import scannerRoutes from "./scanner/scanner.routes.js"
 import eventReportsRoutes from "./report/event-reports.routes.js"
 import notificationRoutes from "./notification/index.js"
+import ragRoutes from "./rag/rag.routes.js"
 
 const router = express.Router();
 
@@ -53,5 +54,6 @@ router.use("/reviews", reviewRoutes)
 router.use("/scanner", scannerRoutes)
 router.use("/event-reports", eventReportsRoutes)
 router.use("/notifications", notificationRoutes)
+router.use("/rag", ragRoutes)
 
 export default router;
