@@ -3,6 +3,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import "./global.css";
 import { AuthProvider } from "contexts/AuthProvider.jsx";
 import QueryProvider from "providers/QueryProvider.jsx";
+import RAGChat from "components/RAGChat.jsx";
 
 export const metadata = {
   title: {
@@ -36,6 +37,8 @@ export default function RootLayout({ children }) {
             }}
           />
         </QueryProvider>
+        {/* AI FAQ Assistant Widget */}
+        <RAGChat />
       </body>
     </html>
   );
