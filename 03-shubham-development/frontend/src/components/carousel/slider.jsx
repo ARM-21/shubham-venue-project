@@ -1,10 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import SlideButton from "./left-right-button/SlideButton";
-import BookNow from "./slider-below-book-now/BookNow";
-import { use } from "react";
-
-
 
 export default function Carousel({ images = [], interval = 5000 }) {
   const [current, setCurrent] = useState(0);
@@ -36,9 +33,9 @@ export default function Carousel({ images = [], interval = 5000 }) {
   }
 
   return (
-    <div className="w-full h-full relative group min-h-[500px] md:min-h-[650px]">
+    <div className="group relative h-full min-h-[620px] w-full md:min-h-[650px]">
       <div
-        className="relative w-full h-full min-h-[500px] md:min-h-[650px] overflow-hidden bg-black"
+        className="relative h-full min-h-[620px] w-full overflow-hidden bg-black md:min-h-[650px]"
         onMouseEnter={() => {
           setAutoPlay(false);
           setShowButtons(true);
@@ -56,25 +53,25 @@ export default function Carousel({ images = [], interval = 5000 }) {
             `}
             aria-hidden={index !== current}
           >
-            {/* Image with Ken Burns effect when active */}
-            <div className={`w-full h-full overflow-hidden ${index === current ? 'animate-ken-burns' : ''}`}>
-              <img
+            <div className={`relative h-full w-full overflow-hidden ${index === current ? 'animate-ken-burns' : ''}`}>
+              <Image
                 src={image.image}
                 alt={image.branding || image.title || `slide-${index}`}
-                className="w-full h-full object-cover transform scale-100"
+                fill
+                priority={index === 0}
+                sizes="100vw"
+                className="object-cover"
                 draggable="false"
                 onError={(e) => {
-                  e.target.src = '/assets/business-images/placeholder1.jpg';
+                  e.currentTarget.src = '/assets/business-images/placeholder1.jpg';
                 }}
               />
             </div>
 
-            {/* Overlay - subtle vignette to help text in Hero component */}
-            <div className="absolute inset-0 bg-black/30 z-20" />
+            <div className="absolute inset-0 z-20 bg-black/25" />
           </div>
         ))}
 
-        {/* Navigation Buttons */}
         <div className={`absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 z-30 pointer-events-none transition-opacity duration-500 ${showButtons ? 'opacity-100' : 'opacity-0'}`}>
           <div className="pointer-events-auto">
             <SlideButton
@@ -96,8 +93,7 @@ export default function Carousel({ images = [], interval = 5000 }) {
           </div>
         </div>
 
-        {/* Pagination Dots - Centered Pill Style */}
-        <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-40 flex gap-2">
+        <div className="absolute bottom-8 left-1/2 z-40 flex -translate-x-1/2 gap-2">
           {images.map((image, index) => (
             <button
               key={index}

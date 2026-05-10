@@ -12,34 +12,33 @@ const features = [
 
 export default function TrustBar() {
   return (
-    <div className="w-full bg-[#3a1224] py-10 border-y border-white/10 relative overflow-hidden">
-      {/* Subtle Background Glow */}
-      <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-64 h-32 bg-[#C0A04C] rounded-full blur-[100px] opacity-20" />
+    <section className="relative w-full overflow-hidden border-y border-white/10 bg-[#3a1224] py-7 shadow-[var(--shadow-card)]">
+      <div className="absolute left-1/4 top-1/2 h-32 w-64 -translate-y-1/2 rounded-full bg-[#C0A04C] opacity-15 blur-[100px]" />
       
-      <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 relative z-10">
+      <div className="site-container relative z-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {features.map((feature, index) => (
           <motion.div 
-            key={index}
+            key={feature.text}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: index * 0.1 }}
-            className="flex items-center gap-5 group"
+            className="group flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3"
           >
-            <div className="p-4 bg-white/5 rounded-2xl border border-white/10 group-hover:border-[#C0A04C]/30 transition-all duration-500 group-hover:bg-[#C0A04C]/10 text-[#C0A04C]">
-              <feature.icon size={28} strokeWidth={1.5} />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-[#C0A04C] transition-all duration-500 group-hover:border-[#C0A04C]/30 group-hover:bg-[#C0A04C]/10">
+              <feature.icon size={22} strokeWidth={1.7} aria-hidden="true" />
             </div>
             <div className="flex flex-col">
-              <span className="text-white text-sm md:text-base font-bold tracking-tight mb-0.5 group-hover:text-[#C0A04C] transition-colors">
+              <span className="mb-0.5 text-sm font-bold tracking-normal text-white transition-colors group-hover:text-[#C0A04C] md:text-base">
                 {feature.text}
               </span>
-              <span className="text-white/40 text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/45 md:text-[11px]">
                 {feature.sub}
               </span>
             </div>
           </motion.div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
