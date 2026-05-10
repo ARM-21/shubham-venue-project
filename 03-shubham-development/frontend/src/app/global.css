@@ -4,6 +4,16 @@
   --gold-accent:   #C0A04C;
   --light-bg:      #F8F8F8;
   --maroon-hover:  #A52A2A;
+  --color-wine: #3a1224;
+  --color-wine-hover: #4b1830;
+  --color-champagne: #C0A04C;
+  --color-champagne-light: #d8bd70;
+  --color-ivory: #fdfaf6;
+  --color-pearl: #f8f5f2;
+  --color-sand: #eadfcf;
+  --color-stone: #6f5f64;
+  --shadow-soft: 0 18px 50px -32px rgba(58, 18, 36, 0.35);
+  --shadow-card: 0 24px 70px -45px rgba(58, 18, 36, 0.45);
   --admin-primary: #b30f0f;
   --admin-primary-dark: #8a0b0b;
   --admin-bg: #221010;
@@ -19,6 +29,33 @@
 
 .animate-ken-burns {
   animation: ken-burns 10s linear infinite alternate;
+}
+
+.site-eyebrow {
+  color: var(--color-champagne);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.site-title {
+  font-size: clamp(2.35rem, 6vw, 5.75rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0.98;
+}
+
+.site-heading {
+  font-size: clamp(2rem, 4vw, 3.75rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.02;
+}
+
+.site-container {
+  width: min(100% - 2rem, 1400px);
+  margin-inline: auto;
 }
 
 .admin-scroll::-webkit-scrollbar {

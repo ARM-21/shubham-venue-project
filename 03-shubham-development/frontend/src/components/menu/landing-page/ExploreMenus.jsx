@@ -3,21 +3,19 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "lib/axios";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ROUTES } from "config/routes";
 import { motion } from "framer-motion";
 import { 
+  AlertCircle,
   ArrowRight, 
   ChefHat, 
   UtensilsCrossed, 
-  Star, 
-  Sparkles, 
   Soup, 
-  Coffee, 
-  ChevronRight,
   ShieldCheck,
   TrendingUp
 } from "lucide-react";
+import { SiteCard, SiteEmptyState, resolveImage } from "components/site/SitePrimitives.jsx";
 
 const STATIC_MENU_IMAGES = {
   "gold-menu": "/assets/business-images/menu-images/placeholder1.jpg",
@@ -26,7 +24,6 @@ const STATIC_MENU_IMAGES = {
 };
 
 export default function ExploreMenus({ limit = 3 }) {
-  const router = useRouter();
   const [menus, setMenus] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +40,7 @@ export default function ExploreMenus({ limit = 3 }) {
           setMenus(Array.isArray(payload) ? payload.slice(0, limit) : []);
           setError(null);
         }
-      } catch (err) {
+      } catch {
         if (!ignore) setError("Failed to load menus");
       } finally {
         if (!ignore) setLoading(false);
@@ -56,159 +53,126 @@ export default function ExploreMenus({ limit = 3 }) {
     };
   }, [limit]);
 
-  const currencyFormatter = (val) => new Intl.NumberFormat("en-NP", { 
-    style: "currency", 
-    currency: "NPR", 
-    maximumFractionDigits: 0 
-  }).format(val);
-
   return (
-    <div className="px-6 py-5 relative overflow-hidden ">
-      {/* Visual Effects */}
-      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#3a1224]/3 blur-[120px] -translate-y-1/2 translate-x-1/2 -z-10" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#C0A04C]/5 blur-[100px]  translate-y-1/2 -translate-x-1/2 -z-10" />
+    <div className="relative overflow-hidden">
+      {error ? (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-8 flex items-center gap-3 rounded-2xl border border-red-100 bg-red-50 p-5 text-sm font-semibold text-red-700"
+        >
+          <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" />
+          {error}. Please try again in a moment.
+        </motion.div>
+      ) : null}
 
-      <div className="max-w-[1800px] mx-auto relative z-10">
-        
-        {error ? (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-red-50 border border-red-100 p-8 rounded-[2.5rem] text-red-600 text-center mb-12"
-          >
-            <p className="font-display font-bold text-xl mb-1">Culinary Access Limited</p>
-            <p className="text-sm opacity-80">{error}</p>
-          </motion.div>
-        ) : null}
+      {loading ? (
+        <MenuSkeleton />
+      ) : menus.length ? (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {menus.map((m, idx) => {
+            const menuImage = m.heroImage || m.image || STATIC_MENU_IMAGES[m.slug] || "/assets/business-images/menu-images/placeholder1.jpg";
+            const isFeatured = m.slug?.includes('gold') || m.dishCount > 20;
+            const price = typeof m.pricePerPerson === "number" ? `NPR ${m.pricePerPerson.toLocaleString()}` : "Contact";
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse bg-[#fdfaf6] rounded-[3rem] p-6 h-[500px] border border-[#3a1224]/5">
-                <div className="w-full h-72 bg-[#3a1224]/5 rounded-[2.5rem] mb-8" />
-                <div className="h-8 bg-[#3a1224]/5 rounded-full w-2/3 mb-4" />
-                <div className="h-4 bg-[#3a1224]/5 rounded-full w-1/2 mb-12" />
-                <div className="h-12 bg-[#3a1224]/10 rounded-2xl w-full" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {menus.length === 0 && !error && (
-              <div className="col-span-full py-32 text-center rounded-[4rem] border-2 border-dashed border-[#3a1224]/10">
-                <Soup className="w-12 h-12 text-[#3a1224]/20 mx-auto mb-6" />
-                <p className="text-[#3a1224]/40 font-display text-xl uppercase tracking-widest px-8">No menus available at this time.</p>
-              </div>
-            )}
-            {menus.map((m, idx) => {
-              const menuImage = m.heroImage || m.image || STATIC_MENU_IMAGES[m.slug] || "/assets/business-images/menu-images/placeholder1.jpg";
-              const resolvedImage = menuImage.startsWith('http') ? menuImage : (menuImage.startsWith('/assets') ? menuImage : `${process.env.NEXT_PUBLIC_API_BASE_URL}${menuImage}`);
-              
-              const isFeatured = m.slug?.includes('gold') || m.dishCount > 20;
-
-              return (
-                <motion.article
-                  key={m._id}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.15, duration: 0.8 }}
-                  className="group relative h-full flex flex-col"
-                  onClick={() => router.push(ROUTES.SITE.MENU_DETAILS(m.slug))}
+            return (
+              <motion.div
+                key={m._id}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1, duration: 0.5 }}
+              >
+                <SiteCard
+                  as="article"
+                  className={`group h-full overflow-hidden transition-all duration-300 hover:-translate-y-1 ${isFeatured ? 'border-[var(--color-champagne)]' : 'hover:border-[var(--color-champagne)]'}`}
                 >
-                  {/* Luxury Card Container */}
-                  <div className={`relative flex-1 bg-white rounded-[0.1rem] p-6 transition-all duration-700 hover:-translate-y-3 cursor-pointer border ${isFeatured ? 'border-[#C0A04C]/30 shadow-[0_30px_60px_-12px_rgba(58,18,36,0.12)]' : 'border-[#3a1224]/5 shadow-sm hover:shadow-2xl'}`}>
-                    
-                    {/* Badge */}
-                    {isFeatured && (
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
-                        <div className="bg-[#C0A04C] text-[#3a1224] text-[10px] font-black px-6 py-2.5 rounded-full shadow-xl tracking-[0.25em] uppercase whitespace-nowrap flex items-center gap-2 border border-white/20">
-                          <TrendingUp className="w-3.5 h-3.5" /> Featured Selection
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Image Box */}
-                    <div className="relative w-full h-[320px] mb-8 rounded-[1rem] overflow-hidden shadow-2xl group-hover:shadow-[#3a1224]/10 transition-shadow duration-700">
+                  <Link href={ROUTES.SITE.MENU_DETAILS(m.slug)} className="flex h-full flex-col focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-champagne)]">
+                    <div className="relative aspect-[16/11] overflow-hidden bg-[var(--color-pearl)]">
                       <Image
-                        src={resolvedImage}
+                        src={resolveImage(menuImage, "/assets/business-images/menu-images/placeholder1.jpg")}
                         alt={m.name || "Menu Image"}
                         fill
-                        className="object-cover group-hover:scale-110 transition-transform duration-[2000ms] ease-out grayscale-[10%] group-hover:grayscale-0"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-700 group-hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, 33vw"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
-                      
-                      {/* Category Pill */}
-                      <div className="absolute top-6 left-6 z-10">
-                        <span className="bg-white/10 backdrop-blur-2xl border border-white/20 text-[10px] font-bold uppercase tracking-[0.2em] text-white px-4 py-2 rounded-full shadow-lg">
-                          {m.category || 'Luxury Selection'}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/70 via-transparent to-transparent" />
+                      <div className="absolute left-4 top-4 rounded-full border border-white/20 bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-wine)] backdrop-blur-md">
+                        {m.category || 'Menu package'}
+                      </div>
+                      {isFeatured ? (
+                        <div className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-champagne)] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-wine)] shadow-xl">
+                          <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
+                          Featured
+                        </div>
+                      ) : null}
+                      <div className="absolute bottom-4 left-4 rounded-2xl bg-white/95 px-4 py-2 shadow-xl backdrop-blur-md">
+                        <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-stone)]">Per person</span>
+                        <span className="text-sm font-black text-[var(--color-wine)]">{price}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-1 flex-col p-6">
+                      <h3 className="text-2xl font-black leading-tight text-[var(--color-wine)]">{m.name}</h3>
+                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-[var(--color-stone)]">
+                        {m.description || 'A balanced package prepared for polished event service and smooth guest hospitality.'}
+                      </p>
+
+                      <div className="mt-5 grid grid-cols-2 gap-3">
+                        <div className="flex items-center gap-2 rounded-2xl bg-[var(--color-ivory)] p-3">
+                          <ChefHat className="h-4 w-4 shrink-0 text-[var(--color-champagne)]" aria-hidden="true" />
+                          <span className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--color-wine)]">Prepared</span>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-2xl bg-[var(--color-ivory)] p-3">
+                          <UtensilsCrossed className="h-4 w-4 shrink-0 text-[var(--color-champagne)]" aria-hidden="true" />
+                          <span className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--color-wine)]">{m.dishCount || 18}+ Dishes</span>
+                        </div>
+                        <div className="col-span-2 flex items-center gap-2 rounded-2xl bg-[var(--color-ivory)] p-3">
+                          <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--color-champagne)]" aria-hidden="true" />
+                          <span className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--color-wine)]">Fresh, safe, and customizable</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-auto flex items-center justify-between border-t border-[var(--color-sand)] pt-5">
+                        <span className="text-xs font-black uppercase tracking-[0.16em] text-[var(--color-stone)]">See dishes</span>
+                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-wine)] text-white transition-colors group-hover:bg-[var(--color-champagne)] group-hover:text-[var(--color-wine)]">
+                          <ArrowRight className="h-4 w-4" aria-hidden="true" />
                         </span>
                       </div>
-
-                      {/* Floating Price */}
-                      <div className="absolute bottom-6 left-6 right-6 z-10 flex items-center justify-between">
-                        <div className="bg-white/95 backdrop-blur-xl px-5 py-2.5 rounded-[1.5rem] shadow-2xl border border-white/50">
-                          <span className="text-[10px] font-bold text-[#3a1224]/40 uppercase tracking-[0.1em] block mb-0.5 leading-none">Per Person</span>
-                          <span className="text-lg font-display font-bold text-[#3a1224]">
-                            {typeof m.pricePerPerson === "number" ? `NPR ${m.pricePerPerson.toLocaleString()}` : "Contact"}
-                          </span>
-                        </div>
-                      </div>
                     </div>
+                  </Link>
+                </SiteCard>
+              </motion.div>
+            );
+          })}
+        </div>
+      ) : (
+        <SiteEmptyState
+          icon={Soup}
+          title="No menus available"
+          description="Curated menu packages will appear here once the kitchen catalogue is ready."
+        />
+      )}
+    </div>
+  );
+}
 
-                    {/* Content Section */}
-                    <div className="px-4 pb-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-[1px] bg-[#C0A04C]" />
-                        <span className="text-[10px] font-bold text-[#C0A04C] uppercase tracking-[0.3em]">Selection</span>
-                      </div>
-                      
-                      <h3 className="text-3xl font-display font-bold text-[#3a1224] transition-colors mb-4 leading-tight">{m.name}</h3>
-                      
-                      {/* Features Grid */}
-                      <div className="grid grid-cols-2 gap-y-3 gap-x-4 mb-8">
-                        <div className="flex items-center gap-2.5 py-2 px-3 bg-[#fdfaf6] rounded-xl border border-[#3a1224]/5">
-                          <ChefHat className="w-3.5 h-3.5 text-[#C0A04C]" />
-                          <span className="text-[10px] font-bold text-[#3a1224] uppercase tracking-tighter">Professional Preparation</span>
-                        </div>
-                        <div className="flex items-center gap-2.5 py-2 px-3 bg-[#fdfaf6] rounded-xl border border-[#3a1224]/5">
-                          <UtensilsCrossed className="w-3.5 h-3.5 text-[#C0A04C]" />
-                          <span className="text-[10px] font-bold text-[#3a1224] uppercase tracking-tighter">{m.dishCount || 18}+ Dishes</span>
-                        </div>
-                        <div className="flex items-center gap-2.5 py-2 px-3 bg-[#fdfaf6] rounded-xl border border-[#3a1224]/5">
-                          <Coffee className="w-3.5 h-3.5 text-[#C0A04C]" />
-                          <span className="text-[10px] font-bold text-[#3a1224] uppercase tracking-tighter">Customizable</span>
-                        </div>
-                        <div className="flex items-center gap-2.5 py-2 px-3 bg-[#fdfaf6] rounded-xl border border-[#3a1224]/5">
-                          <ShieldCheck className="w-3.5 h-3.5 text-[#C0A04C]" />
-                          <span className="text-[10px] font-bold text-[#3a1224] uppercase tracking-tighter">Fresh & Safe</span>
-                        </div>
-                      </div>
-
-                      {/* CTA */}
-                      <div className="pt-3 border-t border-[#3a1224]/10 flex items-center justify-between group-hover:pt-8 transition-all">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-2xl bg-[#3a1224] flex items-center justify-center text-[#C0A04C] shadow-lg shadow-[#3a1224]/20 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                             <Sparkles className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-bold text-[#3a1224]/40 uppercase tracking-widest leading-none mb-1">Explore This Menu</p>
-                            <p className="text-xs font-bold text-[#3a1224]">See Dishes</p>
-                          </div>
-                        </div>
-                        <div className="w-12 h-12 rounded-full border border-[#3a1224]/10 flex items-center justify-center group-hover:bg-[#3a1224] group-hover:border-[#3a1224] group-hover:text-[#C0A04C] transition-all duration-500">
-                          <ChevronRight className="w-6 h-6 translate-x-0.5" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.article>
-              );
-            })}
+function MenuSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-3" aria-label="Loading menu packages">
+      {[1, 2, 3].map((item) => (
+        <div key={item} className="overflow-hidden rounded-2xl border border-[var(--color-sand)] bg-white shadow-[var(--shadow-soft)]">
+          <div className="aspect-[16/11] animate-pulse bg-[var(--color-pearl)]" />
+          <div className="space-y-4 p-6">
+            <div className="h-6 w-2/3 animate-pulse rounded-full bg-[var(--color-pearl)]" />
+            <div className="h-4 w-full animate-pulse rounded-full bg-[var(--color-ivory)]" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="h-12 animate-pulse rounded-2xl bg-[var(--color-ivory)]" />
+              <div className="h-12 animate-pulse rounded-2xl bg-[var(--color-ivory)]" />
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }
