@@ -1,9 +1,15 @@
 import dotenv from "dotenv";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const backendDir = path.resolve(__dirname, "../../");
+
 dotenv.config({
-  path: path.resolve(process.cwd(),"../", ".env.local"),
+  path: path.resolve(backendDir, ".env.local"),
   override: false,
-})
+});
 const ENV = Object.freeze({
   NODE_ENV: process.env.NODE_ENV || "development",
   PORT: Number(process.env.PORT || 5000),

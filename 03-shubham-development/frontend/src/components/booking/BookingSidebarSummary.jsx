@@ -22,7 +22,7 @@ export default function BookingSidebarSummary({
         {/* Venue Image */}
         <div className="rounded-2xl overflow-hidden h-32 bg-gradient-to-br from-[#C0A04C]/20 to-[#3a1224]/20">
           <img
-            src={hall.images?.[0] || '/assets/business-images/placeholder.jpg'}
+            src={hall.images?.[0] || '/assets/business-images/placeholder2.jpg'}
             alt={hall.name}
             className="w-full h-full object-cover"
           />
@@ -101,7 +101,7 @@ export default function BookingSidebarSummary({
       {/* Venue Image */}
       <div className="rounded-2xl overflow-hidden h-40 bg-gradient-to-br from-[#C0A04C]/20 to-[#3a1224]/20 group relative">
         <img
-          src={hall.images?.[0] || '/assets/business-images/placeholder.jpg'}
+          src={hall.images?.[0] || '/assets/business-images/placeholder2.jpg'}
           alt={hall.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />

@@ -43,7 +43,7 @@ export default function Venue() {
   // Fetch venue detail
   const { data: venueDetail = {}, isLoading, error } = useQueryHallDetailPublic(venueSlug);
   const venueData = venueDetail?.hall || null;
-  const images = useMemo(() => (venueData?.images?.length ? venueData.images : ['/assets/business-images/placeholder.jpg']), [venueData]);
+  const images = useMemo(() => (venueData?.images?.length ? venueData.images : ['/assets/business-images/placeholder2.jpg']), [venueData]);
 
   // Fetch menus
   const { data: menusData = [], isLoading: menusLoading } = useQueryMenusPublic();
