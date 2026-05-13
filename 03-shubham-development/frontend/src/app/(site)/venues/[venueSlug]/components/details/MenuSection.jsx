@@ -32,7 +32,7 @@ export const MenuSection = ({ menusLoading, menuPackages, currencyFormatter }) =
           ))
         ) : menuPackages.length ? (
           menuPackages.map((menu, idx) => {
-            const img = menu.heroImage || menu.image || menu.thumbnail || '/assets/business-images/placeholder.jpg';
+            const img = menu.heroImage || menu.image || menu.thumbnail || '/assets/business-images/placeholder2.jpg';
             const title = menu.name || menu.title || 'Wedding Feast';
             const priceVal = menu.pricePerPerson ?? menu.price ?? menu.pricePerHead ?? null;
             const isPopular = !!menu.isPopular || idx === 1;

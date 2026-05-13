@@ -85,6 +85,7 @@ export const ROUTES = {
     },
     HALLS: {
       ROOT: '/api/v1/halls',
+      BY_ID: (id) => `/api/v1/halls/${id}`,
       BY_SLUG: (slug) => `/api/v1/halls/${slug}`,
       AVAILABILITY: '/api/v1/halls/availability',
       BY_ID_AVAILABILITY: (id) => `/api/v1/halls/${id}/availability`,

@@ -40,6 +40,7 @@ export async function getHallById(hallId) {
 /**Booking availability check */
 // Keep in sync with Booking.status enum
 const BLOCKING_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"];
+const BOOKING_SLOTS = ["morning", "afternoon", "evening", "wholeday"];
 
 function getConflictSlots(slot) {
   if (slot === "wholeday") return ["morning", "afternoon", "evening", "wholeday"];
@@ -54,6 +55,15 @@ function toLocalDateString(date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function utcDayRange(yyyyMmDd) {
+  const start = new Date(`${yyyyMmDd}T00:00:00.000Z`);
+  if (Number.isNaN(start.getTime())) return null;
+
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 1);
+  return { start, end };
 }
 
 function isSlotTimeBlocked(dateValue, slot) {
@@ -89,36 +99,51 @@ export async function checkHallAvailability({ hallId, date, slot, guests }) {
   if (!slot) throw httpError(400, "slot is required");
   if (!Number.isFinite(Number(guests)) || Number(guests) < 1) throw httpError(400, "guests must be >= 1");
 
-  const timeBlock = isSlotTimeBlocked(date, slot);
-  if (timeBlock.blocked) {
-    return { available: false, reason: timeBlock.reason };
-  }
+  const conflictSlots = getConflictSlots(slot);
+
+  const requestedTimeBlock = isSlotTimeBlocked(date, slot);
+
+  const range = utcDayRange(date);
+  if (!range) throw httpError(400, "Invalid date format, use yyyy-mm-dd");
 
   const hall = await Hall.findById(hallId).select("capacity isActive isDeleted").lean();
   if (!hall || hall.isDeleted) throw httpError(404, "Hall not found");
 
-  if (!hall.isActive) return { available: false, reason: "HALL_INACTIVE" };
+  if (!hall.isActive) return { available: false, reason: "HALL_INACTIVE", availableSlots: [] };
 
-  if (Number(guests) > hall.capacity) return { available: false, reason: "EXCEEDS_CAPACITY" };
+  if (Number(guests) > hall.capacity) return { available: false, reason: "EXCEEDS_CAPACITY", availableSlots: [] };
 
-  const conflictSlots = getConflictSlots(slot);
-
-  const blocking = await Booking.findOne({
+  const blockingBookings = await Booking.find({
     hallId,
-    date,
-    slot: { $in: conflictSlots },
+    date: { $gte: range.start, $lt: range.end },
     status: { $in: BLOCKING_STATUSES },
   })
     .select("status slot")
     .lean();
+
+  const availableSlots = BOOKING_SLOTS.filter((candidateSlot) => {
+    const candidateTimeBlock = isSlotTimeBlocked(date, candidateSlot);
+    if (candidateTimeBlock.blocked) return false;
+
+    const candidateConflicts = getConflictSlots(candidateSlot);
+    return !blockingBookings.some((booking) => candidateConflicts.includes(booking.slot));
+  });
+
+  const blocking = blockingBookings.find((booking) => conflictSlots.includes(booking.slot));
+
+  if (requestedTimeBlock.blocked) {
+    return { available: false, reason: requestedTimeBlock.reason, availableSlots };
+  }
+
   if (blocking) {
     return {
       available: false,
       reason: "BOOKED",
       blockingStatus: blocking.status,
       blockingSlot: blocking.slot,
+      availableSlots,
     };
   }
 
-  return { available: true };
+  return { available: true, availableSlots };
 }

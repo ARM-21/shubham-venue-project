@@ -2,15 +2,14 @@ import Hero from 'components/hero/Hero.jsx';
 import FeaturedVenues from 'components/venues/FeaturedVenues.jsx';
 import Menus from 'components/menu/landing-page/ExploreMenus.jsx';
 import UpcomingEvents from 'components/events/UpcomingEvents.jsx';
-import TrustBar from 'components/common/TrustBar.jsx';
 import BookingProcess from 'components/home/BookingProcess.jsx';
 import { SiteButton, SiteSectionHeader } from 'components/site/SitePrimitives.jsx';
 import { ROUTES } from 'config/routes';
 
 const images = [
-  { image: '/assets/business-images/placeholder1.webp', title: 'Welcome', branding: 'Shubham Venue', mini: 'Make it special' },
-  { image: '/assets/business-images/placeholder1.webp', title: 'Spacious Hall', branding: 'Grand Hall', mini: 'Perfect for weddings' },
-  { image: '/assets/business-images/placeholder1.webp', title: 'Celebrate in style', branding: 'Royal Court', mini: 'Memorable moments' },
+  { image: '/assets/business-images/image-1.jpeg', title: 'Welcome', branding: 'Shubham Venue', mini: 'Make it special' },
+  { image: '/assets/business-images/image-2.jpeg', title: 'Spacious Hall', branding: 'Grand Hall', mini: 'Perfect for weddings' },
+  { image: '/assets/business-images/image-3.webp', title: 'Celebrate in style', branding: 'Royal Court', mini: 'Memorable moments' },
 ];
 
 export default function Home() {
@@ -20,29 +19,27 @@ export default function Home() {
         <Hero images={images} interval={4000} />
       </section>
 
-      <BookingProcess />
-
-      <TrustBar />
-
-      <section id="venues" className="relative bg-[var(--color-ivory)] pb-12 pt-12 sm:pb-16 lg:pb-20 lg:pt-16">
+      <section id="venues" className="relative bg-[var(--color-ivory)] py-14 sm:py-16 lg:py-20">
         <div className="site-container">
           <SiteSectionHeader
             eyebrow="Venue Selection"
             title="Featured Venues"
-            description="Discover verified halls and polished celebration spaces with the capacity, pricing, and details guests need before they book."
-            action={<SiteButton href={ROUTES.SITE.VENUES()} variant="secondary">View all venues</SiteButton>}
+            description="Compare verified halls with clear capacity, location, and starting price before opening the full venue details."
+            action={<SiteButton href={ROUTES.SITE.VENUES()} variant="secondary">Browse venues</SiteButton>}
           />
           <FeaturedVenues />
         </div>
       </section>
 
-      <section id="events" className="bg-white py-12 sm:py-16 lg:py-20">
+      <BookingProcess />
+
+      <section id="events" className="bg-[#fbf7f0] py-14 sm:py-16 lg:py-20">
         <div className="site-container">
           <UpcomingEvents />
         </div>
       </section>
 
-      <section id="menus" className="bg-[var(--color-ivory)] py-12 sm:py-16 lg:py-20">
+      <section id="menus" className="border-y border-[var(--color-sand)] bg-white py-14 sm:py-16 lg:py-20">
         <div className="site-container">
           <SiteSectionHeader
             eyebrow="Menu Packages"
@@ -54,8 +51,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[var(--color-ivory)] px-4 pb-16 sm:pb-20">
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 rounded-3xl border border-[var(--color-sand)] bg-[var(--color-wine)] p-7 text-white shadow-[var(--shadow-card)] sm:p-10 lg:flex-row lg:items-center">
+      <section className="bg-[var(--color-ivory)] px-4 py-14 sm:py-16 lg:py-20">
+        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 rounded-3xl border border-[var(--color-champagne)]/20 bg-[linear-gradient(135deg,#3a1224_0%,#210b15_100%)] p-7 text-white shadow-[0_28px_80px_-54px_rgba(58,18,36,0.8)] sm:p-10 lg:flex-row lg:items-center">
           <div className="max-w-2xl">
             <p className="site-eyebrow mb-3">Ready to plan?</p>
             <h2 className="text-3xl font-black leading-tight tracking-normal sm:text-4xl">Find a date, choose a hall, and start your booking with confidence.</h2>

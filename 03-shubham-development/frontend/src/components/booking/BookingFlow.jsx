@@ -321,7 +321,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
               {/* Hall Image */}
               <div className="rounded-lg sm:rounded-xl overflow-hidden h-24 sm:h-32 bg-gradient-to-br from-slate-100 to-slate-200">
                 <img
-                  src={hall.images?.[0] || '/assets/business-images/placeholder.jpg'}
+                  src={hall.images?.[0] || '/assets/business-images/placeholder2.jpg'}
                   alt={hall.name}
                   className="w-full h-full object-cover"
                 />

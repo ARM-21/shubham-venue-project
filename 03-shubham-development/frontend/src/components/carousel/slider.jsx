@@ -48,7 +48,7 @@ export default function Carousel({ images = [], interval = 5000 }) {
         {images.map((image, index) => (
           <div
             key={index}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out
+            className={`absolute inset-0  blur-[4px] transition-opacity duration-1000 ease-in-out
               ${index === current ? "z-20 opacity-100" : "z-10 opacity-0"}
             `}
             aria-hidden={index !== current}
@@ -63,7 +63,7 @@ export default function Carousel({ images = [], interval = 5000 }) {
                 className="object-cover"
                 draggable="false"
                 onError={(e) => {
-                  e.currentTarget.src = '/assets/business-images/placeholder1.jpg';
+                  e.currentTarget.src = '/assets/business-images/placeholder2.jpg';
                 }}
               />
             </div>

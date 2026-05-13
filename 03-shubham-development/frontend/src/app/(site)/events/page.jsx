@@ -7,7 +7,7 @@ import { ROUTES } from "config/routes";
 import { useQueryEventsPublic } from '@queries/customer/events-public';
 
 const PAGE_SIZE = 9;
-const PLACEHOLDER_IMAGE = "/assets/business-images/placeholder.jpg";
+const PLACEHOLDER_IMAGE = "/assets/business-images/placeholder2.jpg";
 
 function formatDateTime(value) {
   try {

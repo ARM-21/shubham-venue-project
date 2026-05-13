@@ -33,7 +33,7 @@ export const SimilarVenues = ({ similarVenues }) => {
             >
               <div className="relative h-80 overflow-hidden mb-6 border border-[#3a1224]/5">
                 <img 
-                  src={venue.images?.[0] || '/assets/business-images/placeholder.jpg'} 
+                  src={venue.images?.[0] || '/assets/business-images/placeholder2.jpg'} 
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                   alt={venue.name} 
                 />

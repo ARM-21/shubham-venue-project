@@ -1,402 +1,587 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { ROUTES } from 'config/routes';
-import toast from 'react-hot-toast';
-import { 
-  Users, 
-  Ruler, 
-  ArrowRight, 
-  Search, 
-  MapPin, 
-  Settings2, 
+import React, { useCallback, useMemo, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import toast from "react-hot-toast";
+import {
+  ArrowRight,
+  BadgeCheck,
   Calendar,
   Clock,
-  Circle
-} from 'lucide-react';
-import { useQueryHallsPublic } from '@queries/customer/halls-public';
-import { useQueryAvailability } from '@queries/customer/availability';
+  MapPin,
+  Search,
+  Settings2,
+  SlidersHorizontal,
+  Users,
+  Wallet,
+} from "lucide-react";
+import { useQueryAvailability } from "@queries/customer/availability";
+import { useQueryHallsPublic } from "@queries/customer/halls-public";
+import { ROUTES } from "config/routes";
+import {
+  SiteButton,
+  SiteCard,
+  SiteEmptyState,
+  SiteSectionHeader,
+  cn,
+  resolveImage,
+} from "components/site/SitePrimitives.jsx";
+
+const FALLBACK_IMAGE = "/assets/business-images/placeholder2.jpg";
+const DEFAULT_FILTERS = {
+  date: "",
+  timeSlot: "",
+  capacity: "Any Capacity",
+  price: 500000,
+};
+
+const SORT_OPTIONS = [
+  { id: "price-desc", label: "Premium first" },
+  { id: "price-asc", label: "Best value" },
+  { id: "capacity-desc", label: "Largest spaces" },
+];
+
+const CAPACITY_OPTIONS = [
+  "Any Capacity",
+  "50 - 100 Guests",
+  "100 - 300 Guests",
+  "300 - 500 Guests",
+  "500+ Guests",
+];
 
 export default function VenuesPage() {
-  const [sortBy, setSortBy] = useState('price-desc');
-  const [filters, setFilters] = useState({
-    date: '',
-    timeSlot: '',
-    capacity: 'Any Capacity',
-    price: 500000,
-  });
-  
-  const router = useRouter();
-  const today = new Date().toISOString().split('T')[0];
+  const [sortBy, setSortBy] = useState("price-desc");
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const today = new Date().toISOString().split("T")[0];
 
-  // Query hooks for fetching data
   const { data: hallsData, isLoading: hallsLoading, error: hallsError } = useQueryHallsPublic();
   const hallsList = hallsData?.halls || hallsData || [];
 
-  // Availability query - only fetch when date and timeSlot are set
-  const availabilityParams = filters.date && filters.timeSlot 
-    ? { 
-        date: filters.date, 
-        slot: mapClientSlotToServer(filters.timeSlot), 
-        guests: parseCapacityToGuests(filters.capacity) || 1 
-      }
-    : null;
+  const availabilityParams =
+    filters.date && filters.timeSlot
+      ? {
+          date: filters.date,
+          slot: mapClientSlotToServer(filters.timeSlot),
+          guests: parseCapacityToGuests(filters.capacity) || 1,
+        }
+      : null;
 
   const { data: availabilityData, isLoading: availabilityLoading } = useQueryAvailability(
     availabilityParams,
     { enabled: !!availabilityParams }
   );
 
-  // Animation styles
-  const animationStyle = `
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    .animate-fadeIn {
-      animation: fadeIn 0.6s ease-out forwards;
-    }
-  `;
+  const processedHalls = useMemo(() => {
+    let list = [...hallsList];
 
-  function parseCapacityToGuests(capStr) {
-    if (!capStr || capStr === 'Any Capacity') return null;
-    const m = capStr.match(/(\d+)/);
-    return m ? Number(m[0]) : null;
-  }
-
-  function mapClientSlotToServer(slot) {
-    if (!slot) return null;
-    if (slot === 'full') return 'wholeday';
-    if (slot === 'morning') return 'morning';
-    return 'evening';
-  }
-
-  // Apply filters and sorting to halls
-  const applyFilters = (halls) => {
-    let list = [...halls];
-
-    // If availability data is available, filter by it
     if (availabilityData?.halls) {
-      const availableIds = new Set(availabilityData.halls.map(h => h._id));
-      list = list.filter(h => availableIds.has(h._id));
+      const availableIds = new Set(
+        availabilityData.halls
+          .filter((hall) => hall.available !== false)
+          .map((hall) => hall._id)
+      );
+      list = list.filter((hall) => availableIds.has(hall._id));
     }
 
-    // Capacity filter
-    if (filters.capacity !== 'Any Capacity') {
+    if (filters.capacity !== "Any Capacity") {
       const min = parseCapacityToGuests(filters.capacity) || 0;
-      if (filters.capacity.includes('-')) {
+
+      if (filters.capacity.includes("-")) {
         const parts = filters.capacity.match(/(\d+)\s*-\s*(\d+)/);
         if (parts) {
-          const lo = Number(parts[1]), hi = Number(parts[2]);
-          list = list.filter(h => h.capacity >= lo && h.capacity <= hi);
+          const low = Number(parts[1]);
+          const high = Number(parts[2]);
+          list = list.filter((hall) => Number(hall.capacity || 0) >= low && Number(hall.capacity || 0) <= high);
         }
       } else {
-        list = list.filter(h => h.capacity >= min);
+        list = list.filter((hall) => Number(hall.capacity || 0) >= min);
       }
     }
 
-    // Price filter
-    list = list.filter(h => (h.pricePerHour ?? 0) <= filters.price);
+    list = list.filter((hall) => getVenuePrice(hall) <= filters.price);
 
-    // Sorting
     list.sort((a, b) => {
-      if (sortBy === 'price-asc') return (a.pricePerHour || 0) - (b.pricePerHour || 0);
-      if (sortBy === 'price-desc') return (b.pricePerHour || 0) - (a.pricePerHour || 0);
-      if (sortBy === 'capacity-desc') return (b.capacity || 0) - (a.capacity || 0);
+      if (sortBy === "price-asc") return getVenuePrice(a) - getVenuePrice(b);
+      if (sortBy === "price-desc") return getVenuePrice(b) - getVenuePrice(a);
+      if (sortBy === "capacity-desc") return Number(b.capacity || 0) - Number(a.capacity || 0);
       return 0;
     });
 
     return list;
-  };
-
-  // Memoized filtered halls
-  const processedHalls = useMemo(() => {
-    return applyFilters(hallsList);
   }, [hallsList, filters, sortBy, availabilityData]);
 
-  // Memoized event handlers to prevent unnecessary re-renders
   const handleDateChange = useCallback((e) => {
-    setFilters(f => ({...f, date: e.target.value}));
+    setFilters((current) => ({ ...current, date: e.target.value }));
   }, []);
 
   const handleTimeSlotChange = useCallback((e) => {
-    setFilters(f => ({...f, timeSlot: e.target.value}));
+    setFilters((current) => ({ ...current, timeSlot: e.target.value }));
   }, []);
 
   const handleCapacityChange = useCallback((e) => {
-    setFilters(f => ({...f, capacity: e.target.value}));
+    setFilters((current) => ({ ...current, capacity: e.target.value }));
   }, []);
 
   const handlePriceChange = useCallback((e) => {
-    const val = Number(e.target.value);
-    setFilters(f => ({...f, price: val}));
-  }, []);
-
-  const handleSortChange = useCallback((optionId) => {
-    setSortBy(optionId);
+    setFilters((current) => ({ ...current, price: Number(e.target.value) }));
   }, []);
 
   const handleResetFilters = useCallback(() => {
-    setFilters({date:'', timeSlot:'', capacity:'Any Capacity', price:500000});
-    setSortBy('price-desc');
-    toast.success('Filters reset');
+    setFilters(DEFAULT_FILTERS);
+    setSortBy("price-desc");
+    toast.success("Filters reset");
   }, []);
 
-  const handleVenueClick = useCallback((hallSlug) => {
-    router.push(ROUTES.SITE.VENUES(hallSlug));
-  }, [router]);
+  const handleSearchClick = useCallback(() => {
+    if (!filters.date || !filters.timeSlot) {
+      toast.error("Please select date and time slot");
+      return;
+    }
+
+    toast.success("Showing available venues");
+  }, [filters.date, filters.timeSlot]);
 
   const isLoading = hallsLoading || availabilityLoading;
+  const hasActiveAvailabilitySearch = Boolean(filters.date && filters.timeSlot);
 
-  if (isLoading && hallsList.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#3a1224]">
-        <div className="w-12 h-12 border-4 border-[#C0A04C] border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-[#C0A04C] font-black text-[10px] uppercase tracking-[0.4em]">Searching Collection</p>
-      </div>
-    );
+  if (hallsLoading && hallsList.length === 0) {
+    return <VenuesLoadingState />;
   }
 
   return (
-    <div className="min-h-screen bg-[#fdfaf6] selection:bg-[#C0A04C]/30 overflow-hidden">
-      {/* Dark Gradient Header Background */}
-      <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/80 to-[#342d2d] pointer-events-none z-0" />
+    <main className="min-h-screen overflow-hidden bg-[var(--color-ivory)]">
+      <VenuesHeader
+        filters={filters}
+        today={today}
+        onDateChange={handleDateChange}
+        onTimeSlotChange={handleTimeSlotChange}
+        onCapacityChange={handleCapacityChange}
+        onSearchClick={handleSearchClick}
+      />
 
-      {/* Header Section */}
-      <section className="pt-40 pb-20 px-6 relative z-10">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-[1px] bg-[#C0A04C]" />
-            <span className="text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Exclusive Venues</span>
-          </div>
-          <div className="mb-12">
-            <h1 className="text-6xl lg:text-8xl font-display font-bold text-white mb-6 leading-[0.9]">
-              Signature <span className="text-[#C0A04C] italic font-serif">Spaces</span>
-            </h1>
-            <p className="text-white/70 text-lg font-light leading-relaxed max-w-2xl">
-              Discover exquisite venues perfect for your most memorable occasions. Filter by capacity, availability, and budget to find your ideal celebration space.
-            </p>
-          </div>
-
-          {/* Search/Filter Bar - Premium Style */}
-          <div className="bg-white/10 backdrop-blur-xl p-6 rounded-3xl border border-white/20 shadow-2xl">
-            <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
-                    <div className="flex-1 flex items-center px-4 sm:px-6 py-3 sm:py-4 bg-[#3a1224]/40 sm:bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
-                <Calendar className="text-[#C0A04C] flex-shrink-0" size={20} />
-                <input 
-                  type="date" 
-                  min={today}
-                  value={filters.date}
-                  onChange={handleDateChange}
-                  className="w-full bg-transparent text-white text-[10px] sm:text-[11px] font-black uppercase outline-none ml-3 sm:ml-4 placeholder-white/50 cursor-pointer"
-                  placeholder="Select Date"
-                />
-              </div>
-              <div className="flex-1 flex items-center px-4 sm:px-6 py-3 sm:py-4 bg-[#3a1224]/40 sm:bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
-                <Clock className="text-[#C0A04C] flex-shrink-0" size={20} />
-                <select 
-                  value={filters.timeSlot}
-                  onChange={handleTimeSlotChange}
-                  className="w-full bg-transparent text-white text-[10px] sm:text-[11px] font-black uppercase outline-none appearance-none ml-3 sm:ml-4 cursor-pointer"
-                >
-                  <option value="" className="bg-[#3a1224] text-white">Any Time Slot</option>
-                  <option value="morning" className="bg-[#3a1224] text-white">Morning</option>
-                  <option value="afternoon" className="bg-[#3a1224] text-white">Afternoon</option>
-                  <option value="evening" className="bg-[#3a1224] text-white">Evening</option>
-                  <option value="full" className="bg-[#3a1224] text-white">Full Day</option>
-                </select>
-              </div>
-              <div className="flex-1 flex items-center px-4 sm:px-6 py-3 sm:py-4 bg-[#3a1224]/40 sm:bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
-                <Users className="text-[#C0A04C] flex-shrink-0" size={20} />
-                <select 
-                  value={filters.capacity}
-                  onChange={handleCapacityChange}
-                  className="w-full bg-transparent text-white text-[10px] sm:text-[11px] font-black uppercase outline-none appearance-none ml-3 sm:ml-4 cursor-pointer"
-                >
-                  <option className="bg-[#3a1224] text-white">Any Capacity</option>
-                  <option className="bg-[#3a1224] text-white">50 - 100 Guests</option>
-                  <option className="bg-[#3a1224] text-white">100 - 300 Guests</option>
-                  <option className="bg-[#3a1224] text-white">300 - 500 Guests</option>
-                  <option className="bg-[#3a1224] text-white">500+ Guests</option>
-                </select>
-              </div>
-              <button 
-                onClick={() => {
-                  if (!filters.date || !filters.timeSlot) {
-                    toast.error('Please select date and time slot');
-                    return;
-                  }
-                }}
-                className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-[#C0A04C] to-[#C0A04C]/95 text-[#3a1224] rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] hover:shadow-lg hover:shadow-[#C0A04C]/30 transition-all flex items-center justify-center gap-2 sm:gap-3 flex-shrink-0 cursor-pointer"
+      <section id="venue-results" className="bg-[var(--color-ivory)] py-14 sm:py-16 lg:py-20">
+        <div className="site-container">
+          <SiteSectionHeader
+            eyebrow="Browse Venues"
+            title="Available Celebration Spaces"
+            description={
+              hasActiveAvailabilitySearch
+                ? "These venues match the date and time slot you selected."
+                : "Start with the full venue collection, then refine by budget, capacity, or availability."
+            }
+            action={
+              <SiteButton
+                href={ROUTES.SITE.SEARCH_AVAILABILITY()}
+                variant="secondary"
+                icon={Calendar}
               >
-                <Search size={16} /> <span className="hidden sm:inline">Search</span>
-              </button>
+                Search by date
+              </SiteButton>
+            }
+          />
+
+          {hallsError ? (
+            <div className="mb-8 rounded-2xl border border-red-100 bg-red-50 p-5 text-sm font-semibold text-red-700">
+              We could not load venues right now. Please try again in a moment.
             </div>
+          ) : null}
+
+          <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
+            <VenueFilters
+              filters={filters}
+              sortBy={sortBy}
+              isLoading={isLoading}
+              resultsCount={processedHalls.length}
+              onPriceChange={handlePriceChange}
+              onSortChange={setSortBy}
+              onReset={handleResetFilters}
+            />
+
+            <section aria-label="Venue results">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-black text-[var(--color-wine)]">
+                    {processedHalls.length} {processedHalls.length === 1 ? "venue" : "venues"} found
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--color-stone)]">
+                    {isLoading ? "Refreshing availability..." : "Sorted by your selected preference."}
+                  </p>
+                </div>
+              </div>
+
+              {processedHalls.length > 0 ? (
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {processedHalls.map((hall) => (
+                    <VenueCard
+                      key={hall._id || hall.slug || hall.name}
+                      hall={hall}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <SiteEmptyState
+                  icon={Search}
+                  title="No matching venues"
+                  description="Adjust your date, capacity, or budget filters and the matching venues will appear here."
+                  action={
+                    <SiteButton onClick={handleResetFilters} variant="secondary">
+                      Reset filters
+                    </SiteButton>
+                  }
+                />
+              )}
+            </section>
           </div>
         </div>
       </section>
+    </main>
+  );
+}
 
-      <main className="max-w-7xl mx-auto px-6 py-20 flex flex-col lg:flex-row gap-16 relative z-10">
-        {/* Sidebar Filters */}
-        <aside className="lg:w-1/4 space-y-12">
-          <div className="bg-white/80 backdrop-blur-sm p-8 rounded-3xl border border-white/20 shadow-lg">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-[12px] font-black text-[#3a1224] uppercase tracking-[0.3em]">Refine Collection</h3>
-              <button 
-                onClick={handleResetFilters}
-                className="text-[9px] font-bold text-[#C0A04C] uppercase tracking-widest border-b border-[#C0A04C] hover:text-[#3a1224] transition-colors cursor-pointer"
-              >
-                Reset All
-              </button>
-            </div>
+function VenuesHeader({
+  filters,
+  today,
+  onDateChange,
+  onTimeSlotChange,
+  onCapacityChange,
+  onSearchClick,
+}) {
+  return (
+    <section className="bg-[linear-gradient(180deg,#3a1224_0%,#2b0e1a_100%)] pt-40 pb-12 text-white sm:pb-16">
+      <div className="site-container">
+        <div className="max-w-3xl">
+          <p className="site-eyebrow mb-4">Venue Selection</p>
+          <h1 className="text-4xl font-black leading-[1.04] tracking-normal text-white sm:text-5xl lg:text-6xl">
+            Compare venues and choose the right hall.
+          </h1>
+          <p className="mt-5 max-w-2xl text-base font-medium leading-7 text-white/70 md:text-lg">
+            Browse verified celebration spaces with clear capacity, location,
+            and starting price. Add a date and slot when you are ready to narrow
+            the catalogue.
+          </p>
 
-            {/* Price Range */}
-            <div className="space-y-6 pb-8 border-b border-[#3a1224]/10">
-              <div className="flex justify-between items-end">
-                <span className="text-[10px] font-black text-[#3a1224]/60 uppercase tracking-widest">Budget Range</span>
-                <span className="text-sm font-black text-[#C0A04C]">NPR {filters.price.toLocaleString()}</span>
-              </div>
-              <input 
-                type="range" 
-                min="10000" 
-                max="500000" 
-                step="5000"
-                value={filters.price}
-                onChange={handlePriceChange}
-                className="w-full h-2 bg-gradient-to-r from-gray-200 to-[#C0A04C]/30 rounded-lg appearance-none cursor-pointer accent-[#C0A04C] hover:cursor-pointer"
-              />
-            </div>
-
-            {/* Sort Options */}
-            <div className="space-y-4 pt-8">
-              <span className="text-[10px] font-black text-[#3a1224]/60 uppercase tracking-widest">Sort By</span>
-              <div className="flex flex-col gap-3">
-                {[
-                  { id: 'price-desc', label: 'Highest Luxury' },
-                  { id: 'price-asc', label: 'Best Value' },
-                  { id: 'capacity-desc', label: 'Largest Spaces' }
-                ].map((option) => (
-                  <button
-                    key={option.id}
-                    onClick={() => handleSortChange(option.id)}
-                    className={`flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
-                      sortBy === option.id 
-                        ? 'bg-gradient-to-r from-[#3a1224] to-[#3a1224]/80 text-white shadow-lg shadow-[#3a1224]/20' 
-                        : 'bg-white border border-gray-200 text-[#3a1224] hover:border-[#C0A04C]/50'
-                    }`}
-                  >
-                    {option.label}
-                    {sortBy === option.id && <div className="w-2 h-2 rounded-full bg-[#C0A04C]" />}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+            <SiteButton
+              href={ROUTES.SITE.SEARCH_AVAILABILITY()}
+              variant="gold"
+              size="lg"
+              icon={Calendar}
+            >
+              Check availability
+            </SiteButton>
+            <SiteButton
+              href="#venue-results"
+              variant="secondary"
+              size="lg"
+              icon={ArrowRight}
+              className="border-white/30 bg-white/10 text-white hover:bg-white hover:text-[var(--color-wine)]"
+            >
+              Browse venues
+            </SiteButton>
           </div>
-        </aside>
+        </div>
 
-        {/* Content Grid */}
-        <section className="lg:w-3/4">
-          <div className="flex items-center justify-between mb-12">
-            <h2 className="text-[11px] font-black text-[#3a1224] uppercase tracking-[0.4em]">
-              {processedHalls.length} Elite <span className="text-[#C0A04C]">Venues</span>
-            </h2>
-          </div>
+        <VenueSearchPanel
+          filters={filters}
+          today={today}
+          onDateChange={onDateChange}
+          onTimeSlotChange={onTimeSlotChange}
+          onCapacityChange={onCapacityChange}
+          onSearchClick={onSearchClick}
+        />
+      </div>
+    </section>
+  );
+}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {processedHalls.map((hall, idx) => (
-              <div 
-                key={hall._id}
-                className="group relative opacity-0 animate-fadeIn"
-                style={{ animationDelay: `${idx * 100}ms` }}
-              >
-                <div className="absolute -inset-1 bg-gradient-to-b from-[#C0A04C]/20 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition duration-700"></div>
-                
-                <div className="relative bg-white/95 rounded-3xl overflow-hidden border border-[#3a1224]/5 flex flex-col shadow-lg backdrop-blur-sm">
-                  <div className="relative aspect-[4/3] overflow-hidden bg-gray-50">
-                    <Image 
-                      src={hall.images?.[0] || '/assets/business-images/placeholder.jpg'} 
-                      alt={hall.name}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-1000"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/60 via-transparent to-transparent" />
-                    
-                    <div className="absolute top-6 left-6">
-                      <div className="bg-white/90 backdrop-blur-xl px-3 py-1.5 rounded-full border border-white/50 flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <span className="text-[8px] font-black text-[#3a1224] uppercase tracking-widest">Available</span>
-                      </div>
-                    </div>
-                    
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <div className="flex items-center gap-2 mb-2">
-                        <MapPin size={10} className="text-[#C0A04C]" />
-                        <span className="text-[9px] font-bold text-white uppercase tracking-[0.2em]">{hall.location?.city || 'Premium Location'}</span>
-                      </div>
-                      <h3 className="text-2xl font-black text-white uppercase tracking-tight leading-tight">{hall.name}</h3>
-                    </div>
-                  </div>
+function VenueSearchPanel({
+  filters,
+  today,
+  onDateChange,
+  onTimeSlotChange,
+  onCapacityChange,
+  onSearchClick,
+}) {
+  return (
+    <div className="mt-8 rounded-2xl border border-white/15 bg-white/10 p-3 shadow-2xl backdrop-blur-2xl sm:p-4">
+      <div className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_auto]">
+        <FilterField icon={Calendar}>
+          <input
+            type="date"
+            min={today}
+            value={filters.date}
+            onChange={onDateChange}
+            className="w-full bg-transparent text-sm font-black text-white outline-none [color-scheme:dark] placeholder:text-white/45"
+            aria-label="Select venue date"
+          />
+        </FilterField>
 
-                  <div className="p-8 flex-1 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center gap-6 mb-8 pb-8 border-b border-[#3a1224]/10">
-                        <div className="space-y-2">
-                          <span className="text-[9px] font-black text-[#3a1224]/50 uppercase tracking-widest">Guest Count</span>
-                          <div className="flex items-center gap-2 text-[#3a1224]">
-                            <Users size={14} className="text-[#C0A04C]" />
-                            <span className="text-sm font-black">{hall.capacity}</span>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <span className="text-[9px] font-black text-[#3a1224]/50 uppercase tracking-widest">Dimensions</span>
-                          <div className="flex items-center gap-2 text-[#3a1224]">
-                            <Ruler size={14} className="text-[#C0A04C]" />
-                            <span className="text-sm font-black">{hall.area || '2850'} FT²</span>
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-[#3a1224]/70 text-[10px] font-medium leading-relaxed line-clamp-2 mb-10">
-                        {hall.description || 'A masterpiece destination tailored for distinguished assemblies and lifelong celebrations.'}
-                      </p>
-                    </div>
+        <FilterField icon={Clock}>
+          <select
+            value={filters.timeSlot}
+            onChange={onTimeSlotChange}
+            className="w-full appearance-none bg-transparent text-sm font-black text-white outline-none"
+            aria-label="Select time slot"
+          >
+            <option value="" className="bg-[#3a1224] text-white">Any time slot</option>
+            <option value="morning" className="bg-[#3a1224] text-white">Morning</option>
+            <option value="afternoon" className="bg-[#3a1224] text-white">Afternoon</option>
+            <option value="evening" className="bg-[#3a1224] text-white">Evening</option>
+            <option value="full" className="bg-[#3a1224] text-white">Full day</option>
+          </select>
+        </FilterField>
 
-                    <div className="flex items-center justify-between pt-8 border-t border-[#3a1224]/10">
-                      <div className="space-y-1">
-                        <span className="text-[9px] font-black text-[#3a1224]/50 uppercase tracking-widest">Starting From</span>
-                        <p className="text-2xl font-display font-bold text-[#3a1224]">NPR {hall.pricePerHour?.toLocaleString()}</p>
-                      </div>
-                      <button 
-                        onClick={() => handleVenueClick(hall.slug)}
-                        className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#3a1224] to-[#3a1224]/80 text-white flex items-center justify-center hover:shadow-lg hover:shadow-[#C0A04C]/30 hover:scale-110 transition-all duration-500 cursor-pointer"
-                      >
-                        <ArrowRight size={20} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+        <FilterField icon={Users}>
+          <select
+            value={filters.capacity}
+            onChange={onCapacityChange}
+            className="w-full appearance-none bg-transparent text-sm font-black text-white outline-none"
+            aria-label="Select capacity"
+          >
+            {CAPACITY_OPTIONS.map((option) => (
+              <option key={option} className="bg-[#3a1224] text-white">{option}</option>
             ))}
-          </div>
+          </select>
+        </FilterField>
 
-          {processedHalls.length === 0 && (
-            <div className="text-center py-48 border-2 border-dashed border-[#3a1224]/20 rounded-[3rem] bg-white/50">
-              <Search size={48} className="text-[#3a1224]/20 mx-auto mb-6" />
-              <h3 className="text-2xl font-black text-[#3a1224] uppercase tracking-widest mb-2">No Matches Found</h3>
-              <p className="text-[10px] font-bold text-[#3a1224]/50 uppercase tracking-widest">Adjust your filters and try again</p>
-            </div>
-          )}
-        </section>
-      </main>
-
-      <style>{animationStyle}</style>
+        <button
+          type="button"
+          onClick={onSearchClick}
+          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-xl bg-[var(--color-champagne)] px-6 text-sm font-black text-[var(--color-wine)] shadow-[0_18px_40px_-24px_rgba(192,160,76,0.9)] transition-all hover:-translate-y-0.5 hover:bg-[var(--color-champagne-light)]"
+        >
+          Search
+          <Search className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
     </div>
   );
+}
+
+function VenueFilters({
+  filters,
+  sortBy,
+  isLoading,
+  resultsCount,
+  onPriceChange,
+  onSortChange,
+  onReset,
+}) {
+  return (
+    <aside className="h-fit rounded-2xl border border-[var(--color-sand)] bg-white p-5 shadow-[var(--shadow-card)] lg:sticky lg:top-28">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-ivory)] text-[var(--color-wine)]">
+            <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <div>
+            <h2 className="text-sm font-black text-[var(--color-wine)]">Refine venues</h2>
+            <p className="text-xs text-[var(--color-stone)]">
+              {isLoading ? "Loading..." : `${resultsCount} matches`}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onReset}
+          className="text-xs font-black uppercase tracking-[0.14em] text-[var(--color-champagne)] transition-colors hover:text-[var(--color-wine)]"
+        >
+          Reset
+        </button>
+      </div>
+
+      <div className="mt-7 border-t border-[var(--color-sand)] pt-6">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <span className="text-xs font-black uppercase tracking-[0.14em] text-[var(--color-stone)]">
+            Budget
+          </span>
+          <span className="text-sm font-black text-[var(--color-wine)]">
+            NPR {filters.price.toLocaleString()}
+          </span>
+        </div>
+        <input
+          type="range"
+          min="10000"
+          max="500000"
+          step="5000"
+          value={filters.price}
+          onChange={onPriceChange}
+          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[var(--color-pearl)] accent-[var(--color-champagne)]"
+          aria-label="Maximum venue budget"
+        />
+      </div>
+
+      <div className="mt-7 border-t border-[var(--color-sand)] pt-6">
+        <div className="mb-4 flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-stone)]">
+          <Settings2 className="h-4 w-4 text-[var(--color-champagne)]" aria-hidden="true" />
+          Sort by
+        </div>
+        <div className="grid gap-2">
+          {SORT_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => onSortChange(option.id)}
+              className={cn(
+                "flex items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-black transition-all",
+                sortBy === option.id
+                  ? "border-[var(--color-wine)] bg-[var(--color-wine)] text-white"
+                  : "border-[var(--color-sand)] bg-[var(--color-ivory)] text-[var(--color-wine)] hover:border-[var(--color-champagne)]"
+              )}
+            >
+              {option.label}
+              {sortBy === option.id ? (
+                <span className="h-2 w-2 rounded-full bg-[var(--color-champagne)]" />
+              ) : null}
+            </button>
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function VenueCard({ hall }) {
+  const hallName = hall?.name || "Premium venue";
+  const hallImage = hall?.images?.[0] || hall?.image;
+  const hallSlug = hall?.slug;
+  const hallHref = hallSlug ? ROUTES.SITE.VENUES(hallSlug) : ROUTES.SITE.VENUES("");
+
+  return (
+    <SiteCard
+      as="article"
+      className="group overflow-hidden rounded-2xl border-[var(--color-sand)] bg-white transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-champagne)]"
+    >
+      <Link
+        href={hallHref}
+        className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-champagne)]"
+        aria-label={`View details for ${hallName}`}
+      >
+        <div className="relative aspect-[4/3] overflow-hidden bg-[var(--color-pearl)]">
+          <Image
+            src={resolveImage(hallImage, FALLBACK_IMAGE)}
+            alt={`${hallName} venue image`}
+            fill
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 40vw, 26vw"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/58 via-transparent to-transparent" />
+          <div className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/95 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-wine)] shadow-xl backdrop-blur-md">
+            <BadgeCheck className="h-3.5 w-3.5 text-[var(--color-champagne)]" aria-hidden="true" />
+            Verified
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 p-5">
+            <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-white/85">
+              <MapPin className="h-3.5 w-3.5 text-[var(--color-champagne)]" aria-hidden="true" />
+              {formatLocation(hall?.location)}
+            </p>
+            <h3 className="line-clamp-2 text-2xl font-black leading-tight text-white">
+              {hallName}
+            </h3>
+          </div>
+        </div>
+
+        <div className="p-5">
+          <p className="line-clamp-2 text-sm leading-6 text-[var(--color-stone)]">
+            {hall?.description ||
+              "A dependable celebration space for weddings, gatherings, and hosted events."}
+          </p>
+
+          <div className="mt-5 grid grid-cols-3 gap-3">
+            <VenueMetric icon={Wallet} label="Starting" value={formatPrice(getVenuePrice(hall))} />
+            <VenueMetric icon={Users} label="Capacity" value={formatCapacity(hall?.capacity)} />
+            <VenueMetric icon={MapPin} label="Area" value={formatShortLocation(hall?.location)} />
+          </div>
+
+          <div className="mt-5 flex items-center justify-between border-t border-[var(--color-sand)] pt-5">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-stone)]">
+                Details
+              </p>
+              <p className="mt-1 text-sm font-black text-[var(--color-wine)]">
+                View hall profile
+              </p>
+            </div>
+            <span
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-wine)] text-white transition-all duration-300 group-hover:bg-[var(--color-champagne)] group-hover:text-[var(--color-wine)]"
+              aria-hidden="true"
+            >
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </span>
+          </div>
+        </div>
+      </Link>
+    </SiteCard>
+  );
+}
+
+function VenueMetric({ icon: Icon, label, value }) {
+  return (
+    <div className="min-w-0 rounded-xl border border-[var(--color-sand)] bg-[var(--color-ivory)] p-3">
+      <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-[var(--color-stone)]">
+        <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--color-champagne)]" aria-hidden="true" />
+        <span className="truncate">{label}</span>
+      </div>
+      <p className="mt-1 truncate text-xs font-black text-[var(--color-wine)]" title={value}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function FilterField({ icon: Icon, children }) {
+  return (
+    <label className="flex min-h-14 items-center gap-3 rounded-xl border border-white/15 bg-white/[0.08] px-4 transition-colors focus-within:border-[var(--color-champagne)]">
+      <Icon className="h-4 w-4 shrink-0 text-[var(--color-champagne)]" aria-hidden="true" />
+      {children}
+    </label>
+  );
+}
+
+function VenuesLoadingState() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--color-wine)]">
+      <div className="h-12 w-12 animate-spin rounded-full border-4 border-[var(--color-champagne)] border-t-transparent" />
+      <p className="site-eyebrow mt-4">Loading Venues</p>
+    </div>
+  );
+}
+
+function parseCapacityToGuests(capStr) {
+  if (!capStr || capStr === "Any Capacity") return null;
+  const match = capStr.match(/(\d+)/);
+  return match ? Number(match[0]) : null;
+}
+
+function mapClientSlotToServer(slot) {
+  if (!slot) return null;
+  if (slot === "full") return "wholeday";
+  if (slot === "morning") return "morning";
+  return "evening";
+}
+
+function getVenuePrice(hall) {
+  return Number(hall?.pricePerHour) || Number(hall?.price) || Number(hall?.costPerHour) || 0;
+}
+
+function formatPrice(price) {
+  if (!price || Number.isNaN(Number(price))) return "Contact";
+  return `NPR ${Number(price).toLocaleString()}`;
+}
+
+function formatCapacity(capacity) {
+  if (!capacity || Number.isNaN(Number(capacity))) return "Ask";
+  return `${Number(capacity).toLocaleString()} Guests`;
+}
+
+function formatLocation(location) {
+  if (!location) return "Syangja";
+  if (typeof location === "string") return location.trim() || "Syangja";
+  return location.address || location.city || location.state || location.country || "Syangja";
+}
+
+function formatShortLocation(location) {
+  if (!location) return "Syangja";
+  if (typeof location === "string") return location.trim() || "Syangja";
+  return location.city || location.state || location.country || "Syangja";
 }

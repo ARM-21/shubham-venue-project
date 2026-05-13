@@ -15,7 +15,7 @@ import { TicketsSection } from "./components/TicketsSection";
 import { VenueInfo } from "./components/VenueInfo";
 import { RichTextDisplay } from "components/shared/RichTextDisplay";
 
-const PLACEHOLDER_IMAGE = "/assets/business-images/placeholder.jpg";
+const PLACEHOLDER_IMAGE = "/assets/business-images/placeholder2.jpg";
 
 function formatDateTime(value) {
   try {
