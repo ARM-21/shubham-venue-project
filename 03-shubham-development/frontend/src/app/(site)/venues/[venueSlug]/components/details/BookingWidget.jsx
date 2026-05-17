@@ -1,9 +1,10 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, ArrowRight, Phone, Download, Share2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, ShieldCheck } from 'lucide-react';
 import axiosInstance from 'lib/axios';
 import { ROUTES } from 'config/routes';
+import { BOOKING_LEAD_TIME_MESSAGE, SLOT_LABELS } from 'constants/slots';
 
 export const BookingWidget = ({ 
   venueData, 
@@ -12,7 +13,7 @@ export const BookingWidget = ({
   prevMonth, 
   nextMonth, 
   generateCalendarDays, 
-  today, 
+  minimumBookingDate,
   occupiedDates, 
   date, 
   shift, 
@@ -22,14 +23,14 @@ export const BookingWidget = ({
   handleSubmit, 
   submitBooking 
 }) => {
-  const [availableSlots, setAvailableSlots] = useState(['morning', 'wholeday']);
+  const [availableSlots, setAvailableSlots] = useState(['morning', 'afternoon', 'evening', 'wholeday']);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slotError, setSlotError] = useState(null);
 
   // Fetch available slots for selected date
   useEffect(() => {
     if (!date || !venueData?._id) {
-      setAvailableSlots(['morning', 'wholeday']);
+      setAvailableSlots(['morning', 'afternoon', 'evening', 'wholeday']);
       return;
     }
 
@@ -47,18 +48,18 @@ export const BookingWidget = ({
         );
         
         // Extract available slots from response - API returns availableSlots array
-        const slots = response.data?.availableSlots || response.data?.slots || ['morning', 'wholeday'];
-        setAvailableSlots(Array.isArray(slots) ? slots : ['morning', 'wholeday']);
+        const slots = response.data?.availableSlots || response.data?.slots || ['morning', 'afternoon', 'evening', 'wholeday'];
+        setAvailableSlots(Array.isArray(slots) ? slots : ['morning', 'afternoon', 'evening', 'wholeday']);
         setSlotError(null);
         
         // If current shift is not available, switch to first available
-        if (slots && !slots.includes(shift)) {
-          setValue('slot', slots[0] || 'morning');
+        if (Array.isArray(slots) && slots.length > 0 && !slots.includes(shift)) {
+          setValue('slot', slots[0]);
         }
       } catch (err) {
         console.error('Error fetching slots:', err?.response?.data || err?.message || err);
         setSlotError(err?.response?.data?.message || err?.message || 'Failed to fetch slots');
-        setAvailableSlots(['morning', 'wholeday']);
+        setAvailableSlots(['morning', 'afternoon', 'evening', 'wholeday']);
       } finally {
         setSlotsLoading(false);
       }
@@ -69,43 +70,35 @@ export const BookingWidget = ({
   }, [date, venueData?._id, guests, shift, setValue]);
 
   const slotOptions = [
-    { id: 'morning', label: 'Morning (09:00 AM - 01:00 PM)' },
-    { id: 'afternoon', label: 'Afternoon (09:00 AM - 09:00 PM)' },
-    { id: 'evening', label: 'Evening (05:00 PM - 09:00 PM)' },
-    { id: 'wholeday', label: 'Whole Day (09:00 AM - 09:00 PM)' }
+    { id: 'morning', label: SLOT_LABELS.morning },
+    { id: 'afternoon', label: SLOT_LABELS.afternoon },
+    { id: 'evening', label: SLOT_LABELS.evening },
+    { id: 'wholeday', label: SLOT_LABELS.wholeday }
   ];
 
   return (
-    <div className="sticky top-20 z-20">
+    <div className="lg:sticky lg:top-24 z-20">
       <motion.div 
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(58,18,36,0.08)] border border-gray-200"
+        className="overflow-hidden rounded-[1.7rem] border border-[var(--color-sand)] bg-white shadow-[0_24px_70px_rgba(58,18,36,0.12)]"
       >
-        {/* Hall Description - New Section */}
-        <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-100">
-          <p className="text-xs sm:text-sm lg:text-base text-[#3a1224]/80 leading-relaxed font-light break-words">
-            {venueData?.description || 'Premium venue offering exceptional facilities for your special events with professional service and perfect ambiance.'}
-          </p>
-        </div>
-
-        {/* Pricing Section - Simplified */}
-        <div className="bg-gradient-to-r from-[#3a1224] to-[#3a1224]/95 p-4 sm:p-6 lg:p-8 text-white border-b border-[#3a1224]/50">
-          <div className="text-center">
-            <p className="text-[9px] sm:text-[10px] font-black tracking-[0.2em] sm:tracking-[0.3em] uppercase mb-3 opacity-80">Per Slot Price</p>
-            <div className="flex items-baseline justify-center gap-1 sm:gap-2 flex-wrap">
+        <div className="bg-[var(--color-wine)] p-5 text-white sm:p-7">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-champagne)]">Book this venue</p>
+            <div className="mt-4 flex items-baseline gap-2 flex-wrap">
               <span className="text-2xl sm:text-3xl lg:text-4xl font-display font-bold tracking-tight whitespace-nowrap">
                 {currencyFormatter.format(venueData?.pricePerHour || 0)}
               </span>
-              <span className="text-[10px] sm:text-xs lg:text-sm text-white/70 whitespace-nowrap">/ Slot</span>
+              <span className="text-sm text-white/70 whitespace-nowrap">/ slot</span>
             </div>
-            <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-white/10 grid grid-cols-2 gap-3 sm:gap-4 text-[10px] sm:text-xs lg:text-sm">
+            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/10 pt-5 text-sm">
               <div>
-                <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] opacity-70">Capacity</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/60">Capacity</span>
                 <p className="font-bold mt-1 truncate">{venueData?.capacity || '—'} Guests</p>
               </div>
               <div>
-                <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] opacity-70">Space</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/60">Space</span>
                 <p className="font-bold mt-1 truncate">{venueData?.size || 'Premium'}</p>
               </div>
             </div>
@@ -139,12 +132,11 @@ export const BookingWidget = ({
                     const month = String(dt.getMonth() + 1).padStart(2, '0');
                     const day = String(dt.getDate()).padStart(2, '0');
                     const iso = `${year}-${month}-${day}`;
-                    const isFuture = iso > today;
+                    const isBookableDate = iso >= minimumBookingDate;
                     const isBooked = occupiedDates.has(iso);
                     const isSelected = date === iso;
 
-                    // Only show future dates - skip today and all past dates
-                    if (!isFuture) return <div key={idx} />;
+                    if (!isBookableDate) return <div key={idx} />;
 
                     return (
                       <button
@@ -173,6 +165,11 @@ export const BookingWidget = ({
                 <span className="text-xs font-bold text-[#3a1224] uppercase tracking-wide">Select Slot</span>
                 {slotsLoading && <span className="text-[10px] text-[#C0A04C] animate-pulse">Loading...</span>}
               </div>
+              {slotError ? (
+                <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">
+                  Could not confirm live slots. You can still continue and we will verify on booking.
+                </p>
+              ) : null}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                 {slotOptions.map((s) => {
                   const isAvailable = availableSlots.includes(s.id);
@@ -223,27 +220,18 @@ export const BookingWidget = ({
             {/* Submit Button - Simplified */}
             <button 
               onClick={(e) => { e.preventDefault(); handleSubmit(submitBooking)(e); }}
-              className="w-full py-3 sm:py-4 bg-[#3a1224] hover:bg-[#3a1224]/90 text-white border border-[#C0A04C]/30 rounded-lg transition-all flex items-center justify-center gap-3 group cursor-pointer"
+              className="group flex w-full cursor-pointer items-center justify-center gap-3 rounded-lg border border-[#C0A04C]/30 bg-[#3a1224] py-3 text-white transition-all hover:bg-[#3a1224]/90 sm:py-4"
             >
               <span className="font-bold uppercase text-xs sm:text-sm tracking-wide">Check Availability</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </form>
 
-          {/* Action Buttons */}
-          <div className="mt-8 sm:mt-10 flex items-center justify-around border-t border-gray-100 pt-6 sm:pt-8">
-            {[
-              { icon: Phone, label: 'Call' },
-              { icon: Download, label: 'Details' },
-              { icon: Share2, label: 'Share' }
-            ].map((item, i) => (
-              <button key={i} className="flex flex-col items-center gap-2 sm:gap-3 group cursor-pointer" type="button">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gray-100 border border-gray-200 rounded-lg flex items-center justify-center group-hover:bg-[#3a1224] group-hover:border-[#3a1224] transition-all">
-                  <item.icon className="w-4 h-4 sm:w-5 sm:h-5 text-[#3a1224] group-hover:text-[#C0A04C] transition-colors" />
-                </div>
-                <span className="text-[8px] sm:text-xs font-bold text-gray-400 uppercase group-hover:text-[#3a1224] transition-colors">{item.label}</span>
-              </button>
-            ))}
+          <div className="mt-7 flex items-start gap-3 rounded-2xl border border-[var(--color-sand)] bg-[var(--color-ivory)] p-4">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-champagne)]" />
+            <p className="text-xs leading-5 text-[var(--color-stone)]">
+              {BOOKING_LEAD_TIME_MESSAGE} Your selected details will be carried into the secure booking step.
+            </p>
           </div>
         </div>
       </motion.div>

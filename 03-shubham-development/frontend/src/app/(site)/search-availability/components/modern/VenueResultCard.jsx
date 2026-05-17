@@ -1,67 +1,87 @@
 'use client';
+
 import React from 'react';
-import { Users, Castle, CalendarCheck, Clock, Check, ArrowRight } from 'lucide-react';
+import { ArrowRight, Check, MapPin, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const VenueResultCardComponent = ({ venue, isSelected, onSelect, date, slot, guests, SLOT_LABELS }) => {
+const VenueResultCardComponent = ({ venue, isSelected, onSelect }) => {
   const isAvailable = venue.available !== false;
-  
+  const city = venue.location?.city || venue.location?.address || 'Location listed';
+  const price = venue.pricePerHour ? `${venue.currency || 'NPR'} ${venue.pricePerHour.toLocaleString()}` : 'Price listed';
+
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.98 }}
-      whileInView={{ opacity: 1, scale: 1 }}
-      className={`relative group bg-white border-2 rounded-2xl overflow-hidden transition-all duration-700 ${isSelected ? 'border-[#C0A04C] shadow-2xl' : 'border-[#3a1224]/5 hover:border-[#3a1224]/10 shadow-lg'}`}
+    <motion.article
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 12 }}
+      className={`rounded-2xl border bg-white p-4 transition ${
+        isSelected
+          ? 'border-[#C0A04C] shadow-[0_20px_50px_rgba(192,160,76,0.18)]'
+          : 'border-[#eadcc7] shadow-sm hover:border-[#C0A04C]/60'
+      } ${isAvailable ? '' : 'opacity-60'}`}
     >
-      <div className={`p-8 ${isAvailable ? 'bg-[#fdfaf6]/50' : 'bg-gray-50 opacity-60'}`}>
-        <div className="flex items-start justify-between gap-6">
-          <div className="space-y-4">
-             <div className="flex items-center gap-3">
-                <div className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all ${isAvailable ? 'bg-[#3a1224] text-[#C0A04C]' : 'bg-gray-300 text-gray-50'}`}>
-                   <Castle className="w-6 h-6" />
-                </div>
-                <div>
-                   <h3 className="text-xl font-display font-bold text-[#3a1224] group-hover:text-[#C0A04C] transition-colors">{venue.name}</h3>
-                   <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-[0.2em] text-[#3a1224]/40 mt-1">
-                      <Users className="w-3 h-3 text-[#C0A04C]" /> {venue.capacity} guests Max
-                   </div>
-                </div>
-             </div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
+              isAvailable ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
+            }`}>
+              {isAvailable ? 'Available' : 'Reserved'}
+            </span>
+            {isSelected ? (
+              <span className="rounded-full bg-[#C0A04C]/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#3a1224]">
+                Selected
+              </span>
+            ) : null}
           </div>
-          <div className={`px-5 py-2 rounded-none text-[9px] font-black uppercase tracking-[0.3em] ${isAvailable ? 'bg-[#C0A04C]/20 text-[#3a1224] border border-[#C0A04C]/30' : 'bg-gray-200 text-gray-500 border border-gray-300'}`}>
-             {isAvailable ? 'Available' : 'Booked'}
+
+          <h3 className="truncate text-xl font-black text-[#3a1224]">{venue.name}</h3>
+          <div className="mt-3 flex flex-wrap gap-3 text-xs font-bold uppercase tracking-[0.12em] text-[#3a1224]/50">
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-[#C0A04C]" />
+              {city}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5 text-[#C0A04C]" />
+              {venue.capacity || '—'} guests
+            </span>
           </div>
-        </div>
-
-        <div className="mt-10 grid grid-cols-2 gap-6 pb-10 border-b border-[#3a1224]/5">
-           <div className="space-y-2">
-              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#3a1224]/30 block">Selection</span>
-              <div className="flex items-center gap-3 py-3 px-4 bg-white border border-[#3a1224]/5 rounded-xl text-xs font-bold text-[#3a1224]">
-                 <CalendarCheck className="w-4 h-4 text-[#C0A04C]" /> {date}
-              </div>
-           </div>
-           <div className="space-y-2">
-              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#3a1224]/30 block">Shift</span>
-              <div className="flex items-center gap-3 py-3 px-4 bg-white border border-[#3a1224]/5 rounded-xl text-xs font-bold text-[#3a1224]">
-                 <Clock className="w-4 h-4 text-[#C0A04C]" /> {SLOT_LABELS[slot] || 'Full Day'}
-              </div>
-           </div>
-        </div>
-
-        <div className="mt-8 flex items-center justify-between">
-           <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-display font-bold text-[#3a1224] tracking-tight">{venue.currency || 'NPR'} {venue.pricePerHour?.toLocaleString() || '—'}</span>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3a1224]/30">/ Slot</span>
-           </div>
-           <button
-             onClick={() => isAvailable && onSelect(venue)}
-             disabled={!isAvailable}
-             className={`p-4 rounded-xl transition-all duration-500 overflow-hidden group/btn relative ${isAvailable ? 'bg-[#3a1224] text-[#C0A04C] hover:bg-[#4a172d] shadow-xl' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
-           >
-              {isSelected ? <Check className="w-5 h-5" /> : <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-3 transition-transform duration-700" />}
-           </button>
         </div>
       </div>
-    </motion.div>
+
+      <div className="mt-6 flex items-end justify-between gap-4 border-t border-[#3a1224]/5 pt-5">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#C0A04C]">Starting price</p>
+          <p className="mt-1 text-2xl font-black text-[#3a1224]">{price}</p>
+          <p className="text-xs text-[#3a1224]/50">per slot</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => isAvailable && onSelect(venue)}
+          disabled={!isAvailable}
+          className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-full px-5 py-3 text-xs font-black uppercase tracking-[0.12em] transition disabled:cursor-not-allowed ${
+            isAvailable
+              ? isSelected
+                ? 'bg-[#C0A04C] text-[#3a1224]'
+                : 'bg-[#3a1224] text-white hover:bg-[#4a172d]'
+              : 'bg-gray-100 text-gray-400'
+          }`}
+        >
+          {isSelected ? (
+            <>
+              <Check className="h-4 w-4" />
+              Selected
+            </>
+          ) : (
+            <>
+              Select hall
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
+        </button>
+      </div>
+    </motion.article>
   );
 };
 

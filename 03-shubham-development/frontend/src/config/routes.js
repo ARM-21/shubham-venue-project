@@ -39,6 +39,8 @@ export const ROUTES = {
     VENUE_BOOK: (slug) => `/venues/${slug}/book`,
     MENUS: '/menus',
     MENU_DETAILS: (slug) => `/menus/${slug}`,
+    BLOGS: '/blogs',
+    BLOGS_DETAIL: (handle) => `/blogs/${handle}`,
     SEARCH_AVAILABILITY: (slug) => (slug ? `/search-availability/${slug}` : '/search-availability'),
     PROFILE: '/profile',
     PAYMENT_VERIFY: '/payment/verify',

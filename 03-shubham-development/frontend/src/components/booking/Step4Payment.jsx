@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from 'config/routes';
 import { PrimaryButton, SecondaryButton, ActionButtonGroup } from './FormInputs';
+import { SLOT_LABELS } from 'constants/slots';
 
 export default function Step4Payment({ data, reservationId, onPrev }) {
   const router = useRouter();
@@ -98,7 +99,7 @@ export default function Step4Payment({ data, reservationId, onPrev }) {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-600">Time Slot</span>
-              <span className="font-semibold text-slate-900 capitalize">{data?.slot === 'wholeday' ? '24 hours' : data?.slot || 'N/A'}</span>
+              <span className="font-semibold text-slate-900">{SLOT_LABELS[data?.slot] || data?.slot || 'N/A'}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-600">Number of Guests</span>

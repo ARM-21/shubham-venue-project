@@ -1,38 +1,60 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { DateTime } from 'luxon';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useRouter } from 'next/navigation';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import axiosInstance from 'lib/axios';
 import { useAuth } from 'contexts/AuthProvider';
 import { ROUTES } from 'config/routes';
-import { Castle, CalendarCheck, Clock, Users, ArrowRight, Sparkles, MapPin, Navigation } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AlertCircle, CalendarCheck, CheckCircle2, Clock, Search, Sparkles, Users } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { BOOKING_LEAD_TIME_MESSAGE, SLOT_LABELS, getMinimumCustomerBookingDate } from 'constants/slots';
 
-// Modern Components
 import { AvailabilityForm } from '../../app/(site)/search-availability/components/modern/AvailabilityForm';
 import { VenueResultCard } from '../../app/(site)/search-availability/components/modern/VenueResultCard';
 import { BookingSummary } from '../../app/(site)/search-availability/components/modern/BookingSummary';
 
-const SLOT_LABELS = {
-  morning: 'Morning (09:00 AM - 01:00 PM)',
-  afternoon: 'Afternoon (09:00 AM - 09:00 PM)',
-  evening: 'Evening (05:00 PM - 09:00 PM)',
-  wholeday: 'Whole Day (09:00 AM - 09:00 PM)',
-};
+const pathSteps = [
+  { label: 'Date', icon: CalendarCheck },
+  { label: 'Slot', icon: Clock },
+  { label: 'Guests', icon: Users },
+  { label: 'Hall', icon: CheckCircle2 },
+];
+
+function ResultsSkeleton() {
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      {[1, 2, 3, 4].map((item) => (
+        <div key={item} className="h-52 animate-pulse rounded-2xl border border-[#3a1224]/5 bg-white/70" />
+      ))}
+    </div>
+  );
+}
+
+function EmptyResults({ title, description }) {
+  return (
+    <div className="rounded-[1.5rem] border border-dashed border-[#C0A04C]/35 bg-white/70 px-6 py-14 text-center shadow-sm">
+      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#fdfaf6] text-[#C0A04C]">
+        <Search className="h-6 w-6" />
+      </div>
+      <h3 className="text-xl font-black text-[#3a1224]">{title}</h3>
+      <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#3a1224]/60">{description}</p>
+    </div>
+  );
+}
 
 export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapacity, showAllHalls }) {
   const [status, setStatus] = useState(null);
   const { user } = useAuth();
   const [error, setError] = useState(null);
   const router = useRouter();
-  const [selectedHall, setSelectedHall] = useState(hallId ? { _id: hallId, name: hallName, slug: hallSlug, capacity: hallCapacity } : null);
+  const [selectedHall, setSelectedHall] = useState(
+    hallId ? { _id: hallId, name: hallName, slug: hallSlug, capacity: hallCapacity } : null
+  );
 
   useEffect(() => {
     if (hallId && !selectedHall) setSelectedHall({ _id: hallId, name: hallName, slug: hallSlug, capacity: hallCapacity });
-  }, [hallId, hallName, hallSlug, hallCapacity]);
+  }, [hallId, hallName, hallSlug, hallCapacity, selectedHall]);
 
   const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     defaultValues: { guests: hallCapacity ? Math.min(50, hallCapacity) : 50 },
@@ -42,12 +64,6 @@ export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapa
   const date = watch('date');
   const slot = watch('slot');
   const guests = watch('guests');
-
-  const TZ = 'Asia/Kathmandu';
-  const now = DateTime.now().setZone(TZ);
-  const todayStr = now.toFormat('yyyy-MM-dd');
-  const currentHour = now.hour;
-  const isToday = date === todayStr;
 
   const searchParams = useSearchParams();
 
@@ -65,10 +81,6 @@ export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapa
     }
   }, [searchParams, setValue]);
 
-  const disableMorning = isToday && currentHour >= 13;
-  const disableAfternoon = isToday && currentHour >= 17;
-  const disableEvening = isToday && currentHour >= 23;
-
   async function checkAvailability(formData) {
     setStatus(null);
     setError(null);
@@ -85,13 +97,13 @@ export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapa
 
       const results = res.data.halls || res.data;
       setStatus(results);
-      
+
       if (hallId && !Array.isArray(results) && results.available) {
-          const hallInfo = await axiosInstance.get(ROUTES.API.HALLS.BY_ID(hallId));
-          setSelectedHall(hallInfo.data.hall);
+        const hallInfo = await axiosInstance.get(ROUTES.API.HALLS.BY_ID(hallId));
+        setSelectedHall(hallInfo.data.hall);
       }
     } catch (e) {
-      setError(e?.response?.data?.message || "Network error");
+      setError(e?.response?.data?.message || 'Could not check availability. Please try again.');
     }
   }
 
@@ -108,7 +120,7 @@ export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapa
     }
   };
 
-  const minDate = now.startOf('day').toFormat('yyyy-MM-dd');
+  const minDate = getMinimumCustomerBookingDate();
   const getSelectedAvailability = () => {
     if (!selectedHall || !status) return undefined;
     if (Array.isArray(status)) {
@@ -122,123 +134,144 @@ export default function CheckAvailability({ hallId, hallName, hallSlug, hallCapa
   const isFormFilled = !!date && !!slot && !!guests && Number(guests) > 0;
   const canProceed = !!selectedHall && isFormFilled && (selectedAvailable === undefined ? true : selectedAvailable === true);
 
+  const resultHalls = useMemo(() => {
+    if (Array.isArray(status)) return status;
+    if (hallId && status && selectedHall) {
+      return [{ ...selectedHall, available: status.available, availableSlots: status.availableSlots }];
+    }
+    return [];
+  }, [hallId, selectedHall, status]);
+
+  const hasChecked = !!status;
+  const showResultCards = showAllHalls || hallId;
+
   return (
-    <div className="min-h-screen bg-[#fdfaf6] relative selection:bg-[#C0A04C]/30 overflow-x-hidden">
-        <div className="fixed inset-0 pointer-events-none opacity-30 overflow-hidden">
-            <div className="absolute top-0 right-[-10%] w-[40%] h-[40%] bg-[#C0A04C]/5 blur-[120px] rounded-full" />
-            <div className="absolute bottom-0 left-[-10%] w-[40%] h-[40%] bg-[#3a1224]/5 blur-[120px] rounded-full" />
-        </div>
-        
-        <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/90 to-[#423f3b] pointer-events-none z-0" />
+    <main className="min-h-screen overflow-x-hidden bg-[#fdfaf6] selection:bg-[#C0A04C]/30">
+      <section className="relative isolate overflow-hidden bg-[#3a1224] pt-40 text-white">
+        <div className="absolute inset-0 z-0 opacity-20 [background-image:linear-gradient(#C0A04C_1px,transparent_1px),linear-gradient(90deg,#C0A04C_1px,transparent_1px)] [background-size:56px_56px]" />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#fdfaf6] to-transparent" />
 
-        <main className="w-full max-w-full overflow-x-hidden"><div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 pt-40 pb-32 relative z-10">
-            <header className="mb-20 text-center lg:text-left">
-                <div className="flex items-center justify-center lg:justify-start gap-4 mb-8">
-                    <div className="w-12 h-[1px] bg-[#C0A04C]" />
-                    <span className="text-[11px] font-black text-[#C0A04C] uppercase tracking-[0.6em]">Reservations</span>
-                    <div className="w-12 h-[1px] bg-[#C0A04C] lg:hidden" />
-                </div>
-                <h1 className="text-6xl lg:text-8xl font-display font-bold text-white mb-8 tracking-tighter">
-                    Find Your <span className="text-[#C0A04C] italic font-serif">Perfect</span> Venue
-                </h1>
-                <p className="text-white/60 text-xl font-light leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                   Discover exceptional spaces for your most cherished moments. 
-                   Real-time availability for weddings, corporate galas, and private celebrations.
-                </p>
-            </header>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
-                <div className="lg:col-span-8 space-y-20">
-                    <div className="relative group">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-[#C0A04C]/20 to-[#3a1224]/20 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                        <div className="relative">
-                            <AvailabilityForm 
-                                register={register} handleSubmit={handleSubmit} checkAvailability={checkAvailability} 
-                                isSubmitting={isSubmitting} errors={errors} minDate={minDate} 
-                                disableMorning={disableMorning} disableAfternoon={disableAfternoon} disableEvening={disableEvening} SLOT_LABELS={SLOT_LABELS} 
-                            />
-                        </div>
-                    </div>
-
-                    {error && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="p-6 bg-red-50/50 backdrop-blur-sm border border-red-100 rounded-2xl text-red-900 flex items-center gap-4 shadow-sm"
-                        >
-                           <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
-                               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                               </svg>
-                           </div>
-                           <span className="font-bold uppercase tracking-[0.1em] text-[11px]">{error}</span>
-                        </motion.div>
-                    )}
-
-                    <section>
-                        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-8 mb-8 sm:mb-16 px-0 sm:px-2">
-                           <div className="space-y-4">
-                              <div className="flex items-center gap-3">
-                                <Sparkles className="w-4 h-4 text-[#C0A04C]" />
-                                <span className="text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.5em]">Curated Collection</span>
-                              </div>
-                              <h2 className="text-5xl font-display font-bold text-[#3a1224] tracking-tight">Our Signature <span className="italic font-serif text-[#C0A04C]">Halls</span></h2>
-                           </div>
-                           <div className="flex gap-6 pb-2">
-                              <div className="flex items-center gap-3">
-                                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]"/>
-                                  <span className="text-[11px] font-bold uppercase tracking-widest text-[#3a1224]/60">Available</span>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                  <div className="w-2.5 h-2.5 rounded-full bg-[#3a1224]/20 border border-[#3a1224]/10"/>
-                                  <span className="text-[11px] font-bold uppercase tracking-widest text-[#3a1224]/60">Reserved</span>
-                              </div>
-                           </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            <AnimatePresence mode="popLayout">
-                                {status && Array.isArray(status) && showAllHalls ? (
-                                    status.map(h => (
-                                        <VenueResultCard 
-                                          key={h._id} venue={h} isSelected={selectedHall?._id === h._id} 
-                                          onSelect={setSelectedHall} date={date} slot={slot} 
-                                          guests={guests} SLOT_LABELS={SLOT_LABELS} 
-                                        />
-                                    ))
-                                ) : !status && !isSubmitting ? (
-                                    <div className="col-span-full py-40 text-center border-2 border-dashed border-[#3a1224]/5 rounded-[40px] bg-white/40 group hover:border-[#C0A04C]/20 transition-colors duration-500">
-                                       <div className="w-20 h-20 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-sm group-hover:scale-110 transition-transform duration-500">
-                                            <CalendarCheck className="w-8 h-8 text-[#C0A04C]/40" />
-                                       </div>
-                                       <p className="text-[#3a1224]/40 font-display italic text-2xl tracking-tight max-w-sm mx-auto">Select your dates to reveal the perfect venue for your event.</p>
-                                    </div>
-                                ) : (
-                                    /* Skeleton Loading State when isSubmitting */
-                                    isSubmitting && [1,2,3,4].map(i => (
-                                        <div key={i} className="h-64 bg-white/50 rounded-3xl animate-pulse border border-[#3a1224]/5" />
-                                    ))
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    </section>
-                </div>
-
-                <div className="lg:col-span-4 lg:sticky lg:top-32 h-fit">
-                   <div className="relative group">
-                        <div className="absolute -inset-1 bg-gradient-to-b from-[#C0A04C]/10 to-transparent rounded-[2rem] blur-xl opacity-0 group-hover:opacity-100 transition duration-1000"></div>
-                        <BookingSummary 
-                            selectedHall={selectedHall} date={date} slot={slot} 
-                            guests={guests} SLOT_LABELS={SLOT_LABELS} canProceed={canProceed} 
-                            handleProceedToBooking={handleProceedToBooking} user={user}
-                        />
-                   </div>
-                </div>
+        <div className="site-container relative z-10 pb-14">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end">
+            <div className="max-w-3xl">
+              <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#C0A04C]/30 bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-[#C0A04C]">
+                <Sparkles className="h-4 w-4" />
+                Reservations
+              </p>
+              <h1 className="text-4xl font-black leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+                Check hall availability.
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-white/[0.72]">
+                Start with your event date, time slot, and guest count. {BOOKING_LEAD_TIME_MESSAGE}
+              </p>
             </div>
+
+            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur-md sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+              {pathSteps.map((step, index) => (
+                <div key={step.label} className="rounded-xl bg-white/10 px-3 py-3">
+                  <step.icon className="mb-3 h-4 w-4 text-[#C0A04C]" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/[0.55]">0{index + 1}</p>
+                  <p className="mt-1 text-sm font-bold text-white">{step.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        </main>
-    </div>
+      </section>
+
+      <section className="site-container -mt-8 pb-20">
+        <div className="relative z-20 grid gap-8 lg:grid-cols-[minmax(0,1fr)_390px] xl:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
+          <div className="space-y-8">
+            <AvailabilityForm
+              register={register}
+              handleSubmit={handleSubmit}
+              checkAvailability={checkAvailability}
+              isSubmitting={isSubmitting}
+              errors={errors}
+              minDate={minDate}
+              disableMorning={false}
+              disableAfternoon={false}
+              disableEvening={false}
+              SLOT_LABELS={SLOT_LABELS}
+            />
+
+            {error ? (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-start gap-4 rounded-2xl border border-red-100 bg-red-50 p-5 text-red-800 shadow-sm"
+              >
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                <div>
+                  <p className="font-black">Availability check failed</p>
+                  <p className="mt-1 text-sm leading-6">{error}</p>
+                </div>
+              </motion.div>
+            ) : null}
+
+            <section className="rounded-[1.7rem] border border-[#eadcc7] bg-white p-5 shadow-[0_24px_70px_rgba(58,18,36,0.08)] sm:p-6">
+              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#C0A04C]">Available Halls</p>
+                  <h2 className="mt-2 text-2xl font-black text-[#3a1224] sm:text-3xl">
+                    {hallId ? 'Selected hall result' : 'Choose the best fit'}
+                  </h2>
+                </div>
+                {hasChecked ? (
+                  <p className="text-sm font-semibold text-[#3a1224]/55">
+                    {resultHalls.length} result{resultHalls.length === 1 ? '' : 's'}
+                  </p>
+                ) : null}
+              </div>
+
+              {isSubmitting ? (
+                <ResultsSkeleton />
+              ) : !hasChecked ? (
+                <EmptyResults
+                  title="Enter event details to see available halls."
+                  description="Pick a date, slot, and guest count first. Results will update after the availability check."
+                />
+              ) : resultHalls.length === 0 ? (
+                <EmptyResults
+                  title="No halls match this search."
+                  description="Try a different date, slot, or guest count to find more available spaces."
+                />
+              ) : showResultCards ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <AnimatePresence mode="popLayout">
+                    {resultHalls.map(h => (
+                      <VenueResultCard
+                        key={h._id}
+                        venue={h}
+                        isSelected={selectedHall?._id === h._id}
+                        onSelect={setSelectedHall}
+                        date={date}
+                        slot={slot}
+                        guests={guests}
+                        SLOT_LABELS={SLOT_LABELS}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              ) : null}
+            </section>
+          </div>
+
+          <aside className="lg:sticky lg:top-28">
+            <BookingSummary
+              selectedHall={selectedHall}
+              date={date}
+              slot={slot}
+              guests={guests}
+              SLOT_LABELS={SLOT_LABELS}
+              canProceed={canProceed}
+              handleProceedToBooking={handleProceedToBooking}
+              user={user}
+              selectedAvailable={selectedAvailable}
+            />
+          </aside>
+        </div>
+      </section>
+    </main>
   );
 }
-
-                       

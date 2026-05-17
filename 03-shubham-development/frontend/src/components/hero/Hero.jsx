@@ -13,7 +13,7 @@ const planningSteps = [
 
 export default function Hero({ images = [], interval = 4000 }) {
   return (
-    <section className="relative flex min-h-[660px] w-full flex-col justify-end overflow-hidden md:min-h-[95vh]">
+    <section className="relative flex min-h-[660px] w-full flex-col justify-end overflow-hidden md:min-h-[85vh]">
       <HeroBackground images={images} interval={interval} />
 
       <div className="site-container relative z-10 grid gap-8 pb-14 pt-32 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-end lg:pb-16">

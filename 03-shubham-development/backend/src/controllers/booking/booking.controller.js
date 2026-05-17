@@ -1,63 +1,15 @@
 import Hall from "../../models/Hall.js";
 import Booking from "../../models/Booking.js";
 import { httpError } from "../../utils/http.utils.js";
-
-// Keep in sync with Booking.status enum
-const BLOCKING_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"];
-
-function getConflictSlots(slot) {
-  if (slot === "wholeday") return ["morning", "afternoon", "evening", "wholeday"];
-  if (slot === "morning") return ["morning", "wholeday"];
-  if (slot === "afternoon") return ["afternoon", "wholeday"];
-  if (slot === "evening") return ["evening", "wholeday"];
-  throw httpError(400, "slot must be morning|afternoon|evening|wholeday");
-}
-
-function toLocalDateString(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function isSlotTimeBlocked(dateValue, slot) {
-  const today = new Date();
-  const todayStr = toLocalDateString(today);
-
-  if (dateValue < todayStr) {
-    return { blocked: true, reason: "PAST_DATE" };
-  }
-
-  if (dateValue !== todayStr) {
-    return { blocked: false };
-  }
-
-  const start = new Date(today);
-  if (slot === "evening") {
-    start.setHours(19, 0, 0, 0);
-  } else if (slot === "afternoon") {
-    start.setHours(13, 0, 0, 0);
-  } else {
-    start.setHours(7, 0, 0, 0);
-  }
-
-  if (today >= start) {
-    return { blocked: true, reason: "TIME_BLOCKED" };
-  }
-
-  return { blocked: false };
-}
-
-
-// Convert "YYYY-MM-DD" into UTC day range [start, nextDayStart)
-function utcDayRange(yyyyMmDd) {
-  const start = new Date(`${yyyyMmDd}T00:00:00.000Z`);
-  if (Number.isNaN(start.getTime())) return null;
-
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
-  return { start, end };
-}
+import {
+  BLOCKING_BOOKING_STATUSES,
+  BOOKING_SLOTS,
+  CUSTOMER_LEAD_TIME_MESSAGE,
+  assertValidSlot,
+  getConflictSlots,
+  utcDayRange,
+  validateCustomerBookingDate,
+} from "../../utils/bookingPolicy.utils.js";
 
 export async function checkHallAvailability(req, res) {
   try {
@@ -68,7 +20,7 @@ export async function checkHallAvailability(req, res) {
     if (!date || typeof date !== "string") {
       return res.status(400).json({ message: "date is required (yyyy-mm-dd)" });
     }
-    if (!slot || !["morning", "afternoon", "evening", "wholeday"].includes(slot)) {
+    if (!slot || !BOOKING_SLOTS.includes(slot)) {
       return res.status(400).json({ message: "slot must be morning|afternoon|evening|wholeday" });
     }
 
@@ -77,9 +29,15 @@ export async function checkHallAvailability(req, res) {
       return res.status(400).json({ message: "guests must be a positive number" });
     }
 
-    const timeBlock = isSlotTimeBlocked(date, slot);
-    if (timeBlock.blocked) {
-      return res.json({ available: false, reason: timeBlock.reason });
+    const datePolicy = validateCustomerBookingDate(date);
+    if (datePolicy.blocked) {
+      return res.json({
+        available: false,
+        reason: datePolicy.reason,
+        message: datePolicy.message || CUSTOMER_LEAD_TIME_MESSAGE,
+        minimumDate: datePolicy.minimumDate,
+        availableSlots: [],
+      });
     }
 
     const range = utcDayRange(date);
@@ -111,7 +69,7 @@ export async function checkHallAvailability(req, res) {
       hallId,
       date: { $gte: range.start, $lt: range.end }, // Date-type safe day match
       slot: { $in: conflicts },
-      status: { $in: BLOCKING_STATUSES },
+      status: { $in: BLOCKING_BOOKING_STATUSES },
     })
       .select("_id status slot")
       .lean();
@@ -136,12 +94,15 @@ export async function listHallsAvailability(query = {}) {
 
   if (!date || typeof date !== "string") throw httpError(400, "date is required (yyyy-mm-dd)");
   if (!slot) throw httpError(400, "slot is required");
+  assertValidSlot(slot);
 
   const guestsNum = Number(guests);
   if (!Number.isFinite(guestsNum) || guestsNum < 1) throw httpError(400, "guests must be >= 1");
 
-  const timeBlock = isSlotTimeBlocked(date, slot);
-  if (timeBlock.blocked) return [];
+  const datePolicy = validateCustomerBookingDate(date);
+  if (datePolicy.blocked) {
+    throw httpError(400, datePolicy.message || CUSTOMER_LEAD_TIME_MESSAGE);
+  }
 
   const range = utcDayRange(date);
   if (!range) throw httpError(400, "Invalid date format, use yyyy-mm-dd");
@@ -166,7 +127,7 @@ export async function listHallsAvailability(query = {}) {
     hallId: { $in: hallIds },
     date: { $gte: range.start, $lt: range.end },
     slot: { $in: conflictSlots },
-    status: { $in: BLOCKING_STATUSES },
+    status: { $in: BLOCKING_BOOKING_STATUSES },
   })
     .select("hallId")
     .lean();

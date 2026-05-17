@@ -26,12 +26,13 @@ export const LocationMap = ({ venueData }) => {
   const mapOptions = useMemo(
     () => ({
       disableDefaultUI: false,
-      clickableIcons: true,
-      scrollwheel: true,
+      clickableIcons: false,
+      gestureHandling: 'cooperative',
+      scrollwheel: false,
       zoomControl: true,
-      mapTypeControl: true,
+      mapTypeControl: false,
       fullscreenControl: true,
-      streetViewControl: true,
+      streetViewControl: false,
     }),
     []
   );
@@ -53,7 +54,7 @@ export const LocationMap = ({ venueData }) => {
     <GoogleMap
       mapContainerClassName="w-full h-full rounded-2xl overflow-hidden shadow-lg border-4 border-white"
       center={venueCenter}
-      zoom={15}
+      zoom={14}
       options={mapOptions}
       ref={mapRef}
     >
