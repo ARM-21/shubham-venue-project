@@ -20,7 +20,8 @@ import {
   Menu as MenuIcon,
   X,
   Sparkles,
-  Calendar
+  Calendar,
+  BookOpen
 } from "lucide-react";
 import { ROUTES } from 'config/routes';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,6 +30,7 @@ const navigation = [
   { name: 'Home', href: ROUTES.HOME, icon: House },
   { name: 'Venues', href: ROUTES.SITE.VENUES(), icon: Images },
   { name: 'Events', href: ROUTES.SITE.EVENTS, icon: Calendar },
+  { name: 'Blogs', href: ROUTES.SITE.BLOGS, icon: BookOpen },
   { name: 'About', href: '/about', icon: Info },
   { name: 'Contact', href: '/contact', icon: Contact },
 ];

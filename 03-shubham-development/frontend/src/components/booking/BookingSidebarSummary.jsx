@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, Clock, Users, Check, Edit2 } from 'lucide-react';
 import { getSlotMultiplier } from '../../utils/booking.utils';
+import { SLOT_LABELS } from 'constants/slots';
 
 export default function BookingSidebarSummary({ 
   hall, 
@@ -46,7 +47,7 @@ export default function BookingSidebarSummary({
           </div>
           <div className="flex items-center gap-2 text-sm text-[#3a1224]/70">
             <Clock className="w-4 h-4 text-[#C0A04C] flex-shrink-0" />
-            <span>{bookingData.slot === 'wholeday' ? '24 hours' : bookingData.slot}</span>
+            <span>{SLOT_LABELS[bookingData.slot] || bookingData.slot || 'N/A'}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-[#3a1224]/70">
             <Users className="w-4 h-4 text-[#C0A04C] flex-shrink-0" />
@@ -134,7 +135,7 @@ export default function BookingSidebarSummary({
             <div>
               <p className="text-xs font-black text-[#3a1224]/50 uppercase">Slot</p>
               <p className="text-sm font-semibold text-[#3a1224]">
-                {bookingData.slot === 'wholeday' ? '24h' : bookingData.slot || 'N/A'}
+                {SLOT_LABELS[bookingData.slot] || bookingData.slot || 'N/A'}
               </p>
             </div>
           </div>

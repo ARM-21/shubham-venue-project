@@ -1,65 +1,103 @@
 'use client';
-import React from 'react';
-import { Calendar, Users, Clock, Sparkles } from 'lucide-react';
 
-export const AvailabilityForm = ({ register, handleSubmit, checkAvailability, isSubmitting, errors, minDate, disableMorning, disableAfternoon, disableEvening, SLOT_LABELS }) => {
+import { Calendar, Clock, Search, Users } from 'lucide-react';
+
+export const AvailabilityForm = ({
+  register,
+  handleSubmit,
+  checkAvailability,
+  isSubmitting,
+  errors,
+  minDate,
+  disableMorning,
+  disableAfternoon,
+  disableEvening,
+  SLOT_LABELS
+}) => {
   return (
-    <div className="bg-white p-4 sm:p-6 md:p-8 rounded-2xl shadow-[0_20px_50px_rgba(58,18,36,0.05)] border border-gray-100 overflow-hidden">
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-12 h-[1px] bg-[#C0A04C]" />
-        <span className="text-[11px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Check Availability</span>
+    <div className="rounded-[1.7rem] border border-[#eadcc7] bg-white p-4 shadow-[0_24px_70px_rgba(58,18,36,0.12)] sm:p-5">
+      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#C0A04C]">Check Availability</p>
+          <h2 className="mt-2 text-2xl font-black text-[#3a1224]">Start with event details.</h2>
+        </div>
+        <p className="max-w-md text-sm leading-6 text-[#3a1224]/55">
+          Search by date, slot, and guest count before choosing a hall. Bookings start from tomorrow.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit(checkAvailability)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 items-end">
+      <form onSubmit={handleSubmit(checkAvailability)} className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1.15fr_0.8fr_auto] lg:items-start">
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-[#3a1224] uppercase tracking-[0.2em] flex items-center gap-2">
-            <Calendar className="w-3 h-3 text-[#C0A04C]" /> Date
+          <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]">
+            <Calendar className="h-3.5 w-3.5 text-[#C0A04C]" />
+            Date
           </label>
           <input
             type="date"
             min={minDate}
-            {...register('date', { required: 'Date is required' })}
-            className="w-full px-5 py-4 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C0A04C]/20 transition-all text-sm font-medium text-[#3a1224]"
+            {...register('date', {
+              required: 'Choose an event date.',
+              validate: (value) => value >= minDate || 'Bookings must be made at least 1 day in advance.'
+            })}
+            className="w-full cursor-pointer rounded-xl border border-[#eadcc7] bg-[#fdfaf6] px-4 py-3.5 text-sm font-semibold text-[#3a1224] outline-none transition focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20"
           />
+          {errors.date ? <p className="text-xs font-semibold text-red-600">{errors.date.message}</p> : null}
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-[#3a1224] uppercase tracking-[0.2em] flex items-center gap-2">
-            <Clock className="w-3 h-3 text-[#C0A04C]" /> Time Slot
+          <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]">
+            <Clock className="h-3.5 w-3.5 text-[#C0A04C]" />
+            Time Slot
           </label>
           <select
-            {...register('slot', { required: 'Slot is required' })}
-            className="w-full px-5 py-4 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C0A04C]/20 transition-all text-sm font-medium text-[#3a1224] appearance-none"
+            {...register('slot', { required: 'Choose a time slot.' })}
+            className="w-full cursor-pointer rounded-xl border border-[#eadcc7] bg-[#fdfaf6] px-4 py-3.5 text-sm font-semibold text-[#3a1224] outline-none transition focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20"
           >
-            <option value="">Select Slot</option>
-            <option value="morning" disabled={disableMorning}>Morning (09:00 AM - 01:00 PM)</option>
-            <option value="afternoon" disabled={disableAfternoon}>Afternoon (09:00 AM - 09:00 PM)</option>
-            <option value="evening" disabled={disableEvening}>Evening (05:00 PM - 09:00 PM)</option>
-            <option value="wholeday">Whole Day (09:00 AM - 09:00 PM)</option>
+            <option value="">Select slot</option>
+            <option value="morning" disabled={disableMorning}>{SLOT_LABELS.morning}</option>
+            <option value="afternoon" disabled={disableAfternoon}>{SLOT_LABELS.afternoon}</option>
+            <option value="evening" disabled={disableEvening}>{SLOT_LABELS.evening}</option>
+            <option value="wholeday">{SLOT_LABELS.wholeday}</option>
           </select>
+          {errors.slot ? <p className="text-xs font-semibold text-red-600">{errors.slot.message}</p> : null}
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-[#3a1224] uppercase tracking-[0.2em] flex items-center gap-2">
-            <Users className="w-3 h-3 text-[#C0A04C]" /> Guests
+          <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]">
+            <Users className="h-3.5 w-3.5 text-[#C0A04C]" />
+            Guests
           </label>
           <input
             type="number"
-            {...register('guests', { required: true, min: 1 })}
-            className="w-full px-5 py-4 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C0A04C]/20 transition-all text-sm font-medium text-[#3a1224]"
+            min="1"
+            {...register('guests', {
+              required: 'Enter guest count.',
+              min: { value: 1, message: 'Guests must be at least 1.' }
+            })}
+            className="w-full rounded-xl border border-[#eadcc7] bg-[#fdfaf6] px-4 py-3.5 text-sm font-semibold text-[#3a1224] outline-none transition focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20"
             placeholder="Pax"
           />
+          {errors.guests ? <p className="text-xs font-semibold text-red-600">{errors.guests.message || 'Enter guest count.'}</p> : null}
         </div>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-4 bg-[#3a1224] text-[#C0A04C] rounded-xl font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-3 shadow-xl hover:bg-[#4a172d] transition-all disabled:opacity-50"
+          className="mt-1 inline-flex h-[50px] cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#3a1224] px-6 text-sm font-black uppercase tracking-[0.14em] text-[#C0A04C] transition hover:bg-[#4a172d] disabled:cursor-not-allowed disabled:opacity-60 lg:mt-6"
         >
-          {isSubmitting ? <><div className="w-4 h-4 border-2 border-[#C0A04C] border-t-transparent rounded-full animate-spin" /> Checking...</> : <><Sparkles className="w-4 h-4" /> Check Availability</>}
+          {isSubmitting ? (
+            <>
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#C0A04C] border-t-transparent" />
+              Checking
+            </>
+          ) : (
+            <>
+              <Search className="h-4 w-4" />
+              Search
+            </>
+          )}
         </button>
       </form>
-      {Object.keys(errors).length > 0 && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-4">Please fill all fields correctly.</p>}
     </div>
   );
 };

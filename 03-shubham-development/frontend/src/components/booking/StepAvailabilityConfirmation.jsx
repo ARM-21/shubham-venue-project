@@ -5,6 +5,7 @@ import axiosInstance from 'lib/axios';
 import toast from 'react-hot-toast';
 import { AlertCircle, CheckCircle, Clock, ArrowLeft, ArrowRight } from 'lucide-react';
 import { ROUTES } from 'config/routes';
+import { BOOKING_LEAD_TIME_MESSAGE, SLOT_LABELS } from 'constants/slots';
 
 export default function StepAvailabilityConfirmation({ 
   hallId, 
@@ -18,6 +19,15 @@ export default function StepAvailabilityConfirmation({
   const [availability, setAvailability] = useState(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
+
+  const getUnavailableMessage = () => {
+    if (availability?.message) return availability.message;
+    if (availability?.reason === 'LEAD_TIME_REQUIRED') return BOOKING_LEAD_TIME_MESSAGE;
+    if (availability?.reason === 'PAST_DATE') return 'Past dates cannot be booked.';
+    if (availability?.reason === 'EXCEEDS_CAPACITY') return 'Guest count exceeds this hall capacity.';
+    if (availability?.reason === 'BOOKED') return 'This slot is already reserved.';
+    return availability?.reason || 'This slot is no longer available. Please try another time.';
+  };
 
   useEffect(() => {
     checkAvailability();
@@ -106,7 +116,7 @@ export default function StepAvailabilityConfirmation({
             <p className={`text-sm mt-2 ${isAvailable ? 'text-green-800' : 'text-red-800'}`}>
               {isAvailable 
                 ? 'This slot is available for your selected date and guest count.'
-                : availability?.reason || 'This slot is no longer available. Please try another time.'}
+                : getUnavailableMessage()}
             </p>
           </div>
         </div>
@@ -124,7 +134,7 @@ export default function StepAvailabilityConfirmation({
             </div>
             <div className="flex items-center justify-between pb-4 border-b border-[#3a1224]/10">
               <span className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Time Slot</span>
-              <span className="font-black text-[#3a1224] text-lg capitalize">{slot}</span>
+              <span className="font-black text-[#3a1224] text-lg">{SLOT_LABELS[slot] || slot}</span>
             </div>
           </div>
           

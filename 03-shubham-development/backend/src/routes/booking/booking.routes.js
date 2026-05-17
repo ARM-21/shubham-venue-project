@@ -4,6 +4,7 @@ import Hall from "../../models/Hall.js";
 import mongoose from "mongoose";
 import { isAuthenticated } from "../../middleware/auth.middleware.js";
 import { checkHallAvailability } from "../../services/hall/hall.service.js";
+import { getSlotPriceMultiplier } from "../../utils/bookingPolicy.utils.js";
 import { sendBookingConfirmationEmail, sendAdminBookingNotificationEmail } from "../../services/email/email.service.js";
 import User from "../../models/User.js";
 import { streamBookingInvoice } from "../../services/invoice/bookingInvoice.service.js";
@@ -13,16 +14,7 @@ const router = express.Router();
 const HOLD_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 function calculateHallPrice(hall, slot) {
-  let multiplier;
-  if (slot === "morning") {
-    multiplier = 5; // 7 AM - 12 PM
-  } else if (slot === "afternoon") {
-    multiplier = 5; // 1 PM - 6 PM
-  } else if (slot === "evening") {
-    multiplier = 3.5; // 7 PM - 10:30 PM
-  } else {
-    multiplier = 15.5; // 7 AM - 10:30 PM (wholeday)
-  }
+  const multiplier = getSlotPriceMultiplier(slot);
   return (Number(hall?.pricePerHour) || 0) * multiplier;
 }
 

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Star, Send, AlertCircle } from 'lucide-react';
 import axiosInstance from 'lib/axios';
@@ -57,7 +57,7 @@ export const ReviewForm = ({ hallId, onReviewSubmitted, bookingId }) => {
         onReviewSubmitted?.();
       }, 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit review');
+      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to submit review');
     } finally {
       setLoading(false);
     }
@@ -69,19 +69,27 @@ export const ReviewForm = ({ hallId, onReviewSubmitted, bookingId }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
-      className="bg-white p-8 rounded-2xl border border-gray-100 shadow-lg"
+      className="rounded-2xl border border-[var(--color-sand)] bg-[var(--color-ivory)] p-5 sm:p-6"
     >
-      <h3 className="text-2xl font-bold text-[#3a1224] mb-6">Share Your Experience</h3>
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C0A04C]">After your booking</p>
+          <h3 className="mt-2 text-2xl font-black text-[#3a1224]">Share your experience</h3>
+        </div>
+        <p className="max-w-sm text-sm leading-6 text-[var(--color-stone)]">
+          Reviews are checked before they are shown publicly.
+        </p>
+      </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-2">
+        <div className="mb-4 flex gap-2 rounded-xl border border-red-200 bg-red-50 p-4">
           <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
           <p className="text-red-700 text-sm">{error}</p>
         </div>
       )}
 
       {success && (
-        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <div className="mb-4 rounded-xl border border-green-200 bg-green-50 p-4">
           <p className="text-green-700 text-sm">Thank you! Your review has been submitted for approval.</p>
         </div>
       )}
@@ -89,14 +97,15 @@ export const ReviewForm = ({ hallId, onReviewSubmitted, bookingId }) => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Overall Rating */}
         <div>
-          <label className="block text-sm font-semibold text-[#3a1224] mb-3">Overall Rating</label>
-          <div className="flex gap-2">
+          <label className="mb-3 block text-sm font-black text-[#3a1224]">Overall rating</label>
+          <div className="flex flex-wrap items-center gap-2">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
                 type="button"
                 onClick={() => handleRatingChange(star)}
-                className="transition-transform hover:scale-110"
+                className="cursor-pointer rounded-lg transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C0A04C]"
+                aria-label={`Set overall rating to ${star}`}
               >
                 <Star
                   className={`w-8 h-8 ${
@@ -107,43 +116,40 @@ export const ReviewForm = ({ hallId, onReviewSubmitted, bookingId }) => {
                 />
               </button>
             ))}
-            <span className="ml-3 text-sm text-[#3a1224] font-medium">
+            <span className="ml-1 text-sm font-bold text-[#3a1224]">
               {ratingLabels[formData.rating - 1]}
             </span>
           </div>
         </div>
 
-        {/* Title */}
         <div>
-          <label className="block text-sm font-semibold text-[#3a1224] mb-2">Title</label>
+          <label className="mb-2 block text-sm font-black text-[#3a1224]">Title</label>
           <input
             type="text"
             required
             placeholder="Summarize your experience"
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#C0A04C]"
+            className="w-full rounded-xl border border-[var(--color-sand)] bg-white px-4 py-3 text-[#3a1224] outline-none transition focus:border-[#C0A04C]"
           />
         </div>
 
-        {/* Comment */}
         <div>
-          <label className="block text-sm font-semibold text-[#3a1224] mb-2">Your Review</label>
+          <label className="mb-2 block text-sm font-black text-[#3a1224]">Your review</label>
           <textarea
             required
             placeholder="Share details about your experience..."
             value={formData.comment}
             onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
             rows={5}
-            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#C0A04C]"
+            className="w-full rounded-xl border border-[var(--color-sand)] bg-white px-4 py-3 text-[#3a1224] outline-none transition focus:border-[#C0A04C]"
           />
         </div>
 
-        {/* Aspect Ratings */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {Object.entries(formData.aspects).map(([aspect, rating]) => (
-            <div key={aspect}>
-              <label className="block text-sm font-semibold text-[#3a1224] mb-2 capitalize">
+            <div key={aspect} className="rounded-xl bg-white p-4">
+              <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-[#3a1224]/60">
                 {aspect}
               </label>
               <div className="flex gap-1">
@@ -152,7 +158,8 @@ export const ReviewForm = ({ hallId, onReviewSubmitted, bookingId }) => {
                     key={star}
                     type="button"
                     onClick={() => handleAspectChange(aspect, star)}
-                    className="transition-transform hover:scale-110"
+                    className="cursor-pointer rounded-md transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C0A04C]"
+                    aria-label={`Set ${aspect} rating to ${star}`}
                   >
                     <Star
                       className={`w-6 h-6 ${
@@ -168,11 +175,10 @@ export const ReviewForm = ({ hallId, onReviewSubmitted, bookingId }) => {
           ))}
         </div>
 
-        {/* Submit Button */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#3a1224] text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-[#3a1224]/90 disabled:opacity-50 transition-all"
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#3a1224] py-3.5 font-black uppercase tracking-[0.12em] text-white transition-all hover:bg-[#3a1224]/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Send className="w-4 h-4" />
           {loading ? 'Submitting...' : 'Submit Review'}

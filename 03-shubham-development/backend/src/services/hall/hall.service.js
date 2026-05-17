@@ -1,6 +1,14 @@
 import Hall from "../../models/Hall.js";
 import Booking from "../../models/Booking.js";
 import { httpError } from "../../utils/http.utils.js";
+import {
+  BLOCKING_BOOKING_STATUSES,
+  BOOKING_SLOTS,
+  CUSTOMER_LEAD_TIME_MESSAGE,
+  getConflictSlots,
+  utcDayRange,
+  validateCustomerBookingDate,
+} from "../../utils/bookingPolicy.utils.js";
 
 
 export async function listHalls(query = {}) {
@@ -37,63 +45,6 @@ export async function getHallById(hallId) {
   return hall;
 }
 
-/**Booking availability check */
-// Keep in sync with Booking.status enum
-const BLOCKING_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"];
-const BOOKING_SLOTS = ["morning", "afternoon", "evening", "wholeday"];
-
-function getConflictSlots(slot) {
-  if (slot === "wholeday") return ["morning", "afternoon", "evening", "wholeday"];
-  if (slot === "morning") return ["morning", "wholeday"];
-  if (slot === "afternoon") return ["afternoon", "wholeday"];
-  if (slot === "evening") return ["evening", "wholeday"];
-  throw httpError(400, "slot must be morning|afternoon|evening|wholeday");
-}
-
-function toLocalDateString(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function utcDayRange(yyyyMmDd) {
-  const start = new Date(`${yyyyMmDd}T00:00:00.000Z`);
-  if (Number.isNaN(start.getTime())) return null;
-
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
-  return { start, end };
-}
-
-function isSlotTimeBlocked(dateValue, slot) {
-  const today = new Date();
-  const todayStr = toLocalDateString(today);
-
-  if (dateValue < todayStr) {
-    return { blocked: true, reason: "PAST_DATE" };
-  }
-
-  if (dateValue !== todayStr) {
-    return { blocked: false };
-  }
-
-  const start = new Date(today);
-  if (slot === "evening") {
-    start.setHours(17, 0, 0, 0);
-  } else if (slot === "afternoon") {
-    start.setHours(13, 0, 0, 0);
-  } else {
-    start.setHours(9, 0, 0, 0);
-  }
-
-  if (today >= start) {
-    return { blocked: true, reason: "TIME_BLOCKED" };
-  }
-
-  return { blocked: false };
-}
-
 export async function checkHallAvailability({ hallId, date, slot, guests }) {
   if (!date || typeof date !== "string") throw httpError(400, "date is required (yyyy-mm-dd)");
   if (!slot) throw httpError(400, "slot is required");
@@ -101,7 +52,7 @@ export async function checkHallAvailability({ hallId, date, slot, guests }) {
 
   const conflictSlots = getConflictSlots(slot);
 
-  const requestedTimeBlock = isSlotTimeBlocked(date, slot);
+  const requestedDatePolicy = validateCustomerBookingDate(date);
 
   const range = utcDayRange(date);
   if (!range) throw httpError(400, "Invalid date format, use yyyy-mm-dd");
@@ -113,27 +64,30 @@ export async function checkHallAvailability({ hallId, date, slot, guests }) {
 
   if (Number(guests) > hall.capacity) return { available: false, reason: "EXCEEDS_CAPACITY", availableSlots: [] };
 
+  if (requestedDatePolicy.blocked) {
+    return {
+      available: false,
+      reason: requestedDatePolicy.reason,
+      message: requestedDatePolicy.message || CUSTOMER_LEAD_TIME_MESSAGE,
+      minimumDate: requestedDatePolicy.minimumDate,
+      availableSlots: [],
+    };
+  }
+
   const blockingBookings = await Booking.find({
     hallId,
     date: { $gte: range.start, $lt: range.end },
-    status: { $in: BLOCKING_STATUSES },
+    status: { $in: BLOCKING_BOOKING_STATUSES },
   })
     .select("status slot")
     .lean();
 
   const availableSlots = BOOKING_SLOTS.filter((candidateSlot) => {
-    const candidateTimeBlock = isSlotTimeBlocked(date, candidateSlot);
-    if (candidateTimeBlock.blocked) return false;
-
     const candidateConflicts = getConflictSlots(candidateSlot);
     return !blockingBookings.some((booking) => candidateConflicts.includes(booking.slot));
   });
 
   const blocking = blockingBookings.find((booking) => conflictSlots.includes(booking.slot));
-
-  if (requestedTimeBlock.blocked) {
-    return { available: false, reason: requestedTimeBlock.reason, availableSlots };
-  }
 
   if (blocking) {
     return {
