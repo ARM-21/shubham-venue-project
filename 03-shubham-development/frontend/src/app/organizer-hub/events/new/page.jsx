@@ -123,6 +123,11 @@ export default function OrganizerEventCreatePage() {
       ageRestriction: formData.ageRestriction?.trim(),
       specialRequirements: formData.specialRequirements?.trim(),
       catering: formData.catering || false,
+      cateringPlan: formData.cateringPlan || "none",
+      cateringMenus: formData.cateringMenus || [],
+      cateringGuestCount: formData.cateringGuestCount || undefined,
+      cateringServiceTime: formData.cateringServiceTime || "",
+      cateringNotes: formData.cateringNotes || "",
       decoration: formData.decoration || false,
       requiresTicket: formData.requiresTicket !== false,
       location: {
@@ -298,6 +303,7 @@ export default function OrganizerEventCreatePage() {
                 
                 <ProfessionalEventForm 
                   initialData={{ bookingId: selectedBookingId }}
+                  booking={selectedBooking}
                   onSubmit={onFormSubmit}
                   isLoading={isCreating}
                 />

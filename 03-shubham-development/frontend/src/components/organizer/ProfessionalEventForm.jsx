@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { AlertCircle, Calendar, ClipboardList, Eye, FileText, MapPin, Trash2, Upload, Users } from "lucide-react";
+import { AlertCircle, Calendar, ClipboardList, Eye, FileText, MapPin, Trash2, Upload, UtensilsCrossed, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "lib/axios";
+import { ROUTES } from "config/routes";
 
 export const EVENT_CATEGORIES = [
   { value: "WEDDING", label: "Wedding" },
@@ -53,7 +54,30 @@ function formatDate(value) {
   }
 }
 
-export default function ProfessionalEventForm({ initialData = null, onSubmit, isLoading = false }) {
+function dateInputValue(value) {
+  if (!value) return "";
+  try {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  } catch {
+    return "";
+  }
+}
+
+function readHallLocation(hall) {
+  if (!hall) return { city: "", state: "", country: "" };
+  return {
+    city: hall.location?.city || hall.city || "",
+    state: hall.location?.state || hall.state || "",
+    country: hall.location?.country || hall.country || "",
+  };
+}
+
+export default function ProfessionalEventForm({ initialData = null, booking = null, onSubmit, isLoading = false }) {
   const [activeTab, setActiveTab] = useState("basic");
   const [bannerPreview, setBannerPreview] = useState(initialData?.bannerUrl || "");
   const [bannerError, setBannerError] = useState(null);
@@ -62,6 +86,8 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
   const [hallLocation, setHallLocation] = useState(null);
   const [hallCapacity, setHallCapacity] = useState(null);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [menuPackages, setMenuPackages] = useState([]);
+  const [menusLoading, setMenusLoading] = useState(false);
 
   const {
     register,
@@ -90,7 +116,11 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
       state: initialData?.location?.state || "",
       country: initialData?.location?.country || "",
       specialRequirements: initialData?.specialRequirements || "",
-      catering: initialData?.catering || false,
+      cateringPlan: initialData?.cateringPlan || (initialData?.catering ? (initialData?.cateringMenus?.length ? "choose_now" : "decide_later") : "none"),
+      cateringMenuId: initialData?.cateringMenus?.[0]?._id || initialData?.cateringMenus?.[0] || "",
+      cateringGuestCount: initialData?.cateringGuestCount || initialData?.expectedAttendees || "",
+      cateringServiceTime: initialData?.cateringServiceTime || "",
+      cateringNotes: initialData?.cateringNotes || "",
       decoration: initialData?.decoration || false,
       requiresTicket: initialData?.requiresTicket !== false,
       visibility: initialData?.isPublic ? "public" : "private",
@@ -102,35 +132,92 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
   const maxAttendees = watch("maxAttendees");
   const expectedAttendees = watch("expectedAttendees");
   const bannerUrl = watch("bannerUrl");
+  const registrationStartDate = watch("registrationStartDate");
+  const cateringPlan = watch("cateringPlan");
+  const todayDate = dateInputValue(new Date());
+  const bookingDateInput = dateInputValue(bookingDate);
 
   useEffect(() => {
-    if (initialData?.bookingId && !bookingDate) {
+    if (cateringPlan !== "choose_now" || menuPackages.length) return;
+    let ignore = false;
+    setMenusLoading(true);
+    axiosInstance
+      .get(ROUTES.API.MENUS.ROOT)
+      .then((res) => {
+        const menus = res.data?.menus || res.data?.data || (Array.isArray(res.data) ? res.data : []);
+        if (!ignore) setMenuPackages(menus.filter((menu) => menu.isActive !== false));
+      })
+      .catch(() => {
+        if (!ignore) toast.error("Could not load menu packages");
+      })
+      .finally(() => {
+        if (!ignore) setMenusLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [cateringPlan, menuPackages.length]);
+
+  useEffect(() => {
+    const bookingId = initialData?.bookingId || booking?._id;
+    if (!bookingId) return;
+
+    setBookingDate(null);
+    setBookingSlot(null);
+    setHallLocation(null);
+    setHallCapacity(null);
+
+    const applyBooking = (bookingPayload) => {
+      if (!bookingPayload) return;
+      if (bookingPayload.date) setBookingDate(bookingPayload.date);
+      const slot = bookingPayload.slot;
+      setBookingSlot(slot);
+      const timeRange = deriveEventTimeRange(slot);
+      if (timeRange.startTime && timeRange.endTime) {
+        setValue("eventStartTime", timeRange.startTime);
+        setValue("eventEndTime", timeRange.endTime);
+      }
+
+      const embeddedHall = typeof bookingPayload.hallId === "object" ? bookingPayload.hallId : null;
+      if (embeddedHall) {
+        const location = readHallLocation(embeddedHall);
+        setHallCapacity(embeddedHall.capacity || null);
+        if (location.city || location.state || location.country) {
+          setHallLocation(location);
+          setValue("city", location.city);
+          setValue("state", location.state);
+          setValue("country", location.country);
+        }
+      }
+    };
+
+    applyBooking(booking);
+
+    if (bookingId) {
       setBookingLoading(true);
       axiosInstance
-        .get(`/api/v1/bookings/${initialData.bookingId}`)
+        .get(`/api/v1/bookings/${bookingId}`)
         .then((res) => {
-          const booking = res.data?.booking;
-          if (booking?.date) {
-            setBookingDate(booking.date);
-            const slot = booking.slot;
-            setBookingSlot(slot);
-            const timeRange = deriveEventTimeRange(slot);
-            if (timeRange.startTime && timeRange.endTime) {
-              setValue("eventStartTime", timeRange.startTime);
-              setValue("eventEndTime", timeRange.endTime);
-            }
-            if (booking.hallId?._id || booking.hallId) {
-              const hallId = booking.hallId?._id || booking.hallId;
+          const bookingPayload = res.data?.booking;
+          applyBooking(bookingPayload);
+
+          if (bookingPayload?.hallId?._id || bookingPayload?.hallId || booking?.hallId?._id || booking?.hallId) {
+            const embeddedHall = typeof bookingPayload?.hallId === "object" ? bookingPayload.hallId : typeof booking?.hallId === "object" ? booking.hallId : null;
+            const embeddedLocation = readHallLocation(embeddedHall);
+            if (embeddedLocation.city || embeddedLocation.state || embeddedLocation.country) {
+              setHallLocation(embeddedLocation);
+              setHallCapacity(embeddedHall?.capacity || null);
+              setValue("city", embeddedLocation.city);
+              setValue("state", embeddedLocation.state);
+              setValue("country", embeddedLocation.country);
+            } else {
+              const hallId = bookingPayload?.hallId?._id || bookingPayload?.hallId || booking?.hallId?._id || booking?.hallId;
               axiosInstance
                 .get(`/api/v1/halls/${hallId}`)
                 .then((hallRes) => {
                   const hall = hallRes.data?.hall || hallRes.data?.data;
                   if (hall) {
-                    const location = {
-                      city: hall.location?.city || hall.city || "",
-                      state: hall.location?.state || hall.state || "",
-                      country: hall.location?.country || hall.country || "",
-                    };
+                    const location = readHallLocation(hall);
                     setHallLocation(location);
                     setHallCapacity(hall.capacity || null);
                     setValue("city", location.city);
@@ -150,7 +237,7 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
         })
         .finally(() => setBookingLoading(false));
     }
-  }, [initialData?.bookingId, bookingDate, setValue]);
+  }, [initialData?.bookingId, booking, setValue]);
 
   useEffect(() => {
     if (bannerUrl && bannerUrl !== bannerPreview) setBannerPreview(bannerUrl);
@@ -200,6 +287,14 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
       toast.error("Registration start date must be before end date");
       return;
     }
+    if (data.registrationStartDate && dateInputValue(data.registrationStartDate) < todayDate) {
+      toast.error("Registration cannot open before today");
+      return;
+    }
+    if (data.registrationEndDate && dateInputValue(data.registrationEndDate) < todayDate) {
+      toast.error("Registration cannot close before today");
+      return;
+    }
     if (data.registrationEndDate && bookingDate && new Date(data.registrationEndDate) > new Date(bookingDate)) {
       toast.error("Registration must end before or on event date");
       return;
@@ -220,6 +315,15 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
     }
     if (maxAttendeesNum && expectedAttendeesNum && expectedAttendeesNum > maxAttendeesNum) {
       toast.error("Expected attendees cannot exceed maximum attendees");
+      return;
+    }
+    if (data.cateringPlan === "choose_now" && !data.cateringMenuId) {
+      toast.error("Choose a menu package or select Decide later");
+      return;
+    }
+    const cateringGuestCount = data.cateringGuestCount ? parseInt(data.cateringGuestCount) : expectedAttendeesNum || maxAttendeesNum || null;
+    if (data.cateringPlan !== "none" && cateringGuestCount !== null && cateringGuestCount < 0) {
+      toast.error("Catering guest count cannot be negative");
       return;
     }
 
@@ -244,6 +348,12 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
         isPublic: visibility === "public",
         maxAttendees: maxAttendeesNum,
         expectedAttendees: expectedAttendeesNum,
+        catering: data.cateringPlan !== "none",
+        cateringPlan: data.cateringPlan,
+        cateringMenus: data.cateringPlan === "choose_now" && data.cateringMenuId ? [data.cateringMenuId] : [],
+        cateringGuestCount: data.cateringPlan === "none" ? null : cateringGuestCount,
+        cateringServiceTime: data.cateringPlan === "none" ? "" : data.cateringServiceTime?.trim(),
+        cateringNotes: data.cateringPlan === "none" ? "" : data.cateringNotes?.trim(),
         location: {
           city: data.city || null,
           state: data.state || null,
@@ -369,7 +479,13 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
                   </div>
                 </TextField>
                 <TextField label="Registration opens">
-                  <input type="date" {...register("registrationStartDate")} className={inputClass} />
+                  <input
+                    type="date"
+                    {...register("registrationStartDate")}
+                    min={todayDate}
+                    max={bookingDateInput || undefined}
+                    className={inputClass}
+                  />
                 </TextField>
                 <TextField label="Registration closes" required error={errors.registrationEndDate?.message}>
                   <input
@@ -378,11 +494,14 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
                       required: "Registration close date is required",
                       validate: (value) => {
                         if (!value || !bookingDate) return true;
+                        if (dateInputValue(value) < todayDate) return "Registration cannot close before today";
+                        if (registrationStartDate && new Date(value) < new Date(registrationStartDate)) return "Registration cannot close before it opens";
                         if (new Date(value) > new Date(bookingDate)) return "Registration cannot close after event date";
                         return true;
                       },
                     })}
-                    max={bookingDate ? new Date(bookingDate).toISOString().split("T")[0] : undefined}
+                    min={registrationStartDate || todayDate}
+                    max={bookingDateInput || undefined}
                     className={inputClass}
                   />
                 </TextField>
@@ -448,8 +567,52 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
               <TextField label="Venue notes">
                 <textarea {...register("specialRequirements")} rows={5} placeholder="Any special arrangements, setup notes, accessibility needs, or venue staff instructions." className={`${inputClass} h-auto resize-none py-3 leading-6`} />
               </TextField>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <CheckOption register={register} name="catering" label="Catering needed" />
+              <div>
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/40">Catering plan</p>
+                <div className="grid gap-3 lg:grid-cols-3">
+                  <RadioCard register={register} active={cateringPlan === "none"} name="cateringPlan" value="none" title="No catering" text="This event does not need venue catering." />
+                  <RadioCard register={register} active={cateringPlan === "choose_now"} name="cateringPlan" value="choose_now" title="Choose menu now" text="Select a package and send it with the event setup." />
+                  <RadioCard register={register} active={cateringPlan === "decide_later"} name="cateringPlan" value="decide_later" title="Decide later" text="Create the event first and request catering later." />
+                </div>
+              </div>
+              {cateringPlan === "choose_now" && (
+                <div className="border border-[#e8dcc8] bg-[#fbf8f2] p-4">
+                  <div className="mb-4 flex items-start gap-3">
+                    <UtensilsCrossed className="mt-0.5 h-5 w-5 text-[#3a1224]/45" />
+                    <div>
+                      <p className="text-sm font-black text-[#3a1224]">Menu package request</p>
+                      <p className="mt-1 text-xs leading-5 text-[#3a1224]/50">This records the organizer's catering request. Venue/admin confirmation can still happen before payment or service delivery.</p>
+                    </div>
+                  </div>
+                  <FieldGrid>
+                    <TextField label="Menu package">
+                      <select {...register("cateringMenuId")} className={inputClass} disabled={menusLoading}>
+                        <option value="">{menusLoading ? "Loading packages..." : "Select a package"}</option>
+                        {menuPackages.map((menu) => (
+                          <option key={menu._id} value={menu._id}>
+                            {menu.name} - NPR {Number(menu.pricePerPerson || 0).toLocaleString()} / person
+                          </option>
+                        ))}
+                      </select>
+                    </TextField>
+                    <TextField label="Catering guests">
+                      <input type="number" min="0" max={hallCapacity || undefined} {...register("cateringGuestCount")} placeholder={expectedAttendees || maxAttendees || "Estimated count"} className={inputClass} />
+                    </TextField>
+                    <TextField label="Service time">
+                      <input type="time" {...register("cateringServiceTime")} className={inputClass} />
+                    </TextField>
+                  </FieldGrid>
+                </div>
+              )}
+              {cateringPlan === "decide_later" && (
+                <InfoBox title="Catering can be requested later" text="The event will be created without menu pricing. Add a catering request from event services once the plan is clearer." tone="blue" />
+              )}
+              {cateringPlan !== "none" && (
+                <TextField label="Catering notes">
+                  <textarea {...register("cateringNotes")} rows={3} placeholder="Dietary notes, preferred service style, or timing requirements." className={`${inputClass} h-auto resize-none py-3 leading-6`} />
+                </TextField>
+              )}
+              <div className="grid gap-3 sm:grid-cols-2">
                 <CheckOption register={register} name="decoration" label="Decoration needed" />
                 <CheckOption register={register} name="requiresTicket" label="Tickets required" />
               </div>
@@ -536,10 +699,10 @@ function CheckOption({ register, name, label }) {
   );
 }
 
-function RadioCard({ register, active, value, title, text }) {
+function RadioCard({ register, active, value, title, text, name = "visibility" }) {
   return (
     <label className={`flex cursor-pointer gap-3 border p-4 ${active ? "border-[#3a1224] bg-[#fbf8f2]" : "border-[#e8dcc8] bg-white"}`}>
-      <input type="radio" value={value} {...register("visibility")} className="mt-1 h-4 w-4 accent-[#3a1224]" />
+      <input type="radio" value={value} {...register(name)} className="mt-1 h-4 w-4 accent-[#3a1224]" />
       <span>
         <span className="block text-sm font-black text-[#3a1224]">{title}</span>
         <span className="mt-1 block text-xs leading-5 text-[#3a1224]/50">{text}</span>

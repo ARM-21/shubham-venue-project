@@ -14,7 +14,5 @@ const systemConfigSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-systemConfigSchema.index({ key: 1 }, { unique: true });
-
 const SystemConfig = mongoose.model("SystemConfig", systemConfigSchema);
 export default SystemConfig;
