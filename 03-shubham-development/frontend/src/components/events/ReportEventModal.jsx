@@ -4,16 +4,16 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { submitEventReport } from '@api/governance/event-reports-api';
 import { toast } from 'sonner';
-import { AlertCircle, X, CheckCircle, ChevronLeft } from 'lucide-react';
+import { X } from 'lucide-react';
 
 const REPORT_REASONS = [
-  { value: 'suspicious_activity', label: 'Suspicious Activity' },
-  { value: 'false_content', label: 'False or Misleading Content' },
-  { value: 'policy_violation', label: 'Policy Violation' },
+  { value: 'suspicious_activity', label: 'Suspicious activity' },
+  { value: 'false_content', label: 'False or misleading content' },
+  { value: 'policy_violation', label: 'Policy violation' },
   { value: 'spam', label: 'Spam' },
-  { value: 'fraud', label: 'Fraud or Scam' },
-  { value: 'inappropriate_content', label: 'Inappropriate Content' },
-  { value: 'discrimination', label: 'Discrimination or Harassment' },
+  { value: 'fraud', label: 'Fraud or scam' },
+  { value: 'inappropriate_content', label: 'Inappropriate content' },
+  { value: 'discrimination', label: 'Discrimination or harassment' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -21,7 +21,7 @@ const PRIORITY_LEVELS = [
   { value: 'low', label: 'Low' },
   { value: 'medium', label: 'Medium' },
   { value: 'high', label: 'High' },
-  { value: 'critical', label: 'Critical Issue' },
+  { value: 'critical', label: 'Critical' },
 ];
 
 export default function ReportEventModal({ eventId, eventName, isOpen, onClose, onReportSuccess }) {
@@ -29,7 +29,7 @@ export default function ReportEventModal({ eventId, eventName, isOpen, onClose, 
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('medium');
   const [evidence, setEvidence] = useState('');
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const reportMutation = useMutation({
     mutationFn: () =>
@@ -37,15 +37,12 @@ export default function ReportEventModal({ eventId, eventName, isOpen, onClose, 
         eventId,
         reason,
         description,
-        evidence
-          .split('\n')
-          .map(e => e.trim())
-          .filter(e => e),
+        evidence.split('\n').map((e) => e.trim()).filter(Boolean),
         priority
       ),
     onSuccess: () => {
-      toast.success('Event reported successfully. Our team will review it shortly.');
-      setShowConfirmation(true);
+      toast.success('Report submitted. Our team will review it shortly.');
+      setSubmitted(true);
       onReportSuccess?.();
     },
     onError: (error) => {
@@ -58,223 +55,160 @@ export default function ReportEventModal({ eventId, eventName, isOpen, onClose, 
     setDescription('');
     setPriority('medium');
     setEvidence('');
-    setShowConfirmation(false);
+    setSubmitted(false);
     onClose();
-  };
-
-  const handleBackToEvent = () => {
-    handleClose();
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    if (!reason) {
-      toast.error('Please select a reason');
-      return;
-    }
-
-    if (!description || description.length < 10) {
-      toast.error('Description must be at least 10 characters');
-      return;
-    }
-
+    if (!reason) { toast.error('Please select a reason'); return; }
+    if (!description || description.length < 10) { toast.error('Description must be at least 10 characters'); return; }
     reportMutation.mutate();
   };
 
   if (!isOpen) return null;
 
-  // Confirmation screen
-  if (showConfirmation) {
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-[2.5rem] border border-gray-200 w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-[#3a1224] to-[#5a2a3c] border-b border-[#C0A04C]/20 p-6 flex items-center justify-between rounded-t-[2.5rem] flex-shrink-0">
-            <h2 className="text-2xl font-bold text-white">Report Submitted</h2>
+  return (
+    <div
+      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+    >
+      <div className="flex w-full max-w-lg flex-col rounded-2xl border border-[#e8dcc8] bg-white shadow-[0_24px_64px_rgba(0,0,0,0.18)]">
+
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[#e8dcc8] px-6 py-4">
+          <div>
+            <h2 className="text-base font-black text-[#3a1224]">Report event</h2>
+            {eventName && (
+              <p className="mt-0.5 text-xs text-[#3a1224]/50 line-clamp-1">{eventName}</p>
+            )}
+          </div>
+          <button
+            onClick={handleClose}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#3a1224]/40 transition hover:bg-[#f4eadb] hover:text-[#3a1224]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {submitted ? (
+          /* Confirmation */
+          <div className="px-6 py-8 text-center">
+            <p className="text-sm font-black text-[#3a1224]">Report received</p>
+            <p className="mt-2 text-sm text-[#3a1224]/55">
+              Our team will review your report. The event remains visible while under investigation.
+            </p>
+            {reportMutation.data?.reportId && (
+              <p className="mt-3 text-xs text-[#3a1224]/35">
+                Reference: {reportMutation.data.reportId}
+              </p>
+            )}
             <button
               onClick={handleClose}
-              className="p-2 hover:bg-white/10 rounded-lg transition text-white/70 hover:text-white"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div className="p-8 space-y-6 overflow-y-auto flex-1 flex flex-col items-center justify-center text-center">
-            <CheckCircle className="w-16 h-16 text-emerald-500 flex-shrink-0" />
-            
-            <div>
-              <h3 className="text-2xl font-bold text-[#3a1224] mb-3">Thank You!</h3>
-              <p className="text-gray-600 mb-4">
-                Your report has been successfully submitted.
-              </p>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 w-full">
-              <p className="text-sm text-[#3a1224]">
-                <strong className="text-blue-600">📋 What happens next:</strong>
-              </p>
-              <ul className="text-sm text-gray-600 mt-3 space-y-2 text-left">
-                <li>✓ Our admin team will review your report</li>
-                <li>✓ The event will remain visible during investigation</li>
-                <li>✓ Admin will take action if violations are confirmed</li>
-                <li>✓ You'll see updates on the event page</li>
-              </ul>
-            </div>
-
-            <div className="w-full">
-              <p className="text-xs text-gray-500">
-                Report ID: {reportMutation.data?.reportId || 'Pending...'}
-              </p>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="p-6 border-t border-gray-200 flex gap-4">
-            <button
-              onClick={handleBackToEvent}
-              className="flex-1 px-4 py-3 flex items-center justify-center gap-2 bg-[#C0A04C] hover:bg-[#b8942d] text-[#3a1224] rounded-lg font-semibold transition"
-            >
-              <ChevronLeft size={20} />
-              Back to Event
-            </button>
-            <button
-              onClick={handleClose}
-              className="flex-1 px-4 py-3 border-2 border-[#3a1224]/20 hover:border-[#3a1224]/50 hover:bg-[#fdfaf6] rounded-lg text-[#3a1224] font-semibold transition"
+              className="mt-6 inline-flex h-10 items-center rounded-2xl bg-[#3a1224] px-6 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#4b1830]"
             >
               Close
             </button>
           </div>
-        </div>
-      </div>
-    );
-  }
+        ) : (
+          /* Form */
+          <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
+            <div className="space-y-4 overflow-y-auto px-6 py-5" style={{ maxHeight: 'calc(90vh - 130px)' }}>
 
-  // Report form
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-[2.5rem] border border-gray-200 w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[#3a1224] to-[#5a2a3c] border-b border-[#C0A04C]/20 p-6 flex items-center justify-between rounded-t-[2.5rem] flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="w-6 h-6 text-[#C0A04C]" />
-            <h2 className="text-2xl font-bold text-white">Report Event</h2>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition text-white/70 hover:text-white"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto flex-1">
-          {/* Event Info */}
-          <div className="bg-[#fdfaf6] rounded-xl p-4 border border-[#C0A04C]/20">
-            <p className="text-xs text-[#3a1224]/60 mb-1 font-semibold uppercase tracking-wider">Reporting Event:</p>
-            <p className="text-[#3a1224] font-bold text-lg">{eventName}</p>
-          </div>
-
-          {/* Reason */}
-          <div>
-            <label className="block text-sm font-semibold text-[#3a1224] mb-3">
-              Reason for Report <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="w-full px-4 py-3 bg-white border-2 border-[#C0A04C]/30 rounded-lg text-[#3a1224] placeholder-[#3a1224]/40 focus:outline-none focus:ring-2 focus:ring-[#C0A04C] focus:border-[#C0A04C] transition font-medium"
-            >
-              <option value="">Select a reason...</option>
-              {REPORT_REASONS.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-semibold text-[#3a1224] mb-3">
-              Description <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Provide detailed information about why you're reporting this event (minimum 10 characters)..."
-              rows={5}
-              className="w-full px-4 py-3 bg-white border-2 border-[#C0A04C]/30 rounded-lg text-[#3a1224] placeholder-[#3a1224]/40 focus:outline-none focus:ring-2 focus:ring-[#C0A04C] focus:border-[#C0A04C] transition resize-none font-medium"
-            />
-            <p className="text-xs text-[#3a1224]/50 mt-2">
-              {description.length}/1000 characters
-            </p>
-          </div>
-
-          {/* Priority */}
-          <div>
-            <label className="block text-sm font-semibold text-[#3a1224] mb-3">Priority Level</label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {PRIORITY_LEVELS.map((p) => (
-                <button
-                  key={p.value}
-                  type="button"
-                  onClick={() => setPriority(p.value)}
-                  className={`px-4 py-2.5 rounded-lg border-2 transition text-sm font-semibold ${
-                    priority === p.value
-                      ? 'bg-[#C0A04C] border-[#C0A04C] text-[#3a1224]'
-                      : 'bg-white border-[#C0A04C]/30 text-[#3a1224] hover:border-[#C0A04C]'
-                  }`}
+              {/* Reason */}
+              <div>
+                <label className="mb-1.5 block text-xs font-black uppercase tracking-[0.16em] text-[#3a1224]/50">
+                  Reason <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="w-full rounded-xl border border-[#e8dcc8] bg-white px-3.5 py-2.5 text-sm font-medium text-[#3a1224] outline-none transition focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/15"
                 >
-                  {p.label}
-                </button>
-              ))}
+                  <option value="">Select a reason</option>
+                  {REPORT_REASONS.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="mb-1.5 block text-xs font-black uppercase tracking-[0.16em] text-[#3a1224]/50">
+                  Details <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe what's wrong with this event (minimum 10 characters)"
+                  rows={4}
+                  className="w-full resize-none rounded-xl border border-[#e8dcc8] bg-white px-3.5 py-2.5 text-sm text-[#3a1224] placeholder-[#3a1224]/30 outline-none transition focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/15"
+                />
+                <p className="mt-1 text-right text-xs text-[#3a1224]/35">{description.length} / 1000</p>
+              </div>
+
+              {/* Priority */}
+              <div>
+                <label className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-[#3a1224]/50">
+                  Severity
+                </label>
+                <div className="flex gap-2">
+                  {PRIORITY_LEVELS.map((p) => (
+                    <button
+                      key={p.value}
+                      type="button"
+                      onClick={() => setPriority(p.value)}
+                      className={`flex-1 rounded-xl border py-2 text-xs font-black transition ${
+                        priority === p.value
+                          ? 'border-[#3a1224] bg-[#3a1224] text-white'
+                          : 'border-[#e8dcc8] bg-white text-[#3a1224]/60 hover:border-[#3a1224]/30'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Evidence */}
+              <div>
+                <label className="mb-1.5 block text-xs font-black uppercase tracking-[0.16em] text-[#3a1224]/50">
+                  Evidence links <span className="text-[#3a1224]/30">(optional)</span>
+                </label>
+                <textarea
+                  value={evidence}
+                  onChange={(e) => setEvidence(e.target.value)}
+                  placeholder="One URL per line"
+                  rows={2}
+                  className="w-full resize-none rounded-xl border border-[#e8dcc8] bg-white px-3.5 py-2.5 text-sm text-[#3a1224] placeholder-[#3a1224]/30 outline-none transition focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/15"
+                />
+              </div>
+
+              <p className="text-xs text-[#3a1224]/40">
+                False reports may result in restrictions on your account.
+              </p>
             </div>
-          </div>
 
-          {/* Evidence URLs */}
-          <div>
-            <label className="block text-sm font-semibold text-[#3a1224] mb-3">
-              Evidence Links (Optional)
-            </label>
-            <textarea
-              value={evidence}
-              onChange={(e) => setEvidence(e.target.value)}
-              placeholder="Add links to screenshots, videos, or other evidence (one per line)..."
-              rows={3}
-              className="w-full px-4 py-3 bg-white border-2 border-[#C0A04C]/30 rounded-lg text-[#3a1224] placeholder-[#3a1224]/40 focus:outline-none focus:ring-2 focus:ring-[#C0A04C] focus:border-[#C0A04C] transition resize-none font-medium"
-            />
-          </div>
-
-          {/* Disclaimer */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <p className="text-sm text-[#3a1224]">
-              <strong className="text-[#C0A04C]">⚠️ Note:</strong> False reports may result in
-              penalties to your account. Please only report genuine policy violations.
-            </p>
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-4 pt-6 border-t border-gray-200 mt-6">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={reportMutation.isPending}
-              className="flex-1 px-4 py-3 border-2 border-[#3a1224]/20 hover:border-[#3a1224]/50 hover:bg-[#fdfaf6] rounded-lg text-[#3a1224] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={reportMutation.isPending}
-              className="flex-1 px-4 py-3 bg-[#C0A04C] hover:bg-[#b8942d] text-[#3a1224] rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              {reportMutation.isPending ? 'Submitting...' : 'Submit Report'}
-            </button>
-          </div>
-        </form>
+            {/* Footer */}
+            <div className="flex gap-3 border-t border-[#e8dcc8] px-6 py-4">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={reportMutation.isPending}
+                className="h-10 flex-1 rounded-xl border border-[#e8dcc8] text-sm font-bold text-[#3a1224] transition hover:bg-[#fbf8f2] disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={reportMutation.isPending}
+                className="h-10 flex-1 rounded-xl bg-[#3a1224] text-sm font-black text-white transition hover:bg-[#4b1830] disabled:opacity-50"
+              >
+                {reportMutation.isPending ? 'Submitting…' : 'Submit report'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

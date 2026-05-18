@@ -1,13 +1,13 @@
 'use client';
 
-import { X, Mail, Phone, Calendar, Ticket, Clock, Eye, EyeOff, Copy, Check, AlertCircle, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, Calendar, Check, CheckCircle2, Copy, Eye, EyeOff, Mail, Phone, RefreshCw, Ticket, X, XCircle } from 'lucide-react';
 import { useState } from 'react';
 
 function formatDate(value) {
   try {
-    return new Intl.DateTimeFormat("en-GB", { 
-      year: "numeric", 
-      month: "short", 
+    return new Intl.DateTimeFormat("en-GB", {
+      year: "numeric",
+      month: "short",
       day: "numeric",
       weekday: "short",
       hour: "2-digit",
@@ -18,6 +18,8 @@ function formatDate(value) {
   }
 }
 
+const EMPTY = "-";
+
 export function GuestDetailModal({ guest, isOpen, onClose }) {
   const [copied, setCopied] = useState(null);
   const [revealPhone, setRevealPhone] = useState(false);
@@ -26,296 +28,147 @@ export function GuestDetailModal({ guest, isOpen, onClose }) {
 
   const attendee = guest.attendee || {};
   const ticketType = guest.ticketType || {};
-  const firstName = attendee.first_name || "—";
-  const lastName = attendee.last_name || "—";
-  const email = attendee.email || "—";
-  const phone = attendee.phone || "—";
-  const qrCode = guest.qrCodeValue || "—";
+  const firstName = attendee.first_name || EMPTY;
+  const lastName = attendee.last_name || EMPTY;
+  const email = attendee.email || EMPTY;
+  const phone = attendee.phone || EMPTY;
+  const qrCode = guest.qrCodeValue || EMPTY;
   const status = guest.status || "UNKNOWN";
   const checkedInAt = guest.checkedInAt;
   const createdAt = guest.createdAt;
-  const ticketName = ticketType.name || "—";
-  const ticketPrice = ticketType.price || "—";
+  const ticketName = ticketType.name || EMPTY;
+  const ticketPrice = ticketType.price || EMPTY;
 
   const handleCopy = (text, type) => {
-    if (text === "—") return;
+    if (text === EMPTY) return;
     navigator.clipboard.writeText(text);
     setCopied(type);
-    setTimeout(() => setCopied(null), 2000);
+    setTimeout(() => setCopied(null), 1800);
   };
 
-  // Professional status mapping with icons
   const statusInfo = {
-    ACTIVE: { 
-      color: 'bg-emerald-500/10 border-emerald-500/20', 
-      textColor: 'text-emerald-600', 
-      icon: CheckCircle2,
-      label: 'Active' 
-    },
-    USED: { 
-      color: 'bg-blue-500/10 border-blue-500/20', 
-      textColor: 'text-blue-600', 
-      icon: CheckCircle2,
-      label: 'Used' 
-    },
-    CANCELLED: { 
-      color: 'bg-red-500/10 border-red-500/20', 
-      textColor: 'text-red-600', 
-      icon: XCircle,
-      label: 'Cancelled' 
-    },
-    REFUNDED: { 
-      color: 'bg-orange-500/10 border-orange-500/20', 
-      textColor: 'text-orange-600', 
-      icon: RefreshCw,
-      label: 'Refunded' 
-    },
+    ACTIVE: { color: 'border-emerald-200 bg-emerald-50 text-emerald-700', icon: CheckCircle2, label: 'Active' },
+    USED: { color: 'border-blue-200 bg-blue-50 text-blue-700', icon: CheckCircle2, label: 'Used' },
+    CANCELLED: { color: 'border-red-200 bg-red-50 text-red-700', icon: XCircle, label: 'Cancelled' },
+    REFUNDED: { color: 'border-orange-200 bg-orange-50 text-orange-700', icon: RefreshCw, label: 'Refunded' },
   };
 
-  const currentStatus = statusInfo[status] || { 
-    color: 'bg-gray-500/10 border-gray-500/20', 
-    textColor: 'text-gray-600', 
+  const currentStatus = statusInfo[status] || {
+    color: 'border-[#e8dcc8] bg-[#fbf8f2] text-[#3a1224]/60',
     icon: AlertCircle,
-    label: 'Unknown' 
+    label: 'Unknown',
   };
-  
   const StatusIcon = currentStatus.icon;
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
-        <div
-          className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-[#3a1224]/5">
-            <div>
-              <h2 className="text-2xl font-black text-[#3a1224] uppercase tracking-wider">
-                {firstName} {lastName}
-              </h2>
-              <p className="text-sm text-[#3a1224]/50 mt-1">{email}</p>
+      <div className="fixed inset-0 z-40 bg-black/35" onClick={onClose} />
+      <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
+        <div className="w-full max-w-2xl border border-[#e8dcc8] bg-white" onClick={(event) => event.stopPropagation()}>
+          <div className="flex items-start justify-between gap-4 border-b border-[#e8dcc8] px-5 py-4">
+            <div className="min-w-0">
+              <h2 className="truncate text-xl font-black text-[#3a1224]">{firstName} {lastName}</h2>
+              <p className="mt-1 truncate text-sm text-[#3a1224]/50">{email}</p>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-[#3a1224]/5 rounded-lg transition-colors"
-            >
-              <X className="w-6 h-6 text-[#3a1224]" />
+            <button type="button" onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#e8dcc8] text-[#3a1224]/55 hover:bg-[#fbf8f2]">
+              <X className="h-4 w-4" />
             </button>
           </div>
 
-          {/* Content */}
-          <div className="p-8 max-h-[70vh] overflow-y-auto">
-            {/* Contact Information */}
-            <section className="mb-8">
-              <h3 className="text-xs font-black text-[#3a1224]/40 uppercase tracking-[0.2em] mb-4">
-                Contact Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Email */}
-                <div className="p-4 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl hover:border-[#C0A04C]/20 transition-colors group">
-                  <div className="flex items-start gap-3">
-                    <Mail className="w-5 h-5 text-[#C0A04C] flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#3a1224]/60 mb-1">Email</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-mono text-[#3a1224] break-all min-w-0">
-                          {email === "—" ? email : (copied === 'email' ? '✓' : email)}
-                        </p>
-                        {email !== "—" && (
-                          <button
-                            onClick={() => handleCopy(email, 'email')}
-                            className="p-1 hover:bg-[#C0A04C]/10 rounded transition-colors flex-shrink-0"
-                            title="Copy email"
-                          >
-                            {copied === 'email' ? (
-                              <Check className="w-4 h-4 text-emerald-600" />
-                            ) : (
-                              <Copy className="w-4 h-4 text-[#3a1224]/40" />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Phone */}
-                <div className="p-4 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl hover:border-[#C0A04C]/20 transition-colors group">
-                  <div className="flex items-start gap-3">
-                    <Phone className="w-5 h-5 text-[#C0A04C] flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#3a1224]/60 mb-1">Phone Number</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-mono text-[#3a1224] font-bold">
-                          {phone === "—" ? phone : (copied === 'phone' ? '✓ Copied!' : (revealPhone ? phone : phone.slice(0, -4) + '****'))}
-                        </p>
-                        {phone !== "—" && (
-                          <>
-                            <button
-                              onClick={() => setRevealPhone(!revealPhone)}
-                              className="p-1 hover:bg-[#C0A04C]/10 rounded transition-colors"
-                              title={revealPhone ? "Hide phone" : "Show phone"}
-                            >
-                              {revealPhone ? (
-                                <EyeOff className="w-4 h-4 text-[#3a1224]/60" />
-                              ) : (
-                                <Eye className="w-4 h-4 text-[#3a1224]/40" />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => handleCopy(phone, 'phone')}
-                              className="p-1 hover:bg-[#C0A04C]/10 rounded transition-colors"
-                              title="Copy phone"
-                            >
-                              {copied === 'phone' ? (
-                                <Check className="w-4 h-4 text-emerald-600" />
-                              ) : (
-                                <Copy className="w-4 h-4 text-[#3a1224]/40" />
-                              )}
-                            </button>
-                          </>
-                        )}
-                      </div>
-                      {phone !== "—" && (
-                        <p className="text-xs text-[#3a1224]/40 mt-1">Click eye to reveal or copy icon to copy</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Ticket Information */}
-            <section className="mb-8">
-              <h3 className="text-xs font-black text-[#3a1224]/40 uppercase tracking-[0.2em] mb-4">
-                Ticket Details
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Ticket Type */}
-                <div className="p-4 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl">
-                  <div className="flex items-start gap-3">
-                    <Ticket className="w-5 h-5 text-[#C0A04C] flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-[#3a1224]/60 mb-1">Ticket Type</p>
-                      <p className="text-sm font-bold text-[#3a1224]">{ticketName}</p>
-                      {ticketPrice !== "—" && (
-                        <p className="text-xs text-[#3a1224]/60 mt-1">NPR {ticketPrice}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Status */}
-                <div className={`p-4 border rounded-xl ${currentStatus.color}`}>
-                  <div className="flex items-start gap-3">
-                    <StatusIcon className={`w-5 h-5 ${currentStatus.textColor} flex-shrink-0 mt-0.5`} />
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-[#3a1224]/60 mb-1">Status</p>
-                      <p className={`text-sm font-black ${currentStatus.textColor}`}>
-                        {currentStatus.label}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* QR Code */}
-                <div className="p-4 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl hover:border-[#C0A04C]/20 transition-colors group md:col-span-2">
-                  <div className="flex items-start gap-3">
-                    <Ticket className="w-5 h-5 text-[#C0A04C] flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#3a1224]/60 mb-1">QR Code Value</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-mono text-[#3a1224] break-all min-w-0">
-                          {qrCode === "—" ? qrCode : (copied === 'qr' ? '✓' : qrCode)}
-                        </p>
-                        {qrCode !== "—" && (
-                          <button
-                            onClick={() => handleCopy(qrCode, 'qr')}
-                            className="p-1 hover:bg-[#C0A04C]/10 rounded transition-colors flex-shrink-0"
-                            title="Copy QR code"
-                          >
-                            {copied === 'qr' ? (
-                              <Check className="w-4 h-4 text-emerald-600" />
-                            ) : (
-                              <Copy className="w-4 h-4 text-[#3a1224]/40" />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Timeline */}
+          <div className="max-h-[72vh] overflow-y-auto p-5">
             <section>
-              <h3 className="text-xs font-black text-[#3a1224]/40 uppercase tracking-[0.2em] mb-4">
-                Activity Timeline
-              </h3>
-              <div className="space-y-3">
-                {/* Registration Date */}
-                <div className="p-4 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-xl">
+              <SectionTitle>Contact</SectionTitle>
+              <div className="grid gap-3 md:grid-cols-2">
+                <InfoTile icon={Mail} label="Email">
+                  <CopyValue value={email} copied={copied === 'email'} onCopy={() => handleCopy(email, 'email')} />
+                </InfoTile>
+                <InfoTile icon={Phone} label="Phone">
+                  <div className="flex items-center gap-2">
+                    <p className="min-w-0 flex-1 truncate font-mono text-sm font-bold text-[#3a1224]">
+                      {phone === EMPTY ? phone : copied === 'phone' ? 'Copied' : revealPhone ? phone : phone.slice(0, -4) + '****'}
+                    </p>
+                    {phone !== EMPTY && (
+                      <>
+                        <button type="button" onClick={() => setRevealPhone(!revealPhone)} className="text-[#3a1224]/45 hover:text-[#3a1224]" title={revealPhone ? "Hide phone" : "Show phone"}>
+                          {revealPhone ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                        <button type="button" onClick={() => handleCopy(phone, 'phone')} className="text-[#3a1224]/45 hover:text-[#3a1224]" title="Copy phone">
+                          {copied === 'phone' ? <Check className="h-4 w-4 text-emerald-700" /> : <Copy className="h-4 w-4" />}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </InfoTile>
+              </div>
+            </section>
+
+            <section className="mt-6">
+              <SectionTitle>Ticket</SectionTitle>
+              <div className="grid gap-3 md:grid-cols-2">
+                <InfoTile icon={Ticket} label="Ticket type">
+                  <p className="text-sm font-black text-[#3a1224]">{ticketName}</p>
+                  {ticketPrice !== EMPTY && <p className="mt-1 text-xs text-[#3a1224]/50">NPR {ticketPrice}</p>}
+                </InfoTile>
+                <div className={`border p-4 ${currentStatus.color}`}>
                   <div className="flex items-start gap-3">
-                    <Calendar className="w-5 h-5 text-[#C0A04C] flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-[#3a1224]/60 mb-1">Registered</p>
-                      <p className="text-sm font-bold text-[#3a1224]">
-                        {formatDate(createdAt)}
-                      </p>
+                    <StatusIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em]">Status</p>
+                      <p className="mt-1 text-sm font-black">{currentStatus.label}</p>
                     </div>
                   </div>
                 </div>
-
-                {/* Check-in Status */}
-                {checkedInAt ? (
-                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-                    <div className="flex items-start gap-3">
-                      <Clock className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-xs font-bold text-emerald-700 mb-1">Checked In</p>
-                        <p className="text-sm font-bold text-emerald-900">
-                          {formatDate(checkedInAt)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                    <div className="flex items-start gap-3">
-                      <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-xs font-bold text-amber-700 mb-1">Check-in Status</p>
-                        <p className="text-sm font-bold text-amber-900">
-                          Pending Entry
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <InfoTile icon={Ticket} label="QR code" className="md:col-span-2">
+                  <CopyValue value={qrCode} copied={copied === 'qr'} onCopy={() => handleCopy(qrCode, 'qr')} />
+                </InfoTile>
               </div>
             </section>
-          </div>
 
-          {/* Footer */}
-          <div className="border-t border-[#3a1224]/5 p-6 flex gap-3 justify-end">
-            <button
-              onClick={onClose}
-              className="px-6 py-2 rounded-lg bg-[#3a1224] text-white font-bold text-sm uppercase hover:bg-[#3a1224]/90 transition-colors"
-            >
-              Close
-            </button>
+            <section className="mt-6">
+              <SectionTitle>Timeline</SectionTitle>
+              <div className="grid gap-3 md:grid-cols-2">
+                <InfoTile icon={Calendar} label="Registered">
+                  <p className="text-sm font-bold text-[#3a1224]">{formatDate(createdAt)}</p>
+                </InfoTile>
+                <InfoTile icon={CheckCircle2} label="Checked in">
+                  <p className="text-sm font-bold text-[#3a1224]">{checkedInAt ? formatDate(checkedInAt) : "Not checked in"}</p>
+                </InfoTile>
+              </div>
+            </section>
           </div>
         </div>
       </div>
     </>
+  );
+}
+
+function SectionTitle({ children }) {
+  return <h3 className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/40">{children}</h3>;
+}
+
+function InfoTile({ icon: Icon, label, children, className = "" }) {
+  return (
+    <div className={`border border-[#e8dcc8] bg-[#fbf8f2] p-4 ${className}`}>
+      <div className="flex items-start gap-3">
+        <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#3a1224]/45" />
+        <div className="min-w-0 flex-1">
+          <p className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/40">{label}</p>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CopyValue({ value, copied, onCopy }) {
+  return (
+    <div className="flex items-center gap-2">
+      <p className="min-w-0 flex-1 break-all font-mono text-sm font-bold text-[#3a1224]">{copied ? "Copied" : value}</p>
+      {value !== EMPTY && (
+        <button type="button" onClick={onCopy} className="shrink-0 text-[#3a1224]/45 hover:text-[#3a1224]" title="Copy">
+          {copied ? <Check className="h-4 w-4 text-emerald-700" /> : <Copy className="h-4 w-4" />}
+        </button>
+      )}
+    </div>
   );
 }

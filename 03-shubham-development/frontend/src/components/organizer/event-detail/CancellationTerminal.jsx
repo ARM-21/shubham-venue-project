@@ -1,98 +1,53 @@
-import { CheckCircle2, Users, AlertCircle, Timestamp } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Users } from "lucide-react";
 
 export function CancellationTerminal({ cancellationData }) {
   if (!cancellationData) return null;
 
   const formatTime = (isoString) => {
-    return new Date(isoString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
+    return new Date(isoString).toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   return (
-    <div className="bg-gradient-to-br from-emerald-900/20 to-emerald-800/10 border border-emerald-600/30 rounded-xl p-6 space-y-4">
-      <div className="flex items-center gap-3 pb-4 border-b border-emerald-600/20">
-        <div className="w-10 h-10 rounded-full bg-emerald-600/20 flex items-center justify-center">
-          <CheckCircle2 className="text-emerald-400" size={20} />
-        </div>
+    <section className="border border-emerald-200 bg-emerald-50">
+      <div className="flex items-start gap-3 border-b border-emerald-200 px-5 py-4">
+        <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-700" />
         <div>
-          <h3 className="font-semibold text-white">Event Cancellation Processed</h3>
-          <p className="text-sm text-emerald-200">{formatTime(cancellationData.timestamp)}</p>
+          <h2 className="text-base font-black text-emerald-950">Cancellation processed</h2>
+          <p className="mt-1 text-xs text-emerald-800">{formatTime(cancellationData.timestamp)}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Attendees Notified */}
-        <div className="bg-emerald-600/10 border border-emerald-600/20 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Users size={18} className="text-emerald-400" />
-            <span className="text-sm font-medium text-emerald-200">Attendees Notified</span>
-          </div>
-          <div className="text-2xl font-bold text-emerald-300">
-            {cancellationData.attendeesNotified}
-          </div>
-          <p className="text-xs text-emerald-200/70 mt-1">
-            {cancellationData.attendeesNotified === 1 ? 'person' : 'people'} received cancellation email
-          </p>
-        </div>
-
-        {/* Tickets Cancelled */}
-        <div className="bg-emerald-600/10 border border-emerald-600/20 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertCircle size={18} className="text-emerald-400" />
-            <span className="text-sm font-medium text-emerald-200">Tickets Cancelled</span>
-          </div>
-          <div className="text-2xl font-bold text-emerald-300">
-            {cancellationData.ticketsCancelled}
-          </div>
-          <p className="text-xs text-emerald-200/70 mt-1">
-            marked for refund processing
-          </p>
-        </div>
-
-        {/* Admin Notification */}
-        <div className="bg-emerald-600/10 border border-emerald-600/20 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 size={18} className="text-emerald-400" />
-            <span className="text-sm font-medium text-emerald-200">Admin Notified</span>
-          </div>
-          <div className="text-2xl font-bold text-emerald-300">
-            ✓
-          </div>
-          <p className="text-xs text-emerald-200/70 mt-1">
-            all admins alerted
-          </p>
-        </div>
+      <div className="grid gap-px bg-emerald-200 sm:grid-cols-3">
+        <Metric icon={Users} label="Attendees notified" value={cancellationData.attendeesNotified} note="Cancellation email sent" />
+        <Metric icon={AlertCircle} label="Tickets cancelled" value={cancellationData.ticketsCancelled} note="Pending refund handling" />
+        <Metric icon={CheckCircle2} label="Admin notified" value="Yes" note="Logged for review" />
       </div>
 
-      {/* Cancellation Reason */}
       {cancellationData.cancellationReason && (
-        <div className="bg-emerald-600/10 border border-emerald-600/20 rounded-lg p-4 space-y-2">
-          <p className="text-sm font-medium text-emerald-200">Cancellation Reason</p>
-          <p className="text-sm text-emerald-100 leading-relaxed">
-            {cancellationData.cancellationReason}
-          </p>
+        <div className="border-t border-emerald-200 px-5 py-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-800">Cancellation reason</p>
+          <p className="mt-2 text-sm leading-6 text-emerald-950">{cancellationData.cancellationReason}</p>
         </div>
       )}
+    </section>
+  );
+}
 
-      {/* Status Message */}
-      <div className="bg-emerald-900/20 border border-emerald-600/20 rounded-lg p-4 space-y-2">
-        <p className="text-sm font-medium text-emerald-200">Status</p>
-        <div className="flex items-start gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
-          <div className="space-y-1 text-sm text-emerald-100">
-            <p>• Attendees have been notified via email about the cancellation</p>
-            <p>• Ticket refunds are pending (check administration dashboard)</p>
-            <p>• Admin team has been alerted and notified in-app</p>
-            <p>• Cancellation logged in audit trail</p>
-          </div>
-        </div>
+function Metric({ icon: Icon, label, value, note }) {
+  return (
+    <div className="bg-emerald-50 px-5 py-4">
+      <div className="flex items-center gap-2 text-emerald-800">
+        <Icon className="h-4 w-4" />
+        <p className="text-[10px] font-black uppercase tracking-[0.18em]">{label}</p>
       </div>
+      <p className="mt-2 text-2xl font-black text-emerald-950">{value}</p>
+      <p className="mt-1 text-xs text-emerald-800/75">{note}</p>
     </div>
   );
 }

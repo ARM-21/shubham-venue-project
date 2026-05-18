@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
-import Image from "next/image";
 import toast from "react-hot-toast";
 import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
@@ -17,20 +16,6 @@ import { RichTextDisplay } from "components/shared/RichTextDisplay";
 
 const PLACEHOLDER_IMAGE = "/assets/business-images/placeholder2.jpg";
 
-function formatDateTime(value) {
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(value));
-  } catch {
-    return "-";
-  }
-}
-
 export default function EventDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -41,7 +26,6 @@ export default function EventDetailPage() {
   const [needsAccessCode, setNeedsAccessCode] = useState(false);
   const [submitting, setSubmitting] = useState(null);
   const [gatewayTicketId, setGatewayTicketId] = useState(null);
-  const [selectedPaymentGateway, setSelectedPaymentGateway] = useState(null);
   const [ticketTypes, setTicketTypes] = useState([]);
 
   // Query for event details - handles basic fetch
@@ -158,37 +142,47 @@ export default function EventDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#3a1224]">
-        <div className="w-12 h-12 border-4 border-[#C0A04C] border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-[#C0A04C] font-black text-[10px] uppercase tracking-[0.4em]">Loading event</p>
-      </div>
+      <main className="min-h-screen bg-[#FDFCFB]">
+        <section className="bg-[#3a1224] px-6 pb-16 pt-44 text-white">
+          <div className="mx-auto max-w-[1400px]">
+            <div className="h-4 w-40 animate-pulse rounded-full bg-[#C0A04C]/25" />
+            <div className="mt-8 h-16 max-w-3xl animate-pulse rounded-2xl bg-white/10" />
+            <div className="mt-5 h-6 max-w-xl animate-pulse rounded-full bg-white/10" />
+          </div>
+        </section>
+        <div className="mx-auto grid max-w-[1400px] gap-6 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="space-y-5">
+            <div className="h-64 animate-pulse rounded-[2rem] border border-[#eadfcb] bg-white" />
+            <div className="h-44 animate-pulse rounded-[2rem] border border-[#eadfcb] bg-white" />
+          </div>
+          <div className="h-96 animate-pulse rounded-[2rem] border border-[#eadfcb] bg-white" />
+        </div>
+      </main>
     );
   }
 
   if (!event) {
     return (
-      <div className="min-h-screen bg-[#FDFCFB] flex flex-col items-center justify-center px-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-black text-[#3a1224] uppercase tracking-tight mb-3">Event Not Found</h2>
-          <p className="text-gray-600 mb-6">{error || "This event is no longer available."}</p>
+      <main className="flex min-h-screen flex-col items-center justify-center bg-[#FDFCFB] px-6 pt-28">
+        <div className="max-w-md rounded-[2rem] border border-[#eadfcb] bg-white p-8 text-center shadow-[0_22px_70px_-45px_rgba(58,18,36,0.45)]">
+          <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[#C0A04C]">Event not found</p>
+          <h2 className="mt-3 text-2xl font-black text-[#3a1224]">We could not load this event.</h2>
+          <p className="mt-3 text-sm leading-6 text-[#3a1224]/65">
+            {error?.response?.data?.message || error?.message || "This event may no longer be available."}
+          </p>
           <button
             onClick={() => router.push(ROUTES.SITE.EVENTS)}
-            className="px-6 py-3 bg-[#3a1224] text-white font-black uppercase tracking-wider rounded-lg hover:bg-[#C0A04C] hover:text-[#3a1224] transition"
+            className="mt-6 cursor-pointer rounded-full bg-[#3a1224] px-6 py-3 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#C0A04C] hover:text-[#3a1224]"
           >
             Back to Events
           </button>
         </div>
-      </div>
+      </main>
     );
   }
 
   const banner = event.bannerUrl || PLACEHOLDER_IMAGE;
   const hallName = event.hallId?.name || "Venue";
-  const eventDate = event.eventDate || (event.bookingId?.date) || null;
-  const remainingTypes = ticketTypes.map((type) => ({
-    ...type,
-    remaining: Math.max(0, Number(type.quantityTotal || 0) - Number(type.quantitySold || 0)),
-  }));
   const eventEnded = event.endDateTime ? new Date(event.endDateTime).getTime() < Date.now() : false;
   
   // Check if registration has started
@@ -197,93 +191,63 @@ export default function EventDetailPage() {
     : false;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#FDFCFB] via-[#fdfaf6] to-[#FDFCFB] relative selection:bg-[#C0A04C]/30 overflow-x-hidden">
-      {/* Background effects */}
-      <div className="fixed inset-0 pointer-events-none opacity-40 z-0">
-        <div className="absolute top-0 right-[-10%] w-[40%] h-[40%] bg-[#C0A04C]/4 blur-[120px] rounded-full" />
-        <div className="absolute bottom-0 left-[-10%] w-[40%] h-[40%] bg-[#3a1224]/4 blur-[120px] rounded-full" />
-      </div>
-      <div className="absolute top-0 left-0 w-full h-[800px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/70 to-transparent pointer-events-none z-0" />
+    <main className="min-h-screen overflow-x-hidden bg-[#FDFCFB] selection:bg-[#C0A04C]/30">
+      <EventHero event={event} banner={banner} ticketTypes={ticketTypes} eventEnded={eventEnded} />
 
-      {/* Event Hero with Banner */}
-      <div className="relative z-10">
-        <EventHero event={event} banner={event.bannerUrl || PLACEHOLDER_IMAGE} />
-      </div>
-
-      <div className="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24 lg:pb-32 pt-12 lg:pt-16">
+      <div className="mx-auto max-w-[1400px] px-6 pb-16 pt-10 lg:px-8 lg:pb-24">
         {error ? (
-          <div className="mb-12 p-6 bg-red-50 border border-red-200 text-red-700 rounded-[2rem] text-sm font-bold uppercase tracking-wider flex items-center gap-3">
-            {error}
+          <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+            {error?.response?.data?.message || error?.message || "We could not refresh the latest event details."}
           </div>
         ) : null}
 
         {needsAccessCode ? (
-          <div className="max-w-2xl mx-auto mt-8">
-            <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(58,18,36,0.08)] border border-[#3a1224]/5 p-8 md:p-12 backdrop-blur-sm">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="w-8 h-[2px] bg-gradient-to-r from-[#C0A04C] to-[#C0A04C]/50" />
-                <span className="text-[11px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Restricted Event</span>
-              </div>
-              <h2 className="text-3xl lg:text-4xl font-display font-bold text-[#3a1224] mb-4 tracking-tight">Access Code Required</h2>
-              <p className="text-[#3a1224]/70 font-medium mb-8 leading-relaxed">This is a private event. Please enter the access code provided to view details and purchase tickets.</p>
-              
+          <div className="mx-auto max-w-lg">
+            <div className="rounded-2xl border border-[#e8dcc8] bg-white p-7">
+              <p className="site-eyebrow mb-1.5">Private event</p>
+              <h2 className="text-2xl font-black text-[#3a1224]">Access code required</h2>
+              <p className="mt-2 text-sm leading-6 text-[#3a1224]/60">
+                Enter the access code provided by the organizer to view tickets and event details.
+              </p>
               <input
                 type="text"
                 value={accessCode}
                 onChange={(e) => setAccessCode(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleAccessCodeSubmit()}
-                placeholder="Enter event access code"
-                className="w-full bg-[#3a1224]/5 border border-[#3a1224]/15 text-[#3a1224] px-6 py-4 rounded-2xl focus:outline-none focus:border-[#C0A04C] focus:bg-white focus:shadow-[0_0_0_3px_rgba(192,160,76,0.1)] transition-all duration-300 placeholder-[#3a1224]/40 text-base mb-6 font-medium"
+                onKeyDown={(e) => e.key === 'Enter' && handleAccessCodeSubmit()}
+                placeholder="Event access code"
+                className="mt-5 w-full rounded-xl border border-[#e8dcc8] bg-[#fbf8f2] px-4 py-3 text-sm font-medium text-[#3a1224] outline-none transition focus:border-[#C0A04C] focus:bg-white focus:ring-2 focus:ring-[#C0A04C]/15"
               />
               <button
                 onClick={handleAccessCodeSubmit}
                 disabled={accessCodeMutation.isPending}
-                className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-[#3a1224] to-[#2a0d1a] text-white font-black uppercase tracking-wider text-sm hover:shadow-lg hover:shadow-[#3a1224]/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-3 w-full cursor-pointer rounded-xl bg-[#3a1224] px-6 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#4b1830] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {accessCodeMutation.isPending ? "Unlocking..." : "Unlock Event"}
+                {accessCodeMutation.isPending ? "Verifying…" : "Unlock event"}
               </button>
             </div>
           </div>
         ) : (
-          <div className="space-y-16 lg:space-y-24">
-            {/* Event Details Section */}
-            <section id="details">
-              <EventDetails 
-                event={event} 
-                formatDateTime={formatDateTime}
-                hallName={event.hallId?.name || "Venue"}
-              />
-            </section>
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+            <div className="space-y-10">
+              <EventDetails event={event} hallName={hallName} />
 
-            {/* About Section */}
-            {event.description && (
-              <section id="about" className="scroll-mt-20">
-                <div className="mb-8">
-                  <div className="h-1 w-24 bg-gradient-to-r from-[#C0A04C] to-transparent mb-6" />
-                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#3a1224] tracking-tight">About This Event</h2>
-                </div>
-                <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(58,18,36,0.06)] border border-white/50 p-8 lg:p-12 xl:p-16">
-                  <div className="prose prose-lg max-w-none text-[#3a1224] leading-relaxed">
-                    <div className="bg-gradient-to-br from-[#FDFCFB] to-[#fdfaf6] rounded-2xl p-8 border border-[#3a1224]/5">
-                      <RichTextDisplay content={event.description} />
-                    </div>
+              {event.description && (
+                <section id="about" className="scroll-mt-28">
+                  <p className="site-eyebrow mb-1.5">About</p>
+                  <h2 className="mb-5 text-2xl font-black text-[#3a1224]">About this event</h2>
+                  <div className="prose prose-base max-w-none text-[#3a1224]/75 prose-p:leading-7 prose-headings:text-[#3a1224] prose-strong:text-[#3a1224]">
+                    <RichTextDisplay content={event.description} />
                   </div>
-                </div>
+                </section>
+              )}
+
+              <section id="venue" className="scroll-mt-28">
+                <VenueInfo venue={event.hallId} />
               </section>
-            )}
+            </div>
 
-            {/* Venue Information */}
-            <section id="venue" className="scroll-mt-20">
-              <VenueInfo venue={event.hallId} />
-            </section>
-
-            {/* Tickets Section */}
-            <section id="tickets" className="scroll-mt-20">
-              <div className="mb-8">
-                <div className="h-1 w-24 bg-gradient-to-r from-[#C0A04C] to-transparent mb-6" />
-                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#3a1224] tracking-tight">Get Your Ticket</h2>
-              </div>
-              <TicketsSection 
+            <div className="order-first lg:sticky lg:top-28 lg:order-none">
+              <TicketsSection
                 ticketTypes={ticketTypes}
                 onBuyTicket={handleBuyTicket}
                 eventEnded={eventEnded}
@@ -295,11 +259,10 @@ export default function EventDetailPage() {
                 eventCapacity={event.hallId?.capacity || 0}
                 totalSold={ticketTypes.reduce((sum, t) => sum + (t.quantitySold || 0), 0)}
               />
-            </section>
+            </div>
           </div>
         )}
       </div>
     </main>
-
   );
 }

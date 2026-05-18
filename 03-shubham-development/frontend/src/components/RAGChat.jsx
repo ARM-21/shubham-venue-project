@@ -1,10 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import axiosInstance from 'lib/axios';
 import { Bot, MessageCircleMore, Sparkles, X, ChevronRight } from 'lucide-react';
 
+const HIDDEN_PATHS = ['/organizer-hub', '/admin'];
+
 export default function RAGChat() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [messages, setMessages] = useState([
@@ -154,11 +158,13 @@ export default function RAGChat() {
     }
   };
 
+  if (HIDDEN_PATHS.some((p) => pathname?.startsWith(p))) return null;
+
   return (
     <>
       {/* Tooltip */}
       {!isOpen && showTooltip && (
-        <div className="fixed bottom-32 right-8 z-40 animate-in fade-in slide-in-from-bottom-2">
+        <div className="fixed bottom-28 right-8 z-40 animate-in fade-in slide-in-from-bottom-2">
           <div className="relative bg-white rounded-xl shadow-2xl border border-gray-200 px-4 py-3 max-w-xs">
             <button onClick={() => setShowTooltip(false)} className="absolute right-2 top-2 text-gray-400"><X size={14} /></button>
             <div className="flex items-start gap-3">
@@ -168,6 +174,8 @@ export default function RAGChat() {
                 <p className="text-gray-600 text-xs mt-1">Ask me about venues and pricing.</p>
               </div>
             </div>
+            {/* Arrow pointing down to the button */}
+            <div className="absolute -bottom-2 right-7 w-4 h-4 bg-white border-r border-b border-gray-200 rotate-45" />
           </div>
         </div>
       )}

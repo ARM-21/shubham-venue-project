@@ -1,268 +1,293 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle, Edit2, AlertCircle } from 'lucide-react';
+import { Check, Edit2, ShieldCheck, Sparkles, UtensilsCrossed } from 'lucide-react';
 import { getSlotMultiplier } from '../../utils/booking.utils';
+import { SLOT_LABELS } from 'constants/slots';
+import toast from 'react-hot-toast';
+import { cn } from 'components/site/SitePrimitives';
 
-export default function StepBookingReview({ 
-  hall, 
-  bookingData, 
-  calculateTotal, 
-  onPrev, 
+const formatDate = (d) => {
+  if (!d) return '—';
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+    return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
+  return d;
+};
+
+export default function StepBookingReview({
+  hall,
+  bookingData,
+  calculateTotal,
+  onPrev,
   onNext,
-  onEditStep 
+  onEditStep,
 }) {
   const [termsAccepted, setTermsAccepted] = useState(false);
-  // Try multiple field names for hall price
+
   const pricePerHour = Number(hall?.pricePerHour) || Number(hall?.price) || Number(hall?.costPerHour) || 0;
   const multiplier = getSlotMultiplier(bookingData?.slot);
   const hallPrice = pricePerHour * multiplier;
   const total = calculateTotal();
+  const isOrganizer = bookingData.bookingPurpose === 'organizer';
 
   const handleSubmit = () => {
     if (!termsAccepted) {
-      alert('Please accept terms and conditions');
+      toast.error('Please accept the terms and conditions to proceed.');
       return;
     }
     onNext();
   };
 
   return (
-    <div className="space-y-6">
-      {/* Step Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-1 h-6 bg-[#C0A04C]"></div>
-        <div>
-          <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Step 4</p>
-          <h2 className="text-2xl font-display font-black text-[#3a1224]">Review Your Booking</h2>
-          <p className="text-sm text-[#3a1224]/60 mt-1">Everything looks good? Let's confirm</p>
+    <div className="space-y-4">
+      {/* Venue & booking */}
+      <ReviewCard label="Venue & booking" onEdit={() => onEditStep('availability')}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ReviewRow label="Hall" value={hall?.name} />
+          <ReviewRow label="Date" value={formatDate(bookingData.date)} />
+          <ReviewRow label="Time slot" value={SLOT_LABELS[bookingData.slot] || bookingData.slot} />
+          <ReviewRow
+            label="Guests"
+            value={`${bookingData.guests || 0} guest${bookingData.guests === 1 ? '' : 's'}`}
+          />
+          <ReviewRow
+            label="Booking type"
+            value={isOrganizer ? 'Organizer venue booking' : 'Private booking'}
+          />
         </div>
-      </div>
+      </ReviewCard>
 
-      {/* Venue Details Section */}
-      <div className="bg-white/95 border border-[#3a1224]/5 rounded-3xl p-6 shadow-lg">
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Venue & Date</p>
-          <button
-            onClick={() => onEditStep('details')}
-            className="flex items-center gap-2 text-[#C0A04C] hover:text-[#3a1224] transition-colors font-black text-[9px] uppercase tracking-widest"
-          >
-            <Edit2 className="w-4 h-4" />
-            Edit
-          </button>
+      {/* Contact information */}
+      <ReviewCard label="Contact information" onEdit={() => onEditStep('contact')}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ReviewRow label="Full name" value={bookingData.fullName} />
+          <ReviewRow label="Phone" value={bookingData.phone} />
+          <ReviewRow label="Email" value={bookingData.email} />
+          {bookingData.deliveryAddress && (
+            <ReviewRow
+              label="Address"
+              value={[bookingData.deliveryAddress, bookingData.city].filter(Boolean).join(', ')}
+              colSpan
+            />
+          )}
         </div>
+      </ReviewCard>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-[#3a1224]/60">Hall</span>
-              <span className="font-black text-[#3a1224]">{hall.name}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-[#3a1224]/60">Date</span>
-              <span className="font-black text-[#3a1224]">
-                {bookingData.date ? (typeof bookingData.date === 'string' && bookingData.date.match(/^\d{4}-\d{2}-\d{2}$/) ? new Date(bookingData.date + 'T00:00:00').toLocaleDateString() : bookingData.date) : 'N/A'}
-              </span>
-            </div>
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-[#3a1224]/60">Time Slot</span>
-              <span className="font-black text-[#3a1224] capitalize">{bookingData.slot}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-[#3a1224]/60">Guests</span>
-              <span className="font-black text-[#3a1224]">{bookingData.guests}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Contact Details Section */}
-      <div className="bg-white/95 border border-[#3a1224]/5 rounded-3xl p-6 shadow-lg">
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Contact Information</p>
-          <button
-            onClick={() => onEditStep('contact')}
-            className="flex items-center gap-2 text-[#C0A04C] hover:text-[#3a1224] transition-colors font-black text-[9px] uppercase tracking-widest"
-          >
-            <Edit2 className="w-4 h-4" />
-            Edit
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-[#3a1224]/60">Name</span>
-            <span className="font-black text-[#3a1224]">{bookingData.fullName || 'N/A'}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-[#3a1224]/60">Phone</span>
-            <span className="font-black text-[#3a1224]">{bookingData.phone || 'N/A'}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-[#3a1224]/60">Email</span>
-            <span className="font-black text-[#3a1224] truncate">{bookingData.email || 'N/A'}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-[#3a1224]/60">Delivery Address</span>
-            <span className="font-black text-[#3a1224] text-right max-w-xs">{bookingData.address || 'N/A'}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Menu Section (if not organizer) */}
-      {bookingData.menuTotal > 0 && (
-        <div className="bg-white/95 border border-[#3a1224]/5 rounded-3xl p-6 shadow-lg">
-          <div className="flex items-center justify-between mb-6">
-            <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Menu Selection</p>
-            <button
-              onClick={() => onEditStep('menu')}
-              className="flex items-center gap-2 text-[#C0A04C] hover:text-[#3a1224] transition-colors font-black text-[9px] uppercase tracking-widest"
-            >
-              <Edit2 className="w-4 h-4" />
-              Edit
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {bookingData.selectedPackage ? (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-[#3a1224]/60">{bookingData.selectedPackage.name}</span>
-                <span className="font-black text-[#3a1224]">NPR {bookingData.menuTotal.toLocaleString()}</span>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs font-black text-[#3a1224]/50 uppercase tracking-wide pb-2 border-b border-[#3a1224]/10">
-                  <span>Item ({bookingData.selectedMenu?.length || 0})</span>
-                  <span>Qty</span>
-                  <span>Unit Price</span>
-                  <span>Total</span>
-                </div>
-                {bookingData.selectedMenu?.map((item, idx) => (
-                  <div key={idx} className="space-y-1">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex-1">
-                        <p className="font-black text-[#3a1224]">{item.name}</p>
-                        <p className="text-[11px] text-[#3a1224]/50 mt-0.5">{item.category}</p>
-                      </div>
-                      <span className="text-[#3a1224]/60 font-semibold w-10 text-right">{item.quantity}</span>
-                      <span className="text-[#3a1224]/60 font-semibold w-20 text-right">NPR {item.pricePerUnit?.toLocaleString()}</span>
-                      <span className="font-black text-[#3a1224] w-24 text-right">NPR {item.total?.toLocaleString()}</span>
-                    </div>
-                  </div>
-                ))}
-                <div className="pt-3 border-t border-[#3a1224]/10 flex items-center justify-between">
-                  <span className="text-sm font-black text-[#3a1224]">Menu Total</span>
-                  <span className="text-lg font-display font-black text-[#C0A04C]">NPR {bookingData.menuTotal?.toLocaleString()}</span>
-                </div>
-              </div>
+      {/* Event details */}
+      {!isOrganizer && (bookingData.eventType || bookingData.eventName) && (
+        <ReviewCard label="Event details" onEdit={() => onEditStep('details')}>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {bookingData.eventType && <ReviewRow label="Event type" value={bookingData.eventType} />}
+            {bookingData.eventName && <ReviewRow label="Event name" value={bookingData.eventName} />}
+            {bookingData.specialRequirements && (
+              <ReviewRow label="Special requirements" value={bookingData.specialRequirements} colSpan />
             )}
           </div>
-        </div>
+        </ReviewCard>
       )}
 
-      {/* Decorations Section (if not organizer) */}
-      {bookingData.decorationTotal > 0 && (
-        <div className="bg-white/95 border border-[#3a1224]/5 rounded-3xl p-6 shadow-lg">
-          <div className="flex items-center justify-between mb-6">
-            <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">Decorations</p>
-            <button
-              onClick={() => onEditStep('decor')}
-              className="flex items-center gap-2 text-[#C0A04C] hover:text-[#3a1224] transition-colors font-black text-[9px] uppercase tracking-widest"
-            >
-              <Edit2 className="w-4 h-4" />
-              Edit
-            </button>
-          </div>
+      {/* Menu */}
+      {!isOrganizer && Number(bookingData.menuTotal) > 0 && (
+        <ReviewCard
+          label="Menu selection"
+          onEdit={() => onEditStep('menu')}
+          icon={<UtensilsCrossed className="h-3.5 w-3.5" />}
+        >
+          {bookingData.selectedPackage ? (
+            <div className="flex items-center justify-between rounded-xl bg-[#fbf8f2] px-4 py-3">
+              <div>
+                <p className="text-sm font-black text-[#3a1224]">{bookingData.selectedPackage.name}</p>
+                <p className="mt-0.5 text-[10px] uppercase tracking-wide text-[#3a1224]/45">Package</p>
+              </div>
+              <p className="text-sm font-black text-[#3a1224]">
+                NPR {Number(bookingData.menuTotal).toLocaleString()}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {bookingData.selectedMenu?.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between rounded-xl bg-[#fbf8f2] px-4 py-2.5"
+                >
+                  <div>
+                    <p className="text-sm font-bold text-[#3a1224]">{item.name}</p>
+                    {item.category && (
+                      <p className="text-[10px] uppercase tracking-wide text-[#3a1224]/45">
+                        {item.category}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black text-[#3a1224]">× {item.quantity}</p>
+                    <p className="text-xs text-[#3a1224]/55">
+                      NPR {Number(item.price || item.pricePerUnit || 0).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              <div className="flex items-center justify-between rounded-xl border border-[#e8dcc8] px-4 py-2.5">
+                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/50">
+                  Menu total
+                </span>
+                <span className="text-sm font-black text-[#3a1224]">
+                  NPR {Number(bookingData.menuTotal).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          )}
+        </ReviewCard>
+      )}
 
+      {/* Decorations */}
+      {!isOrganizer && Number(bookingData.decorationTotal) > 0 && (
+        <ReviewCard
+          label="Decorations"
+          onEdit={() => onEditStep('decor')}
+          icon={<Sparkles className="h-3.5 w-3.5" />}
+        >
           <div className="space-y-2">
             {bookingData.decorationScheme && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-[#3a1224]/60">{bookingData.decorationScheme.name}</span>
-                <span className="font-black text-[#3a1224]">NPR {bookingData.decorationScheme.price?.toLocaleString()}</span>
+              <div className="flex items-center justify-between rounded-xl bg-[#fbf8f2] px-4 py-2.5">
+                <p className="text-sm font-bold text-[#3a1224]">{bookingData.decorationScheme.name}</p>
+                <p className="text-sm font-black text-[#3a1224]">
+                  NPR {Number(bookingData.decorationScheme.price || 0).toLocaleString()}
+                </p>
               </div>
             )}
-            {bookingData.addons?.map((addon, idx) => (
-              <div key={idx} className="flex items-center justify-between">
-                <span className="text-sm text-[#3a1224]/60">{addon.name}</span>
-                <span className="font-black text-[#3a1224]">NPR {addon.price?.toLocaleString()}</span>
+            {bookingData.addons?.map((addon, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between rounded-xl bg-[#fbf8f2] px-4 py-2.5"
+              >
+                <p className="text-sm font-bold text-[#3a1224]">{addon.name}</p>
+                <p className="text-sm font-black text-[#3a1224]">
+                  NPR {Number(addon.price || 0).toLocaleString()}
+                </p>
               </div>
             ))}
           </div>
-        </div>
+        </ReviewCard>
       )}
 
-      {/* Cost Summary */}
-      <div className="bg-gradient-to-br from-[#3a1224] to-[#4a172d] rounded-3xl p-8 shadow-lg">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-[9px] font-black text-[#C0A04C] uppercase tracking-widest">Hall ({multiplier}h)</span>
-            <span className="font-black text-[#C0A04C]">NPR {hallPrice.toLocaleString()}</span>
-          </div>
-          {bookingData.menuTotal > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] font-black text-[#C0A04C] uppercase tracking-widest">Menu</span>
-              <span className="font-black text-[#C0A04C]">NPR {bookingData.menuTotal?.toLocaleString()}</span>
-            </div>
+      {/* Pricing summary */}
+      <div className="rounded-2xl bg-[#3a1224] p-5 text-white">
+        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#C0A04C]">
+          Price breakdown
+        </p>
+        <div className="mt-4 space-y-2.5">
+          <PriceRow label={`Hall rental (${multiplier}h)`} value={hallPrice} />
+          {!isOrganizer && Number(bookingData.menuTotal) > 0 && (
+            <PriceRow label="Menu" value={Number(bookingData.menuTotal)} />
           )}
-          {bookingData.decorationTotal > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] font-black text-[#C0A04C] uppercase tracking-widest">Decorations</span>
-              <span className="font-black text-[#C0A04C]">NPR {bookingData.decorationTotal?.toLocaleString()}</span>
-            </div>
+          {!isOrganizer && Number(bookingData.decorationTotal) > 0 && (
+            <PriceRow label="Decorations" value={Number(bookingData.decorationTotal)} />
           )}
-          <div className="pt-4 border-t border-[#C0A04C]/20 flex items-center justify-between">
-            <span className="text-[9px] font-black text-[#C0A04C] uppercase tracking-widest">Total Amount</span>
-            <span className="text-3xl font-display font-black text-[#C0A04C]">NPR {total.toLocaleString()}</span>
+        </div>
+        <div className="mt-4 flex items-end justify-between border-t border-white/15 pt-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#C0A04C]">Total</p>
+            <p className="mt-0.5 text-xs text-white/50">Before payment confirmation</p>
           </div>
+          <p className="text-2xl font-black text-white">NPR {total.toLocaleString()}</p>
         </div>
       </div>
 
-      {/* Terms & Conditions */}
-      <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="font-black text-blue-900 mb-2">Please Review Before Confirming</p>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>✓ All information is accurate and complete</li>
-              <li>✓ Delivery address is correct</li>
-              <li>✓ Contact number is verified</li>
-              <li>✓ Event date and time are as intended</li>
-            </ul>
-          </div>
+      {/* Terms */}
+      <div className="rounded-2xl border border-[#e8dcc8] bg-[#fbf8f2] p-4">
+        <div className="flex items-start gap-3 text-xs leading-5 text-[#3a1224]/65">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#C0A04C]" />
+          <ul className="space-y-1">
+            <li>All information provided is accurate and complete</li>
+            <li>Slot is held for 5 minutes once payment starts — it must be completed in time</li>
+            <li>Cancellations are subject to the venue's refund policy</li>
+          </ul>
         </div>
-
-        <label className="flex items-start gap-3 mt-4 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={termsAccepted}
-            onChange={(e) => setTermsAccepted(e.target.checked)}
-            className="w-5 h-5 text-[#C0A04C] border-blue-300 rounded mt-0.5 cursor-pointer"
-          />
-          <span className="text-sm font-black text-blue-900">
-            I confirm that all information is correct and agree to the <span className="text-blue-600 underline cursor-pointer">terms and conditions</span>
+        <label className="mt-4 flex cursor-pointer items-start gap-3">
+          <span
+            className={cn(
+              'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition',
+              termsAccepted ? 'border-[#C0A04C] bg-[#C0A04C]' : 'border-[#d4c4a8] bg-white'
+            )}
+          >
+            {termsAccepted && <Check className="h-3 w-3 text-white" />}
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
+              className="sr-only"
+            />
+          </span>
+          <span className="text-sm font-bold text-[#3a1224]">
+            I confirm all details are correct and agree to the terms and conditions.
           </span>
         </label>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-4 pt-6">
+      {/* Navigation */}
+      <div className="flex gap-3 pt-2">
         <button
+          type="button"
           onClick={onPrev}
-          className="flex-1 h-12 px-6 border border-[#3a1224]/10 text-[#3a1224] font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+          className="flex h-11 flex-1 items-center justify-center rounded-2xl border border-[#e8dcc8] bg-white text-[11px] font-black uppercase tracking-[0.18em] text-[#3a1224] transition hover:bg-[#f8f4ed]"
         >
-          ← Back
+          Back
         </button>
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={!termsAccepted}
-          className="flex-1 h-12 px-6 bg-[#3a1224] text-[#C0A04C] font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-[#4a172d] transition-colors shadow-lg cursor-pointer disabled:opacity-60"
+          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#3a1224] text-[11px] font-black uppercase tracking-[0.18em] text-[#C0A04C] transition hover:bg-[#4a172d] disabled:opacity-50"
         >
-          Proceed to Payment →
+          Proceed to payment
         </button>
       </div>
+    </div>
+  );
+}
+
+function ReviewCard({ label, onEdit, icon, children }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-[#e8dcc8] bg-white">
+      <div className="flex items-center justify-between border-b border-[#e8dcc8] bg-[#fbf8f2] px-4 py-3">
+        <div className="flex items-center gap-2 text-[#C0A04C]">
+          {icon}
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#C0A04C]">{label}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/45 transition hover:bg-[#e8dcc8] hover:text-[#3a1224]"
+        >
+          <Edit2 className="h-3 w-3" />
+          Edit
+        </button>
+      </div>
+      <div className="p-4">{children}</div>
+    </div>
+  );
+}
+
+function ReviewRow({ label, value, colSpan = false }) {
+  return (
+    <div className={cn('space-y-0.5', colSpan && 'sm:col-span-2')}>
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3a1224]/40">{label}</p>
+      <p className="text-sm font-bold text-[#3a1224]">{value || '—'}</p>
+    </div>
+  );
+}
+
+function PriceRow({ label, value }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-white/60">{label}</span>
+      <span className="font-black text-white">NPR {Number(value || 0).toLocaleString()}</span>
     </div>
   );
 }

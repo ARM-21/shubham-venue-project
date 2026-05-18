@@ -1,173 +1,163 @@
 "use client";
 
-import React, { useMemo } from "react";
 import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Calendar, User } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { ROUTES } from "config/routes";
 import { useQueryBlogsPublic } from "@queries/customer/blogs-public";
 import { decodeHtmlSimple } from "utils/htmlDecoder";
 
+function formatDate(value) {
+  if (!value) return "Recent";
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function BlogDetailSkeleton() {
+  return (
+    <main className="min-h-screen bg-[#FDFCFB]">
+      <section className="bg-[#3a1224] px-6 pb-16 pt-44 text-white">
+        <div className="mx-auto max-w-4xl">
+          <div className="h-4 w-40 animate-pulse rounded-full bg-[#C0A04C]/25" />
+          <div className="mt-8 h-20 animate-pulse rounded-2xl bg-white/10" />
+          <div className="mt-5 h-6 max-w-xl animate-pulse rounded-full bg-white/10" />
+        </div>
+      </section>
+      <div className="mx-auto max-w-4xl px-6 py-10">
+        <div className="h-96 animate-pulse rounded-[2rem] border border-[#eadfcb] bg-white" />
+      </div>
+    </main>
+  );
+}
+
 export default function BlogDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const articleHandle = params.articleHandle;
 
-  // Fetch all articles from the news blog
-  const { data: blogsData = {}, isLoading, isError } = useQueryBlogsPublic(
-    { blogHandle: 'news', first: 100 }
+  const { data: blogsData = {}, isLoading, isError, error } = useQueryBlogsPublic(
+    { blogHandle: "news", first: 100 }
   );
 
-  const articles = blogsData?.blogs || [];
-  
-  // Find the current article
-  const article = articles.find(a => a.handle === articleHandle);
+  const articles = Array.isArray(blogsData?.blogs) ? blogsData.blogs : [];
+  const article = articles.find((item) => item.handle === articleHandle);
+  const related = articles.filter((item) => item.handle !== articleHandle).slice(0, 3);
 
-  if (isLoading) {
-    return (
-      <main className="min-h-screen bg-[#fdfaf6]">
-        <div className="bg-gradient-to-br from-[#3a1224] to-[#3a1224]/90 text-white py-12 sm:py-16 lg:py-20">
-          <div className="mx-auto px-4 sm:px-6 lg:px-12 max-w-4xl">
-            <div className="h-16 w-96 bg-white/10 rounded-lg animate-pulse mb-4"></div>
-            <div className="h-8 w-64 bg-white/10 rounded-lg animate-pulse"></div>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  if (isLoading) return <BlogDetailSkeleton />;
 
-  if (!article) {
+  if (isError || !article) {
     return (
-      <main className="min-h-screen bg-[#fdfaf6]">
-        <div className="mx-auto px-4 sm:px-6 lg:px-12 max-w-4xl py-12">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-[#C0A04C] hover:text-[#C0A04C]/80 font-semibold mb-6 transition-colors"
+      <main className="flex min-h-screen items-center justify-center bg-[#FDFCFB] px-6 pt-28">
+        <div className="max-w-md rounded-[2rem] border border-[#eadfcb] bg-white p-8 text-center shadow-[0_22px_70px_-45px_rgba(58,18,36,0.45)]">
+          <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[#C0A04C]">Article not found</p>
+          <h1 className="mt-3 text-2xl font-black text-[#3a1224]">We could not load this article.</h1>
+          <p className="mt-3 text-sm leading-6 text-[#3a1224]/65">
+            {error?.message || "The article may have been removed or is not available right now."}
+          </p>
+          <Link
+            href={ROUTES.SITE.BLOGS}
+            className="mt-6 inline-flex cursor-pointer items-center justify-center rounded-full bg-[#3a1224] px-6 py-3 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#4b1830]"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Blog
-          </button>
-          <div className="bg-red-50 border border-red-200 rounded-lg p-8">
-            <h2 className="text-2xl font-bold text-red-900">Article Not Found</h2>
-            <p className="text-red-700 mt-2">The article you're looking for doesn't exist.</p>
-          </div>
+            Back to Blogs
+          </Link>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#fdfaf6]">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-[#3a1224] to-[#3a1224]/90 text-white py-12 sm:py-16 lg:py-20">
-        <div className="mx-auto px-4 sm:px-6 lg:px-12 max-w-4xl">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-[#C0A04C] hover:text-[#C0A04C]/80 font-semibold mb-6 transition-colors"
+    <main className="min-h-screen bg-[#FDFCFB]">
+      <section className="relative overflow-hidden bg-[#3a1224] px-6 pb-14 pt-44 text-white">
+        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#FDFCFB] to-transparent" />
+        <div className="relative mx-auto max-w-4xl">
+          <Link
+            href={ROUTES.SITE.BLOGS}
+            className="inline-flex cursor-pointer items-center rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-bold text-white/80 transition hover:bg-white/15"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Blog
-          </button>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-black mb-6 leading-tight">
+            Back to blogs
+          </Link>
+          <p className="mt-8 text-[11px] font-black uppercase tracking-[0.32em] text-[#C0A04C]">Planning guide</p>
+          <h1 className="mt-4 text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
             {article.title}
           </h1>
-          
-          {/* Meta Info */}
-          <div className="flex flex-wrap gap-6 text-white/80">
-            {article.publishedAt && (
-              <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                <span>{article.publishedAt}</span>
-              </div>
-            )}
-            {article.author && (
-              <div className="flex items-center gap-2">
-                <User className="w-5 h-5" />
-                <span>{article.author.name}</span>
-              </div>
-            )}
+          <div className="mt-6 flex flex-wrap gap-3 text-sm font-semibold text-white/72">
+            <span>📅 {formatDate(article.publishedAt)}</span>
+            {article.author?.name ? <span>Written by {article.author.name}</span> : null}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Featured Image */}
-      {article.image && (
-        <div className="relative w-full h-96 sm:h-[500px] lg:h-[600px] overflow-hidden">
-          <Image
-            src={article.image.url}
-            alt={article.image.altText || article.title}
-            fill
-            className="object-cover"
-            priority
-          />
-        </div>
-      )}
+      <article className="mx-auto max-w-4xl px-6 pb-16 pt-8 lg:pb-24">
+        {article.image?.url ? (
+          <div className="relative mb-10 aspect-[16/9] overflow-hidden rounded-[2rem] border border-[#eadfcb] bg-[#3a1224] shadow-[0_22px_70px_-45px_rgba(58,18,36,0.45)]">
+            <Image
+              src={article.image.url}
+              alt={article.image.altText || article.title}
+              fill
+              priority
+              className="object-cover"
+              sizes="(min-width: 1024px) 896px, 100vw"
+            />
+          </div>
+        ) : null}
 
-      {/* Content */}
-      <div className="mx-auto px-4 sm:px-6 lg:px-12 max-w-4xl py-12 lg:py-16">
-        {/* Excerpt - Plain text summary */}
-        {article.excerpt && (
-          <p className="text-lg text-gray-700 font-light mb-8 pb-8 border-b border-gray-200">
+        {article.excerpt ? (
+          <p className="mb-8 border-b border-[#eadfcb] pb-8 text-xl font-semibold leading-8 text-[#3a1224]/72">
             {article.excerpt}
           </p>
-        )}
+        ) : null}
 
-        {/* Article Body - Full HTML content */}
         <div
-          className="text-gray-800 leading-relaxed space-y-6 [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:text-gray-900 [&_h2]:mt-8 [&_h2]:mb-4 [&_h3]:text-2xl [&_h3]:font-bold [&_h3]:text-gray-900 [&_h3]:mt-6 [&_h3]:mb-3 [&_h4]:text-xl [&_h4]:font-semibold [&_h4]:text-gray-800 [&_h4]:mt-4 [&_h4]:mb-2 [&_p]:text-gray-700 [&_p]:leading-relaxed [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_li]:text-gray-700 [&_strong]:font-bold [&_strong]:text-gray-900 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2 [&_blockquote]:border-l-4 [&_blockquote]:border-[#C0A04C] [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_a]:text-[#C0A04C] [&_a]:hover:text-[#C0A04C]/80 [&_a]:underline"
-          dangerouslySetInnerHTML={{ __html: decodeHtmlSimple(article.contentHtml) }}
+          className="prose max-w-none text-[#3a1224] prose-headings:font-black prose-headings:tracking-tight prose-headings:text-[#3a1224] prose-h2:mt-10 prose-h2:text-3xl prose-h3:text-2xl prose-p:leading-8 prose-p:text-[#3a1224]/72 prose-a:text-[#8b6d22] prose-a:font-bold prose-blockquote:border-l-[#C0A04C] prose-blockquote:text-[#3a1224]/70 prose-strong:text-[#3a1224] prose-li:text-[#3a1224]/72"
+          dangerouslySetInnerHTML={{ __html: decodeHtmlSimple(article.contentHtml || "") }}
         />
 
-        {/* Author Info Card */}
-        {article.author && (
-          <div className="mt-12 pt-8 border-t border-gray-200">
-            <div className="bg-gradient-to-br from-[#3a1224]/10 to-[#C0A04C]/10 rounded-lg p-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">About the Author</h3>
-              <p className="text-gray-700">{article.author.name}</p>
-              {article.author.email && (
-                <p className="text-gray-600 text-sm mt-2">{article.author.email}</p>
-              )}
-            </div>
+        <div className="mt-14 rounded-[2rem] border border-[#eadfcb] bg-[#fbf7ef] p-6 sm:p-8">
+          <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[#C0A04C]">Need a venue?</p>
+          <h2 className="mt-3 text-2xl font-black text-[#3a1224]">Plan the event after the read.</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[#3a1224]/65">
+            Browse available halls, compare capacity, and start with your preferred date.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href={ROUTES.SITE.VENUES()}
+              className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[#3a1224] px-6 py-3 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#4b1830]"
+            >
+              Explore Venues
+            </Link>
+            <Link
+              href={ROUTES.SITE.EVENTS}
+              className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[#eadfcb] bg-white px-6 py-3 text-xs font-black uppercase tracking-[0.16em] text-[#3a1224] transition hover:border-[#C0A04C]"
+            >
+              Browse Events
+            </Link>
           </div>
-        )}
+        </div>
 
-        {/* Related Articles */}
-        {articles.length > 1 && (
-          <div className="mt-16 pt-12 border-t border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900 mb-8">More Articles</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {articles
-                .filter(a => a.handle !== articleHandle)
-                .slice(0, 3)
-                .map((relatedArticle) => (
-                  <button
-                    key={relatedArticle.handle}
-                    onClick={() => router.push(`/blogs/${relatedArticle.handle}`)}
-                    className="group text-left bg-white rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 hover:border-[#C0A04C]/30"
-                  >
-                    {relatedArticle.image && (
-                      <div className="aspect-video overflow-hidden bg-gray-200 relative">
-                        <Image
-                          src={relatedArticle.image.url}
-                          alt={relatedArticle.image.altText || relatedArticle.title}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                    )}
-                    <div className="p-6">
-                      <h3 className="font-bold text-gray-900 group-hover:text-[#C0A04C] transition-colors line-clamp-2 mb-2">
-                        {relatedArticle.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {relatedArticle.excerpt}
-                      </p>
-                    </div>
-                  </button>
-                ))}
+        {related.length ? (
+          <section className="mt-14 border-t border-[#eadfcb] pt-10">
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[#C0A04C]">More articles</p>
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              {related.map((item) => (
+                <Link
+                  key={item.handle}
+                  href={ROUTES.SITE.BLOGS_DETAIL(item.handle)}
+                  className="rounded-2xl border border-[#eadfcb] bg-white p-5 transition hover:border-[#C0A04C]"
+                >
+                  <p className="text-xs font-semibold text-[#3a1224]/50">{formatDate(item.publishedAt)}</p>
+                  <h3 className="mt-3 line-clamp-2 text-base font-black leading-snug text-[#3a1224]">{item.title}</h3>
+                </Link>
+              ))}
             </div>
-          </div>
-        )}
-      </div>
+          </section>
+        ) : null}
+      </article>
     </main>
   );
 }

@@ -1,33 +1,24 @@
 "use client";
 
-import { 
-  CalendarCheck, 
-  PlusCircle, 
-  Search, 
-  Filter, 
-  ChevronRight, 
-  MoreVertical,
-  Calendar,
-  Users,
-  Ticket,
-  Zap,
-  Fingerprint,
-  Plus,
+import {
+  CalendarDays,
+  CheckSquare,
+  ChevronRight,
+  ClipboardList,
   Copy,
   Download,
-  Trash2,
-  CheckSquare,
-  Square
+  Fingerprint,
+  Plus,
+  Square,
+  Ticket,
+  Users,
 } from "lucide-react";
 import { ROUTES } from "config/routes";
 import { useAuth } from "contexts/AuthProvider";
 import toast from "react-hot-toast";
-import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import axiosInstance from "lib/axios";
 import EventSearchFilter from "components/organizer/EventSearchFilter";
 import BulkActionsToolbar from "components/organizer/BulkActionsToolbar";
 import EmptyState from "components/organizer/EmptyState";
@@ -40,11 +31,11 @@ import { useQueryOrganizerEvents } from "@queries/organizer/events";
 
 function formatDate(value) {
   try {
-    return new Intl.DateTimeFormat("en-GB", { 
-      year: "numeric", 
-      month: "short", 
+    return new Intl.DateTimeFormat("en-GB", {
+      year: "numeric",
+      month: "short",
       day: "numeric",
-      weekday: "short"
+      weekday: "short",
     }).format(new Date(value));
   } catch {
     return "-";
@@ -54,14 +45,20 @@ function formatDate(value) {
 function statusTone(status) {
   switch (status?.toUpperCase()) {
     case "PUBLISHED":
-      return "text-emerald-600 bg-emerald-50 border-emerald-100";
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
     case "DRAFT":
-      return "text-amber-600 bg-amber-50 border-amber-100";
+      return "border-amber-200 bg-amber-50 text-amber-700";
     case "CANCELLED":
-      return "text-rose-600 bg-rose-50 border-rose-100";
+      return "border-rose-200 bg-rose-50 text-rose-700";
+    case "PENDING_REVIEW":
+      return "border-sky-200 bg-sky-50 text-sky-700";
     default:
-      return "text-gray-600 bg-gray-50 border-gray-100";
+      return "border-[#e8dcc8] bg-[#fbf8f2] text-[#3a1224]/60";
   }
+}
+
+function cleanStatus(status) {
+  return String(status || "unknown").toLowerCase().replace(/_/g, " ");
 }
 
 export default function OrganizerEventsPage() {
@@ -73,376 +70,344 @@ export default function OrganizerEventsPage() {
   const [selected, setSelected] = useState(new Set());
   const [showFirstTimeHelpToast, setShowFirstTimeHelpToast] = useState(false);
 
-  // React Query Hooks
-  const { data: statusData, isLoading: statusLoading } = useQueryOrganizerStatus({
-    enabled: !!user,
-  });
-
+  const { data: statusData, isLoading: statusLoading } = useQueryOrganizerStatus({ enabled: !!user });
   const { data: eventsData, isLoading: eventsLoading, refetch: refetchEvents } = useQueryOrganizerEvents({
     params: statusFilter !== "all" ? { status: statusFilter } : undefined,
     enabled: !!statusData?.isOrganizerEligible,
   });
 
-  // Mutations - Written directly in page
   const duplicateEventMutation = useMutation({
     mutationFn: eventDuplicateMutator,
     onSuccess: () => {
-      toast.success("Event duplicated successfully!");
+      toast.success("Event duplicated");
       clearSelection();
       queryClient.invalidateQueries({ queryKey: ["organizer-events"] });
       refetchEvents();
     },
-    onError: (error) => {
-      toast.error(error?.response?.data?.message || "Failed to duplicate event");
-    },
+    onError: (error) => toast.error(error?.response?.data?.message || "Failed to duplicate event"),
   });
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids) => {
-      if (!Array.isArray(ids) || ids.length === 0) {
-        throw new Error("Event IDs array required");
-      }
-      return Promise.all(ids.map(id => eventDeleteMutator(id)));
+      if (!Array.isArray(ids) || ids.length === 0) throw new Error("Event IDs array required");
+      return Promise.all(ids.map((id) => eventDeleteMutator(id)));
     },
     onSuccess: () => {
-      toast.success("Event(s) deleted successfully!");
+      toast.success("Event deleted");
       clearSelection();
       queryClient.invalidateQueries({ queryKey: ["organizer-events"] });
       refetchEvents();
     },
-    onError: (error) => {
-      toast.error(error?.response?.data?.message || "Failed to delete event(s)");
-    },
+    onError: (error) => toast.error(error?.response?.data?.message || "Failed to delete event"),
   });
 
-  // Extract data from query results
   const events = eventsData?.events || [];
-  const status = statusData;
   const loading = statusLoading || eventsLoading;
+  const statusValue = String(statusData?.organizerStatus || (user?.isOrganizerEligible ? "approved" : user?.organizerStatus || "none")).toLowerCase();
+  const isApproved = statusData?.isOrganizerEligible || statusValue === "approved" || user?.isOrganizerEligible;
 
-  // Filter and search logic using useMemo (not useEffect to prevent infinite loops)
   const filteredEvents = useMemo(() => {
     let filtered = events;
-
-    // Apply status filter
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(e => e.status?.toUpperCase() === statusFilter.toUpperCase());
-    }
-
-    // Apply search filter
+    if (statusFilter !== "all") filtered = filtered.filter((event) => event.status?.toUpperCase() === statusFilter.toUpperCase());
     if (searchQuery) {
-      filtered = filtered.filter(e => 
-        e.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        e.type?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter((event) => event.name?.toLowerCase().includes(q) || event.type?.toLowerCase().includes(q));
     }
-
     return filtered;
   }, [events, statusFilter, searchQuery]);
 
-  const statusValue = String(status?.organizerStatus || (user?.isOrganizerEligible ? "approved" : user?.organizerStatus || "none")).toLowerCase();
-  const isApproved = status?.isOrganizerEligible || statusValue === "approved" || user?.isOrganizerEligible;
+  const counts = useMemo(() => {
+    const published = events.filter((event) => event.status === "PUBLISHED").length;
+    const draft = events.filter((event) => event.status === "DRAFT").length;
+    const review = events.filter((event) => event.status === "PENDING_REVIEW").length;
+    const cancelled = events.filter((event) => event.status === "CANCELLED").length;
+    const guests = events.reduce((sum, event) => sum + Number(event.expectedAttendees || event.maxAttendees || 0), 0);
+    return { total: events.length, published, draft, review, cancelled, guests };
+  }, [events]);
 
-  // Bulk action handlers
+  const nextEvent = useMemo(() => {
+    const now = Date.now();
+    return [...events]
+      .filter((event) => {
+        const date = new Date(event.startDateTime || event.bookingId?.date).getTime();
+        return Number.isFinite(date) && date >= now;
+      })
+      .sort((a, b) => new Date(a.startDateTime || a.bookingId?.date) - new Date(b.startDateTime || b.bookingId?.date))[0];
+  }, [events]);
+
   const toggleSelect = (eventId) => {
-    const newSelected = new Set(selected);
-    if (newSelected.has(eventId)) {
-      newSelected.delete(eventId);
-    } else {
-      newSelected.add(eventId);
-    }
-    setSelected(newSelected);
+    const next = new Set(selected);
+    if (next.has(eventId)) next.delete(eventId);
+    else next.add(eventId);
+    setSelected(next);
   };
 
-  const selectAll = () => {
-    setSelected(new Set(filteredEvents.map(e => e._id)));
-  };
+  const selectAll = () => setSelected(new Set(filteredEvents.map((event) => event._id)));
+  const clearSelection = () => setSelected(new Set());
 
-  const clearSelection = () => {
-    setSelected(new Set());
-  };
-
-  const handleDuplicate = async () => {
+  const handleDuplicate = () => {
     const selectedArray = Array.from(selected);
     if (selectedArray.length !== 1) {
-      toast.error("Select exactly one event to duplicate");
+      toast.error("Select one event to duplicate");
       return;
     }
-
-    const eventToDuplicate = events.find(e => e._id === selectedArray[0]);
-    if (!eventToDuplicate) {
-      toast.error("Event not found");
-      return;
-    }
-
     duplicateEventMutation.mutate(selectedArray[0]);
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selected.size === 0) {
       toast.error("Select at least one event");
       return;
     }
-
-    if (!confirm(`Delete ${selected.size} event(s)? This cannot be undone.`)) {
-      return;
-    }
-
+    if (!confirm(`Delete ${selected.size} event(s)? This cannot be undone.`)) return;
     bulkDeleteMutation.mutate(Array.from(selected));
   };
 
   const handleExport = () => {
     const selectedArray = Array.from(selected);
-    const eventsToExport = selectedArray.length > 0 
-      ? events.filter(e => selected.has(e._id))
-      : filteredEvents;
-
+    const eventsToExport = selectedArray.length > 0 ? events.filter((event) => selected.has(event._id)) : filteredEvents;
     if (eventsToExport.length === 0) {
       toast.error("No events to export");
       return;
     }
-
     exportEvents(eventsToExport);
     toast.success(`Exported ${eventsToExport.length} event(s)`);
   };
 
-  // Show first-time help toast
   useEffect(() => {
     if (!eventsLoading && events.length === 0) {
-      const hasSeenHelp = localStorage.getItem('organizer-events-help-shown');
+      const hasSeenHelp = localStorage.getItem("organizer-events-help-shown");
       if (!hasSeenHelp) {
         setShowFirstTimeHelpToast(true);
-        localStorage.setItem('organizer-events-help-shown', 'true');
+        localStorage.setItem("organizer-events-help-shown", "true");
       }
     }
   }, [events.length, eventsLoading]);
 
   if (!isApproved) {
     return (
-      <div className="max-w-2xl mx-auto py-20">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-[2.5rem] border border-[#3a1224]/5 p-12 text-center shadow-sm"
-        >
-          <div className="w-20 h-20 bg-[#3a1224]/5 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
-            <Fingerprint className="w-10 h-10 text-[#3a1224]" />
+      <div className="mx-auto max-w-2xl py-16">
+        <div className="border border-[#e8dcc8] bg-white p-8 text-center">
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center border border-[#e8dcc8] bg-[#fbf8f2]">
+            <Fingerprint className="h-7 w-7 text-[#3a1224]" />
           </div>
-          <h2 className="text-3xl font-black text-[#3a1224] mb-4">Verification Required</h2>
-          <p className="text-[#3a1224]/60 mb-10 leading-relaxed font-medium">
-            You need to be a verified producer to manage event listings. 
-            Please check your application status on the dashboard.
+          <h2 className="text-2xl font-black text-[#3a1224]">Verification required</h2>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#3a1224]/60">
+            You need verified organizer access before managing event listings.
           </p>
-          <button
-            onClick={() => router.push(ROUTES.SITE.ORGANIZER)}
-            className="px-10 py-5 bg-[#3a1224] text-white rounded-[2rem] text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all"
-          >
-            Go to Dashboard
+          <button onClick={() => router.push(ROUTES.SITE.ORGANIZER)} className="mt-7 bg-[#3a1224] px-6 py-3 text-sm font-bold text-white hover:bg-[#4b1830]">
+            Go to dashboard
           </button>
-        </motion.div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8 py-6 sm:py-8">
-      {/* Help Toast for First-Time Users */}
+    <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 pb-10">
       {showFirstTimeHelpToast && events.length === 0 && (
         <HelpToast
-          title="Welcome to Your Event Dashboard!"
-          message="Start by creating your first event. Use search & filters to manage your portfolio, and export events."
+          title="Create your first event"
+          message="Events are built from confirmed hall bookings. Start with a booking, then add ticket inventory and publication details."
           onDismiss={() => setShowFirstTimeHelpToast(false)}
           autoClose={8000}
         />
       )}
 
-      {/* Header Section */}
-      <div className="flex flex-col gap-6 mb-8">
-        <div>
-          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-6">
-            <div className="w-8 sm:w-12 h-[1px] bg-[#C0A04C]/40" />
-            <span className="text-[8px] sm:text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Portfolio</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-bold text-[#3a1224] mb-2 sm:mb-3">
-            My <span className="text-[#C0A04C] italic font-serif">Events</span>
-          </h1>
-          <p className="text-[#3a1224]/60 text-[13px] sm:text-base font-light max-w-lg">
-            Manage, duplicate, and export your event listings with advanced tools.
-          </p>
-        </div>
-        
-        <button
-          onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_NEW)}
-          className="group flex items-center justify-center sm:justify-start gap-2 sm:gap-4 px-4 sm:px-8 py-3 sm:py-5 bg-[#3a1224] text-white rounded-lg sm:rounded-2xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest hover:shadow-lg transition-all w-full sm:w-auto"
-        >
-          <Plus className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[#C0A04C]" />
-          Create Event
-        </button>
-      </div>
-
-      {/* Search & Filter */}
-      <div className="bg-white rounded-lg sm:rounded-2xl border border-[#3a1224]/5 p-4 sm:p-6 shadow-sm">
-        <EventSearchFilter
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          statusFilter={statusFilter}
-          onStatusChange={setStatusFilter}
-          onClear={() => {
-            setSearchQuery("");
-            setStatusFilter("all");
-          }}
-          hasActiveFilters={searchQuery !== "" || statusFilter !== "all"}
-        />
-      </div>
-
-      {/* Results Count & Export */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-        <p className="text-[8px] sm:text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest">
-          {filteredEvents.length} Event{filteredEvents.length !== 1 ? 's' : ''} Found
-        </p>
-        <button
-          onClick={handleExport}
-          disabled={filteredEvents.length === 0}
-          className="h-8 sm:h-9 px-3 sm:px-4 bg-[#C0A04C]/10 hover:bg-[#C0A04C]/20 text-[#C0A04C] rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center sm:justify-start gap-1 sm:gap-2"
-        >
-          <Download size={12} className="sm:w-3.5" /> <span className="hidden sm:inline">Export All</span><span className="sm:hidden">Export</span>
-        </button>
-      </div>
-
-      {/* Grid List */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-        {loading ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl p-8 border border-[#3a1224]/5 animate-pulse">
-               <div className="w-12 h-12 bg-[#3a1224]/5 rounded-xl mb-6" />
-               <div className="h-4 w-3/4 bg-[#3a1224]/5 rounded-full mb-4" />
-               <div className="h-4 w-1/2 bg-[#3a1224]/5 rounded-full" />
+      <section className="overflow-hidden border border-[#e8dcc8] bg-white">
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="px-5 py-6 sm:px-7 lg:px-8">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#C0A04C]">Event operations</p>
+            <h1 className="mt-3 text-3xl font-black leading-tight text-[#3a1224] sm:text-4xl">My events</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#3a1224]/58">
+              Manage live listings, draft work, ticket capacity, and event-day readiness from one register.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_NEW)} className="inline-flex h-11 items-center justify-center gap-2 bg-[#3a1224] px-5 text-sm font-bold text-white hover:bg-[#4b1830]">
+                <Plus className="h-4 w-4" />
+                Create event
+              </button>
+              <button onClick={handleExport} disabled={filteredEvents.length === 0} className="inline-flex h-11 items-center justify-center gap-2 border border-[#e8dcc8] bg-white px-5 text-sm font-bold text-[#3a1224] hover:bg-[#fbf8f2] disabled:opacity-45">
+                <Download className="h-4 w-4" />
+                Export list
+              </button>
             </div>
-          ))
-        ) : filteredEvents.length === 0 ? (
-          <div className="sm:col-span-2 lg:col-span-3">
-            <EmptyState
-              type={searchQuery !== "" || statusFilter !== "all" ? "NO_RESULTS" : "NO_EVENTS"}
-              onCtaClick={() => {
-                if (searchQuery !== "" || statusFilter !== "all") {
-                  setSearchQuery("");
-                  setStatusFilter("all");
-                } else {
-                  router.push(ROUTES.SITE.ORGANIZER_EVENT_NEW);
-                }
-              }}
-              ctaText={searchQuery !== "" || statusFilter !== "all" ? "Clear Filters" : "Create Your First Event"}
-            />
           </div>
-        ) : (
-          filteredEvents.map((event) => {
-            const isSelected = selected.has(event._id);
-            return (
-            <motion.div
-              key={event._id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`group bg-white rounded-lg sm:rounded-2xl border transition-all duration-300 overflow-hidden flex flex-col h-full ${
-                isSelected 
-                  ? 'border-[#C0A04C] shadow-lg shadow-[#C0A04C]/20 bg-[#C0A04C]/5' 
-                  : 'border-[#3a1224]/5 hover:shadow-lg hover:border-[#C0A04C]/20 hover:bg-white/90'
-              }`}
-            >
-               {/* Checkbox & Quick Actions */}
-               <div className="absolute top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 flex items-center justify-between z-10">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleSelect(event._id);
-                    }}
-                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-white border border-[#3a1224]/10 flex items-center justify-center hover:bg-[#C0A04C]/10 transition-all"
-                  >
-                    {isSelected ? (
-                      <CheckSquare size={16} className="sm:w-4.5 text-[#C0A04C]" />
-                    ) : (
-                      <Square size={16} className="sm:w-4.5 text-[#3a1224]/20" />
-                    )}
-                  </button>
 
-                  {/* Quick Actions Menu */}
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelected(new Set([event._id]));
-                        handleDuplicate();
-                      }}
-                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 flex items-center justify-center transition-all"
-                      title="Duplicate event"
-                    >
-                      <Copy size={13} className="sm:w-3.5" />
-                    </button>
-                  </div>
-               </div>
+          <div className="border-t border-[#e8dcc8] bg-[#fbf8f2] p-5 lg:border-l lg:border-t-0 lg:p-6">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#3a1224]/42">Next scheduled</p>
+            {nextEvent ? (
+              <button onClick={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_DETAIL(nextEvent._id))} className="mt-4 block w-full border border-[#e8dcc8] bg-white p-4 text-left hover:bg-[#fffdf9]">
+                <p className="truncate text-base font-black text-[#3a1224]">{nextEvent.name}</p>
+                <p className="mt-2 text-sm font-bold text-[#3a1224]/55">{formatDate(nextEvent.startDateTime || nextEvent.bookingId?.date)}</p>
+                <span className={`mt-4 inline-flex border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${statusTone(nextEvent.status)}`}>
+                  {cleanStatus(nextEvent.status)}
+                </span>
+              </button>
+            ) : (
+              <div className="mt-4 border border-dashed border-[#e8dcc8] bg-white p-5">
+                <CalendarDays className="h-6 w-6 text-[#3a1224]/25" />
+                <p className="mt-3 text-sm font-black text-[#3a1224]">No upcoming event</p>
+                <p className="mt-1 text-xs leading-5 text-[#3a1224]/45">Published or scheduled events will appear here.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
-               {/* Content */}
-               <div className="p-5 sm:p-8 pt-12 sm:pt-14 flex-1">
-                  <div className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg border text-[7px] sm:text-[8px] font-black uppercase tracking-widest w-fit mb-3 sm:mb-4 ${statusTone(event.status)}`}>
-                     {event.status}
-                  </div>
-                  
-                  <h3 className="text-lg sm:text-xl font-black text-[#3a1224] mb-1 sm:mb-2 leading-tight group-hover:text-[#C0A04C] transition-colors line-clamp-2">
-                    {event.name}
-                  </h3>
-                  <p className="text-[#3a1224]/40 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest mb-4 sm:mb-6">
-                    {event.type || "Special Event"}
-                  </p>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <MetricCard label="Total" value={counts.total} helper="All event records" icon={ClipboardList} loading={loading} emphasis />
+        <MetricCard label="Published" value={counts.published} helper="Visible to guests" icon={CalendarDays} loading={loading} />
+        <MetricCard label="Draft" value={counts.draft} helper="Needs finishing" icon={Ticket} loading={loading} />
+        <MetricCard label="In review" value={counts.review} helper="Waiting approval" icon={CheckSquare} loading={loading} />
+        <MetricCard label="Guest capacity" value={counts.guests} helper="Expected total" icon={Users} loading={loading} />
+      </section>
 
-                  <div className="space-y-2 sm:space-y-3">
-                     <div className="flex items-center gap-2 sm:gap-3">
-                        <Calendar size={12} className="sm:w-3.5 text-[#C0A04C]/40" />
-                        <span className="text-[10px] sm:text-[11px] font-medium text-[#3a1224]/60">{formatDate(event.bookingId?.date)}</span>
-                     </div>
-                     <div className="flex items-center gap-2 sm:gap-3">
-                        <Users size={12} className="sm:w-3.5 text-[#C0A04C]/40" />
-                        <span className="text-[10px] sm:text-[11px] font-medium text-[#3a1224]/60">{event.expectedAttendees || 0} Guests</span>
-                     </div>
-                  </div>
-               </div>
-
-               {/* Footer - Click to open */}
-               <div 
-                 onClick={() => {
-                   if (!event?._id) {
-                     toast.error("Event data incomplete. Please refresh.");
-                     return;
-                   }
-                   router.push(ROUTES.SITE.ORGANIZER_EVENT_DETAIL(event._id));
-                 }}
-                 className={`bg-[#3a1224] p-4 sm:p-6 flex items-center justify-between ${event?._id ? 'cursor-pointer hover:bg-[#4a172d]' : 'cursor-not-allowed opacity-50'} transition-colors`}
-               >
-                  <div className="flex items-center gap-2 text-white">
-                     <Ticket size={13} className="sm:w-3.5 text-[#C0A04C]" />
-                     <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest">{event.isPublic ? "Public" : "Private"}</span>
-                  </div>
-                  <ChevronRight size={14} className="sm:w-4 text-[#C0A04C] group-hover:translate-x-1 transition-transform" />
-               </div>
-            </motion.div>
-            );
-          })
-        )}
-      </div>
-
-      {/* Bulk Actions Toolbar */}
-      <AnimatePresence>
-        {selected.size > 0 && (
-          <BulkActionsToolbar
-            selectedCount={selected.size}
-            totalCount={filteredEvents.length}
-            onSelectAll={selectAll}
-            onClear={clearSelection}
-            onExport={handleExport}
-            onDuplicate={handleDuplicate}
-            onDelete={handleBulkDelete}
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="border border-[#e8dcc8] bg-white p-4">
+          <EventSearchFilter
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            statusFilter={statusFilter}
+            onStatusChange={setStatusFilter}
+            onClear={() => {
+              setSearchQuery("");
+              setStatusFilter("all");
+            }}
+            hasActiveFilters={searchQuery !== "" || statusFilter !== "all"}
           />
+        </div>
+
+        <div className="border border-[#e8dcc8] bg-white p-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3a1224]/40">Showing</p>
+          <p className="mt-2 text-2xl font-black text-[#3a1224]">{filteredEvents.length}</p>
+          <p className="mt-1 text-xs text-[#3a1224]/45">of {events.length} event{events.length !== 1 ? "s" : ""}</p>
+        </div>
+      </section>
+
+      <section className="overflow-hidden border border-[#e8dcc8] bg-white">
+        <div className="flex items-center justify-between border-b border-[#e8dcc8] px-5 py-4">
+          <div>
+            <h2 className="text-base font-black text-[#3a1224]">Event register</h2>
+            <p className="mt-1 text-xs text-[#3a1224]/45">Select rows for bulk actions. Open an event for ticket and check-in management.</p>
+          </div>
+          {selected.size > 0 && <span className="border border-[#e8dcc8] bg-[#fbf8f2] px-3 py-1 text-xs font-black text-[#3a1224]">{selected.size} selected</span>}
+        </div>
+
+        {loading ? (
+          <LoadingRows />
+        ) : filteredEvents.length === 0 ? (
+          <EmptyState
+            type={searchQuery !== "" || statusFilter !== "all" ? "NO_RESULTS" : "NO_EVENTS"}
+            onCtaClick={() => {
+              if (searchQuery !== "" || statusFilter !== "all") {
+                setSearchQuery("");
+                setStatusFilter("all");
+              } else {
+                router.push(ROUTES.SITE.ORGANIZER_EVENT_NEW);
+              }
+            }}
+            ctaText={searchQuery !== "" || statusFilter !== "all" ? "Clear filters" : "Create event"}
+          />
+        ) : (
+          <div className="divide-y divide-[#e8dcc8]">
+            <div className="hidden grid-cols-[34px_minmax(0,1.45fr)_140px_120px_135px_96px] gap-4 bg-[#fbf8f2] px-5 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/35 lg:grid">
+              <span />
+              <span>Event</span>
+              <span>Date</span>
+              <span>Guests</span>
+              <span>Status</span>
+              <span className="text-right">Actions</span>
+            </div>
+            {filteredEvents.map((event) => (
+              <EventRow
+                key={event._id}
+                event={event}
+                isSelected={selected.has(event._id)}
+                onToggle={() => toggleSelect(event._id)}
+                onOpen={() => router.push(ROUTES.SITE.ORGANIZER_EVENT_DETAIL(event._id))}
+                onDuplicate={() => duplicateEventMutation.mutate(event._id)}
+              />
+            ))}
+          </div>
         )}
-      </AnimatePresence>
+      </section>
+
+      {selected.size > 0 && (
+        <BulkActionsToolbar
+          selectedCount={selected.size}
+          totalCount={filteredEvents.length}
+          onSelectAll={selectAll}
+          onClear={clearSelection}
+          onExport={handleExport}
+          onDuplicate={handleDuplicate}
+          onDelete={handleBulkDelete}
+        />
+      )}
+    </main>
+  );
+}
+
+function MetricCard({ label, value, helper, icon: Icon, loading, emphasis = false }) {
+  return (
+    <div className={`border p-5 ${emphasis ? "border-[#3a1224] bg-[#3a1224] text-white" : "border-[#e8dcc8] bg-white text-[#3a1224]"}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${emphasis ? "text-white/55" : "text-[#3a1224]/40"}`}>{label}</p>
+          <p className="mt-3 text-3xl font-black">{loading ? "-" : value}</p>
+        </div>
+        <div className={`flex h-10 w-10 items-center justify-center border ${emphasis ? "border-white/15 bg-white/10" : "border-[#e8dcc8] bg-[#fbf8f2]"}`}>
+          <Icon className={`h-5 w-5 ${emphasis ? "text-[#C0A04C]" : "text-[#3a1224]/45"}`} />
+        </div>
+      </div>
+      <p className={`mt-3 text-xs leading-5 ${emphasis ? "text-white/60" : "text-[#3a1224]/45"}`}>{helper}</p>
     </div>
   );
 }
-     
+
+function EventRow({ event, isSelected, onToggle, onOpen, onDuplicate }) {
+  return (
+    <div className={`grid gap-4 px-5 py-4 transition hover:bg-[#fbf8f2] lg:grid-cols-[34px_minmax(0,1.45fr)_140px_120px_135px_96px] lg:items-center ${isSelected ? "bg-[#C0A04C]/10" : ""}`}>
+      <button onClick={onToggle} className="flex h-7 w-7 items-center justify-center border border-[#e8dcc8] text-[#3a1224]/55 hover:bg-white" aria-label={isSelected ? "Deselect event" : "Select event"}>
+        {isSelected ? <CheckSquare className="h-4 w-4 text-[#C0A04C]" /> : <Square className="h-4 w-4" />}
+      </button>
+
+      <button onClick={onOpen} className="min-w-0 text-left">
+        <p className="truncate text-sm font-black text-[#3a1224]">{event.name}</p>
+        <p className="mt-1 truncate text-xs capitalize text-[#3a1224]/45">{event.type || event.eventCategory || "Event"}</p>
+      </button>
+
+      <p className="text-xs font-bold text-[#3a1224]/55">{formatDate(event.startDateTime || event.bookingId?.date)}</p>
+      <p className="text-xs font-bold text-[#3a1224]/55">{event.expectedAttendees || event.maxAttendees || 0} guests</p>
+      <span className={`w-fit border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${statusTone(event.status)}`}>
+        {cleanStatus(event.status)}
+      </span>
+
+      <div className="flex justify-start gap-2 lg:justify-end">
+        <button onClick={onDuplicate} className="flex h-8 w-8 items-center justify-center border border-[#e8dcc8] text-[#3a1224]/55 hover:bg-white" title="Duplicate event">
+          <Copy className="h-3.5 w-3.5" />
+        </button>
+        <button onClick={onOpen} className="flex h-8 w-8 items-center justify-center bg-[#3a1224] text-white hover:bg-[#4b1830]" title="Open event">
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function LoadingRows() {
+  return (
+    <div className="divide-y divide-[#e8dcc8]">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div key={index} className="grid grid-cols-[34px_minmax(0,1fr)_120px] gap-4 px-5 py-4">
+          <div className="h-5 w-5 animate-pulse bg-[#3a1224]/10" />
+          <div>
+            <div className="h-4 w-56 max-w-full animate-pulse bg-[#3a1224]/10" />
+            <div className="mt-2 h-3 w-32 animate-pulse bg-[#3a1224]/10" />
+          </div>
+          <div className="h-6 animate-pulse bg-[#3a1224]/10" />
+        </div>
+      ))}
+    </div>
+  );
+}

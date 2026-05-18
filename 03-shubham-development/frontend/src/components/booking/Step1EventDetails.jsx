@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import axiosInstance from 'lib/axios';
 import { AlertCircle } from 'lucide-react';
+import { inputCls } from './FormInputs';
 
-export default function Step1EventDetails({ data, onUpdate, onNext, bookingPurpose }) {
+export default function Step1EventDetails({ data, onUpdate, onNext, onPrev, bookingPurpose }) {
   const [eventTypes, setEventTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const isOrganizerFlow = bookingPurpose === 'organizer';
@@ -75,13 +76,8 @@ export default function Step1EventDetails({ data, onUpdate, onNext, bookingPurpo
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       {/* Header for Organizer Flow */}
       {isOrganizerFlow && (
-        <div className="bg-gradient-to-r from-[#C0A04C]/10 to-[#D4B557]/5 border border-[#C0A04C]/20 rounded-xl p-4 space-y-2">
-          <div className="flex items-start gap-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#C0A04C] mt-1.5 flex-shrink-0" />
-            <p className="text-sm font-medium text-[#3a1224]">
-              <span className="font-bold">Professional Event Details:</span> Provide key information about your event. These details will be used to create a professional listing.
-            </p>
-          </div>
+        <div className="rounded-2xl border border-[#e8dcc8] bg-[#fbf8f2] px-4 py-3 text-sm text-[#3a1224]/70">
+          These details will be used to set up your event listing after payment. You can update them from your organizer dashboard.
         </div>
       )}
 
@@ -93,7 +89,7 @@ export default function Step1EventDetails({ data, onUpdate, onNext, bookingPurpo
         <select
           {...register('eventType', { required: 'Please select an event type' })}
           disabled={loading}
-          className="w-full px-6 py-4 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-2xl text-slate-900 text-sm font-medium focus:ring-2 focus:ring-[#C0A04C]/20 focus:border-[#C0A04C] transition-all outline-none hover:border-[#3a1224]/10 disabled:opacity-50"
+          className={inputCls}
         >
           <option value="">
             {loading ? 'Loading event types...' : 'Select event type...'}
@@ -127,7 +123,7 @@ export default function Step1EventDetails({ data, onUpdate, onNext, bookingPurpo
           type="text"
           {...register('eventName', { required: 'Event name is required', minLength: { value: 3, message: 'Event name must be at least 3 characters' } })}
           placeholder={isOrganizerFlow ? 'e.g., Annual Tech Conference 2025' : 'e.g., Sarah & Raj Wedding Celebration'}
-          className="w-full px-6 py-4 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-2xl text-slate-900 text-sm font-medium focus:ring-2 focus:ring-[#C0A04C]/20 focus:border-[#C0A04C] transition-all placeholder:text-[#3a1224]/30 outline-none hover:border-[#3a1224]/10"
+          className={inputCls}
         />
         {errors.eventName && (
           <p className="text-red-600 text-xs font-semibold mt-2 flex items-center gap-2">
@@ -140,7 +136,7 @@ export default function Step1EventDetails({ data, onUpdate, onNext, bookingPurpo
       {/* Special Requirements */}
       <div>
         <label className="block text-[10px] font-black text-[#3a1224]/40 uppercase tracking-[0.2em] mb-3">
-          Special Requirements {!isOrganizerFlow && <span className="text-slate-400 font-normal text-[9px]">(Optional)</span>}
+          Special Requirements {!isOrganizerFlow && <span className="ml-1 font-normal text-[9px] text-[#3a1224]/30">(optional)</span>}
         </label>
         <textarea
           {...register('specialRequirements')}
@@ -149,15 +145,22 @@ export default function Step1EventDetails({ data, onUpdate, onNext, bookingPurpo
             ? 'Equipment setup, technical requirements, seating arrangements, sound/lighting needs...'
             : 'Dietary preferences, special setup, accessibility requirements...'
           }
-          className="w-full px-6 py-4 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-2xl text-slate-900 text-sm font-medium focus:ring-2 focus:ring-[#C0A04C]/20 focus:border-[#C0A04C] transition-all resize-none placeholder:text-[#3a1224]/30 outline-none hover:border-[#3a1224]/10"
+          className={`${inputCls} resize-none`}
         />
       </div>
 
-      {/* Submit */}
-      <div className="flex gap-3 pt-6 border-t border-[#3a1224]/5">
+      {/* Navigation */}
+      <div className="flex gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onPrev}
+          className="flex h-11 flex-1 items-center justify-center rounded-2xl border border-[#e8dcc8] bg-white text-[11px] font-black uppercase tracking-[0.18em] text-[#3a1224] transition hover:bg-[#f8f4ed]"
+        >
+          Back
+        </button>
         <button
           type="submit"
-          className="flex-1 px-6 py-4 bg-[#C0A04C] hover:bg-[#b39041] text-white font-black uppercase tracking-widest rounded-xl transition-all"
+          className="flex h-11 flex-1 items-center justify-center rounded-2xl bg-[#3a1224] text-[11px] font-black uppercase tracking-[0.18em] text-[#C0A04C] transition hover:bg-[#4a172d]"
         >
           Continue
         </button>

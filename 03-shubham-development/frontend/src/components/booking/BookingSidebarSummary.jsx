@@ -1,196 +1,123 @@
-import React from 'react';
-import { Calendar, Clock, Users, Check, Edit2 } from 'lucide-react';
+import { Building2, CalendarDays, Clock, ShieldCheck, Users } from 'lucide-react';
 import { getSlotMultiplier } from '../../utils/booking.utils';
 import { SLOT_LABELS } from 'constants/slots';
+import { resolveImage } from 'components/site/SitePrimitives';
 
-export default function BookingSidebarSummary({ 
-  hall, 
-  bookingData, 
+const normalizeImage = (image) => {
+  if (typeof image === 'string') return image;
+  return image?.url || image?.secureUrl || image?.src || image?.path || image?.key || '';
+};
+
+const formatDisplayDate = (value) => {
+  if (!value) return 'Not selected';
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
+  return value;
+};
+
+export default function BookingSidebarSummary({
+  hall,
+  bookingData,
   calculateTotal,
-  onEditStep,
-  isCompactView = false
+  isCompactView = false,
 }) {
   const total = calculateTotal();
-  // Try multiple field names for hall price
   const pricePerHour = Number(hall?.pricePerHour) || Number(hall?.price) || Number(hall?.costPerHour) || 0;
   const multiplier = getSlotMultiplier(bookingData?.slot);
   const hallPrice = pricePerHour * multiplier;
+  const imageSrc = resolveImage(normalizeImage(hall?.images?.[0]), '/assets/business-images/placeholder2.jpg');
 
-  if (isCompactView) {
-    // Compact view for non-interactive steps
-    return (
-      <div className="sticky top-24 bg-white rounded-3xl p-6 border-2 border-[#3a1224]/10 shadow-lg space-y-4">
-        {/* Venue Image */}
-        <div className="rounded-2xl overflow-hidden h-32 bg-gradient-to-br from-[#C0A04C]/20 to-[#3a1224]/20">
-          <img
-            src={hall.images?.[0] || '/assets/business-images/placeholder2.jpg'}
-            alt={hall.name}
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Venue Name */}
-        <div>
-          <h3 className="font-display font-bold text-[#3a1224] text-base leading-tight">
-            {hall.name}
-          </h3>
-          <p className="text-xs text-[#3a1224]/50 mt-1">Venue Details</p>
-        </div>
-
-        {/* Key Details */}
-        <div className="space-y-2 bg-[#fdfaf6] rounded-xl p-4">
-          <div className="flex items-center gap-2 text-sm text-[#3a1224]/70">
-            <Calendar className="w-4 h-4 text-[#C0A04C] flex-shrink-0" />
-            <span>
-              {bookingData.date ? (typeof bookingData.date === 'string' && bookingData.date.match(/^\d{4}-\d{2}-\d{2}$/) ? new Date(bookingData.date + 'T00:00:00').toLocaleDateString() : bookingData.date) : 'N/A'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-[#3a1224]/70">
-            <Clock className="w-4 h-4 text-[#C0A04C] flex-shrink-0" />
-            <span>{SLOT_LABELS[bookingData.slot] || bookingData.slot || 'N/A'}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-[#3a1224]/70">
-            <Users className="w-4 h-4 text-[#C0A04C] flex-shrink-0" />
-            <span>{bookingData.guests} Guest{bookingData.guests !== 1 ? 's' : ''}</span>
-          </div>
-        </div>
-
-        {/* Price Breakdown (Compact) */}
-        <div className="border-t border-[#3a1224]/10 pt-3 space-y-1.5 text-sm">
-          <div className="flex justify-between text-[#3a1224]/70">
-            <span>Hall ({multiplier}h)</span>
-            <span className="font-semibold text-[#3a1224]">₹{hallPrice.toLocaleString()}</span>
-          </div>
-          {bookingData.menuTotal > 0 && (
-            <div className="flex justify-between text-[#3a1224]/70">
-              <span>Menu</span>
-              <span className="font-semibold text-[#3a1224]">₹{bookingData.menuTotal.toLocaleString()}</span>
-            </div>
-          )}
-          {bookingData.decorationTotal > 0 && (
-            <div className="flex justify-between text-[#3a1224]/70">
-              <span>Decorations</span>
-              <span className="font-semibold text-[#3a1224]">₹{bookingData.decorationTotal.toLocaleString()}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Total */}
-        <div className="bg-gradient-to-r from-[#C0A04C]/10 to-[#D4B557]/10 rounded-xl p-3 border border-[#C0A04C]/20">
-          <div className="flex justify-between items-center">
-            <span className="font-semibold text-xs uppercase text-[#3a1224]/60 tracking-widest">Total</span>
-            <span className="text-2xl font-display font-bold text-[#C0A04C]">
-              ₹{total.toLocaleString()}
-            </span>
-          </div>
-        </div>
-
-        {/* Security Badge */}
-        <div className="flex items-center gap-2 text-xs text-[#3a1224]/50 pt-2">
-          <div className="w-3 h-3 rounded-full bg-green-500/30 flex items-center justify-center">
-            <Check className="w-2 h-2 text-green-600" />
-          </div>
-          <span>Secure Payment • SSL Encrypted</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Full view for interactive steps
   return (
-    <div className="sticky top-24 bg-white rounded-3xl p-8 border-2 border-[#3a1224]/10 shadow-lg space-y-6">
-      {/* Venue Image */}
-      <div className="rounded-2xl overflow-hidden h-40 bg-gradient-to-br from-[#C0A04C]/20 to-[#3a1224]/20 group relative">
+    <div className={`rounded-3xl border border-[#eadcc6] bg-white shadow-[0_16px_44px_-38px_rgba(58,18,36,0.65)] ${isCompactView ? 'p-3' : 'p-4'}`}>
+      <div className="overflow-hidden rounded-2xl bg-[#f4eadb]">
         <img
-          src={hall.images?.[0] || '/assets/business-images/placeholder2.jpg'}
-          alt={hall.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          src={imageSrc}
+          alt={hall?.name || 'Selected venue'}
+          className="h-28 w-full object-cover"
         />
       </div>
 
-      {/* Venue Info */}
-      <div>
-        <h3 className="font-display font-bold text-[#3a1224] text-lg">{hall.name}</h3>
-        <p className="text-xs text-[#3a1224]/50 mt-1 uppercase tracking-widest">Booking Summary</p>
+      <div className="mt-4">
+        <p className="text-[9px] font-black uppercase tracking-[0.28em] text-[#C0A04C]">Booking summary</p>
+        <h3 className="mt-1.5 text-lg font-black leading-tight text-[#3a1224]">{hall?.name || 'Selected venue'}</h3>
       </div>
 
-      {/* Booking Details */}
-      <div className="space-y-3 bg-[#fdfaf6] rounded-2xl p-5">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#C0A04C]/20 flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-[#C0A04C]" />
-            </div>
-            <div>
-              <p className="text-xs font-black text-[#3a1224]/50 uppercase">Date</p>
-              <p className="text-sm font-semibold text-[#3a1224]">
-                {bookingData.date ? (typeof bookingData.date === 'string' && bookingData.date.match(/^\d{4}-\d{2}-\d{2}$/) ? new Date(bookingData.date + 'T00:00:00').toLocaleDateString() : bookingData.date) : 'N/A'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#C0A04C]/20 flex items-center justify-center">
-              <Clock className="w-4 h-4 text-[#C0A04C]" />
-            </div>
-            <div>
-              <p className="text-xs font-black text-[#3a1224]/50 uppercase">Slot</p>
-              <p className="text-sm font-semibold text-[#3a1224]">
-                {SLOT_LABELS[bookingData.slot] || bookingData.slot || 'N/A'}
-              </p>
-            </div>
-          </div>
-          <div className="col-span-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#C0A04C]/20 flex items-center justify-center">
-                <Users className="w-4 h-4 text-[#C0A04C]" />
-              </div>
-              <div>
-                <p className="text-xs font-black text-[#3a1224]/50 uppercase">Guests</p>
-                <p className="text-sm font-semibold text-[#3a1224]">{bookingData.guests || 'N/A'} Person{bookingData.guests !== 1 ? 's' : ''}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="mt-4 space-y-2.5 rounded-2xl border border-[#eadcc6] bg-[#fbf8f2] p-3">
+        <SummaryLine
+          icon={<CalendarDays className="h-4 w-4" />}
+          label="Date"
+          value={formatDisplayDate(bookingData.date)}
+        />
+        <SummaryLine
+          icon={<Clock className="h-4 w-4" />}
+          label="Slot"
+          value={SLOT_LABELS[bookingData.slot] || bookingData.slot || 'Not selected'}
+        />
+        <SummaryLine
+          icon={<Users className="h-4 w-4" />}
+          label="Guests"
+          value={`${bookingData.guests || 0} guest${bookingData.guests === 1 ? '' : 's'}`}
+        />
+        <SummaryLine
+          icon={<Building2 className="h-4 w-4" />}
+          label="Purpose"
+          value={bookingData.bookingPurpose === 'organizer' ? 'Organizer venue booking' : 'Private booking'}
+        />
       </div>
 
-      {/* Price Breakdown */}
-      <div className="space-y-3 border-t border-[#3a1224]/10 pt-4">
-        <p className="text-xs font-black text-[#3a1224]/50 uppercase tracking-widest">Pricing</p>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between text-[#3a1224]/70">
-            <span>Hall Rental ({multiplier}h)</span>
-            <span className="font-semibold text-[#3a1224]">₹{hallPrice.toLocaleString()}</span>
-          </div>
-          {bookingData.menuTotal > 0 && (
-            <div className="flex justify-between text-[#3a1224]/70 bg-amber-50/40 rounded px-2 py-1">
-              <span>Menu & Dining</span>
-              <span className="font-semibold text-[#3a1224]">₹{bookingData.menuTotal.toLocaleString()}</span>
-            </div>
-          )}
-          {bookingData.decorationTotal > 0 && (
-            <div className="flex justify-between text-[#3a1224]/70 bg-pink-50/40 rounded px-2 py-1">
-              <span>Decorations</span>
-              <span className="font-semibold text-[#3a1224]">₹{bookingData.decorationTotal.toLocaleString()}</span>
-            </div>
-          )}
-        </div>
+      <div className="mt-4 space-y-2.5 border-t border-[#eadcc6] pt-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#3a1224]/50">Price details</p>
+        <PriceLine label={`Hall rental (${multiplier}h)`} value={hallPrice} />
+        {bookingData.bookingPurpose !== 'organizer' && Number(bookingData.menuTotal) > 0 ? (
+          <PriceLine label="Menu" value={Number(bookingData.menuTotal)} />
+        ) : null}
+        {bookingData.bookingPurpose !== 'organizer' && Number(bookingData.decorationTotal) > 0 ? (
+          <PriceLine label="Decoration" value={Number(bookingData.decorationTotal)} />
+        ) : null}
       </div>
 
-      {/* Total */}
-      <div className="bg-gradient-to-r from-[#C0A04C]/15 via-[#D4B557]/15 to-[#C0A04C]/15 rounded-2xl p-4 border border-[#C0A04C]/20">
-        <div className="flex justify-between items-center">
-          <span className="font-black text-xs uppercase text-[#3a1224]/60 tracking-widest">Total Amount</span>
-          <span className="text-3xl font-display font-bold text-[#C0A04C]">
-            ₹{total.toLocaleString()}
+      <div className="mt-4 rounded-2xl bg-[#3a1224] p-4 text-white">
+        <div className="flex items-end justify-between gap-3">
+          <span>
+            <span className="block text-[10px] font-black uppercase tracking-[0.28em] text-[#C0A04C]">Total</span>
+            <span className="mt-1 block text-xs text-white/60">Before final confirmation</span>
           </span>
+          <span className="text-xl font-black">NPR {total.toLocaleString()}</span>
         </div>
       </div>
 
-      {/* Security Badge */}
-      <div className="flex items-center justify-center gap-2 text-xs text-[#3a1224]/50 p-3 bg-green-50/40 rounded-lg border border-green-200/20">
-        <Check className="w-4 h-4 text-green-600" />
-        <span>Secure Payment • SSL Encrypted • PCI Compliant</span>
+      <div className="mt-4 flex items-start gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-xs leading-5 text-emerald-800">
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+        <span>Your slot is reserved only after the payment step starts.</span>
       </div>
+    </div>
+  );
+}
+
+function SummaryLine({ icon, label, value }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#C0A04C] shadow-sm">
+        {icon}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[10px] font-black uppercase tracking-[0.22em] text-[#3a1224]/50">{label}</span>
+        <span className="mt-1 block text-sm font-bold leading-5 text-[#3a1224]">{value}</span>
+      </span>
+    </div>
+  );
+}
+
+function PriceLine({ label, value }) {
+  return (
+    <div className="flex items-center justify-between gap-4 text-sm">
+      <span className="text-[#3a1224]/60">{label}</span>
+      <span className="font-black text-[#3a1224]">NPR {Number(value || 0).toLocaleString()}</span>
     </div>
   );
 }

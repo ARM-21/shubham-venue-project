@@ -16,7 +16,6 @@ import {
   Settings,
   BarChart3,
   User,
-  Bell,
   ChevronDown
 } from "lucide-react";
 import { ROUTES } from "config/routes";
@@ -52,8 +51,8 @@ function statusTone(status) {
       };
     default:
       return {
-        badge: "text-slate-600 bg-slate-50 border-slate-200",
-        dot: "bg-slate-400",
+        badge: "text-[#3a1224]/60 bg-[#fbf8f2] border-[#e8dcc8]",
+        dot: "bg-[#3a1224]/30",
         label: "Awaiting Verification"
       };
   }
@@ -131,18 +130,18 @@ export default function OrganizerNav({ user }) {
   return (
     <>
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#e8dcc8] shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
           {/* Logo/Brand */}
           <Link 
             href={ROUTES.SITE.ORGANIZER}
             className="flex items-center gap-2 sm:gap-3 group flex-shrink-0"
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-[#3a1224] to-[#4a172d] flex items-center justify-center shadow-md hover:shadow-lg transition-shadow">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-[#3a1224] flex items-center justify-center">
               <LayoutGrid className="w-4 sm:w-5 h-4 sm:h-5 text-[#C0A04C]" />
             </div>
             <div className="hidden sm:block">
-              <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide">Producer Hub</p>
+              <p className="text-[9px] font-semibold text-[#3a1224]/40 uppercase tracking-wide">Producer Hub</p>
               <p className="text-xs font-black text-[#3a1224] leading-none">Dashboard</p>
             </div>
           </Link>
@@ -165,8 +164,8 @@ export default function OrganizerNav({ user }) {
                 return (
                   <button 
                     key={item.href}
-                    onClick={() => toast.error("Complete verification to access", { icon: '🔒' })}
-                    className="h-9 px-3 flex items-center gap-2 rounded-lg text-slate-400 text-xs font-semibold uppercase tracking-wide transition-all opacity-50 cursor-not-allowed"
+                    onClick={() => toast.error("Complete verification to access")}
+                    className="h-9 px-3 flex items-center gap-2 rounded-lg text-[#3a1224]/30 text-xs font-semibold uppercase tracking-wide transition-all opacity-50 cursor-not-allowed"
                   >
                     <Icon className="w-4 h-4" />
                     <span>{item.label}</span>
@@ -179,9 +178,9 @@ export default function OrganizerNav({ user }) {
                   key={item.href}
                   href={item.href}
                   className={`h-9 px-3 flex items-center gap-2 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all ${
-                    active 
-                      ? "bg-[#3a1224] text-white shadow-md" 
-                      : "text-slate-700 hover:bg-slate-100"
+                    active
+                      ? "bg-[#3a1224] text-white"
+                      : "text-[#3a1224]/70 hover:bg-[#fbf8f2]"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -199,19 +198,10 @@ export default function OrganizerNav({ user }) {
               <span className="hidden sm:inline">{statusInfo.label}</span>
             </div>
 
-            {/* Notifications Button */}
-            <button
-              className="h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-all hover:shadow-sm"
-              title="Notifications"
-            >
-              <Bell className="w-4 sm:w-4.5 h-4 sm:h-4.5" />
-              <span className="absolute w-2 h-2 bg-red-500 rounded-full -top-1 -right-1" />
-            </button>
-
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden h-9 w-9 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-all"
+              className="lg:hidden h-9 w-9 flex items-center justify-center rounded-lg border border-[#e8dcc8] hover:bg-[#fbf8f2] text-[#3a1224]/60 transition-all"
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -222,27 +212,27 @@ export default function OrganizerNav({ user }) {
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                 className={`h-9 sm:h-10 flex items-center gap-2 px-2 sm:px-3 rounded-lg border transition-all ${
                   isProfileMenuOpen
-                    ? "border-[#C0A04C] bg-[#C0A04C]/5 shadow-md"
-                    : "border-slate-200 hover:bg-slate-50"
+                    ? "border-[#C0A04C] bg-[#fbf8f2]"
+                    : "border-[#e8dcc8] hover:bg-[#fbf8f2]"
                 }`}
               >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-[#3a1224] to-[#4a172d] flex items-center justify-center text-white text-xs font-bold">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#3a1224] flex items-center justify-center text-white text-xs font-bold">
                   {getInitials(user)}
                 </div>
                 <div className="hidden sm:flex flex-col items-start">
-                  <span className="text-xs font-semibold text-slate-900 leading-none">{user?.first_name || "User"}</span>
-                  <span className="text-[10px] text-slate-500">Organizer</span>
+                  <span className="text-xs font-semibold text-[#3a1224] leading-none">{user?.first_name || "User"}</span>
+                  <span className="text-[10px] text-[#3a1224]/40">Organizer</span>
                 </div>
-                <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-[#3a1224]/40 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Dropdown Menu */}
               {isProfileMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-[#e8dcc8] rounded-xl shadow-sm z-50 overflow-hidden">
                   {/* User Info */}
-                  <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
-                    <p className="text-sm font-semibold text-slate-900">{user?.first_name} {user?.last_name}</p>
-                    <p className="text-xs text-slate-500">{user?.email}</p>
+                  <div className="px-4 py-3 border-b border-[#e8dcc8] bg-[#fbf8f2]">
+                    <p className="text-sm font-semibold text-[#3a1224]">{user?.first_name} {user?.last_name}</p>
+                    <p className="text-xs text-[#3a1224]/40">{user?.email}</p>
                   </div>
 
                   {/* Menu Items */}
@@ -250,9 +240,9 @@ export default function OrganizerNav({ user }) {
                     <Link
                       href="/organizer-hub/settings"
                       onClick={() => setIsProfileMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#3a1224]/70 hover:bg-[#fbf8f2] transition-colors"
                     >
-                      <Settings className="w-4 h-4 text-slate-500" />
+                      <Settings className="w-4 h-4 text-[#3a1224]/40" />
                       Settings & Profile
                     </Link>
                     <button
@@ -260,15 +250,15 @@ export default function OrganizerNav({ user }) {
                         setIsProfileMenuOpen(false);
                         router.push(ROUTES.SITE.PROFILE);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#3a1224]/70 hover:bg-[#fbf8f2] transition-colors text-left"
                     >
-                      <User className="w-4 h-4 text-slate-500" />
+                      <User className="w-4 h-4 text-[#3a1224]/40" />
                       View My Profile
                     </button>
                   </div>
 
                   {/* Divider */}
-                  <div className="border-t border-slate-100" />
+                  <div className="border-t border-[#e8dcc8]" />
 
                   {/* Logout */}
                   <button
@@ -289,29 +279,29 @@ export default function OrganizerNav({ user }) {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-slate-200 bg-white">
+          <div className="lg:hidden border-t border-[#e8dcc8] bg-white">
             <nav className="max-w-7xl mx-auto px-4 py-3 space-y-1">
               {navItems.map((item) => {
                 const isExact = pathname === item.href;
                 let isSubPath = pathname?.startsWith(item.href + "/") && item.href !== ROUTES.SITE.ORGANIZER;
-                
+
                 if (item.label === "My Events" && pathname?.includes("/events/new")) {
                   isSubPath = false;
                 }
-                
+
                 const active = isExact || isSubPath;
                 const Icon = item.icon;
                 const disabled = !isApproved && item.href !== ROUTES.SITE.ORGANIZER;
 
                 if (disabled) {
                   return (
-                    <button 
+                    <button
                       key={item.href}
                       onClick={() => {
                         setIsMobileMenuOpen(false);
-                        toast.error("Complete verification to access", { icon: '🔒' });
+                        toast.error("Complete verification to access");
                       }}
-                      className="w-full h-10 flex items-center gap-3 px-3 rounded-lg text-slate-400 text-sm font-semibold transition-all opacity-50"
+                      className="w-full h-10 flex items-center gap-3 px-3 rounded-lg text-[#3a1224]/30 text-sm font-semibold transition-all opacity-50"
                     >
                       <Icon className="w-4 h-4" />
                       {item.label}
@@ -320,14 +310,14 @@ export default function OrganizerNav({ user }) {
                 }
 
                 return (
-                  <Link 
+                  <Link
                     key={item.href}
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`w-full h-10 flex items-center gap-3 px-3 rounded-lg text-sm font-semibold transition-all ${
-                      active 
-                        ? "bg-[#3a1224] text-white" 
-                        : "text-slate-700 hover:bg-slate-100"
+                      active
+                        ? "bg-[#3a1224] text-white"
+                        : "text-[#3a1224]/70 hover:bg-[#fbf8f2]"
                     }`}
                   >
                     <Icon className="w-4 h-4" />

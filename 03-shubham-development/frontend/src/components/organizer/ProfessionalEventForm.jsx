@@ -1,23 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
-import {
-  Calendar,
-  Users,
-  Tag,
-  MapPin,
-  ClipboardList,
-  Sparkles,
-  AlertCircle,
-  Clock,
-  FileText,
-  Upload,
-  Trash2,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { AlertCircle, Calendar, ClipboardList, Eye, FileText, MapPin, Trash2, Upload, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "lib/axios";
-import { ROUTES } from "config/routes";
 
 export const EVENT_CATEGORIES = [
   { value: "WEDDING", label: "Wedding" },
@@ -36,21 +23,14 @@ export const EVENT_CATEGORIES = [
   { value: "OTHER", label: "Other" },
 ];
 
-// Function to derive event time range based on booking slot
 function deriveEventTimeRange(slot) {
-  if (slot === "morning") {
-    return { startTime: "07:00", endTime: "12:00", displayStartTime: "7:00 AM", displayEndTime: "12:00 PM" };
-  } else if (slot === "afternoon") {
-    return { startTime: "13:00", endTime: "18:00", displayStartTime: "1:00 PM", displayEndTime: "6:00 PM" };
-  } else if (slot === "evening") {
-    return { startTime: "19:00", endTime: "22:30", displayStartTime: "7:00 PM", displayEndTime: "10:30 PM" };
-  } else if (slot === "wholeday") {
-    return { startTime: "07:00", endTime: "22:30", displayStartTime: "7:00 AM", displayEndTime: "10:30 PM" };
-  }
+  if (slot === "morning") return { startTime: "07:00", endTime: "12:00", displayStartTime: "7:00 AM", displayEndTime: "12:00 PM" };
+  if (slot === "afternoon") return { startTime: "13:00", endTime: "18:00", displayStartTime: "1:00 PM", displayEndTime: "6:00 PM" };
+  if (slot === "evening") return { startTime: "19:00", endTime: "22:30", displayStartTime: "7:00 PM", displayEndTime: "10:30 PM" };
+  if (slot === "wholeday") return { startTime: "07:00", endTime: "22:30", displayStartTime: "7:00 AM", displayEndTime: "10:30 PM" };
   return { startTime: "", endTime: "", displayStartTime: "", displayEndTime: "" };
 }
 
-// Helper function to convert 24-hour time to 12-hour format
 function formatTime24to12(time24) {
   if (!time24) return "";
   const [hours, minutes] = time24.split(":").map(Number);
@@ -59,60 +39,60 @@ function formatTime24to12(time24) {
   return `${hours12}:${String(minutes).padStart(2, "0")} ${ampm}`;
 }
 
+function formatDate(value) {
+  if (!value) return "-";
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }).format(new Date(value));
+  } catch {
+    return "-";
+  }
+}
+
 export default function ProfessionalEventForm({ initialData = null, onSubmit, isLoading = false }) {
   const [activeTab, setActiveTab] = useState("basic");
-  const [bannerFile, setBannerFile] = useState(null);
-  const [bannerPreview, setBannerPreview] = useState(initialData?.bannerUrl || null);
-  const [bannerUploading, setBannerUploading] = useState(false);
+  const [bannerPreview, setBannerPreview] = useState(initialData?.bannerUrl || "");
   const [bannerError, setBannerError] = useState(null);
   const [bookingDate, setBookingDate] = useState(null);
   const [bookingSlot, setBookingSlot] = useState(null);
   const [hallLocation, setHallLocation] = useState(null);
   const [hallCapacity, setHallCapacity] = useState(null);
   const [bookingLoading, setBookingLoading] = useState(false);
+
   const {
     register,
-    control,
     handleSubmit,
     watch,
     setValue,
     formState: { errors },
   } = useForm({
     defaultValues: {
-      // Basic Info
       name: initialData?.name || "",
       type: initialData?.type || "",
       description: initialData?.description || "",
       eventCategory: initialData?.eventCategory || "OTHER",
       bannerUrl: initialData?.bannerUrl || "",
-      
-      // Timing - Extract time from startDateTime/endDateTime
       eventStartTime: initialData?.startDateTime ? new Date(initialData.startDateTime).toISOString().slice(11, 16) : "",
       eventEndTime: initialData?.endDateTime ? new Date(initialData.endDateTime).toISOString().slice(11, 16) : "",
-      
-      // Registration
       registrationStartDate: initialData?.registrationStartDate ? new Date(initialData.registrationStartDate).toISOString().slice(0, 10) : "",
       registrationEndDate: initialData?.registrationEndDate ? new Date(initialData.registrationEndDate).toISOString().slice(0, 10) : "",
-      
-      // Attendance
       maxAttendees: initialData?.maxAttendees || "",
       expectedAttendees: initialData?.expectedAttendees || "",
       targetAudience: initialData?.targetAudience || "",
       dressCode: initialData?.dressCode || "",
       ageRestriction: initialData?.ageRestriction || "",
-      
-      // Tags
       tags: initialData?.tags?.join(", ") || "",
-      
-      // Location
       city: initialData?.location?.city || "",
       state: initialData?.location?.state || "",
       country: initialData?.location?.country || "",
-      
-      // Requirements
       specialRequirements: initialData?.specialRequirements || "",
-      
-      // Visibility
+      catering: initialData?.catering || false,
+      decoration: initialData?.decoration || false,
+      requiresTicket: initialData?.requiresTicket !== false,
       visibility: initialData?.isPublic ? "public" : "private",
       accessCode: initialData?.accessCode || "",
     },
@@ -121,8 +101,8 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
   const visibility = watch("visibility");
   const maxAttendees = watch("maxAttendees");
   const expectedAttendees = watch("expectedAttendees");
+  const bannerUrl = watch("bannerUrl");
 
-  // Fetch booking date and slot when component mounts
   useEffect(() => {
     if (initialData?.bookingId && !bookingDate) {
       setBookingLoading(true);
@@ -134,15 +114,11 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
             setBookingDate(booking.date);
             const slot = booking.slot;
             setBookingSlot(slot);
-            
-            // Auto-populate time fields based on slot
             const timeRange = deriveEventTimeRange(slot);
             if (timeRange.startTime && timeRange.endTime) {
               setValue("eventStartTime", timeRange.startTime);
               setValue("eventEndTime", timeRange.endTime);
             }
-            
-            // Fetch hall details for location info and capacity
             if (booking.hallId?._id || booking.hallId) {
               const hallId = booking.hallId?._id || booking.hallId;
               axiosInstance
@@ -157,7 +133,6 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
                     };
                     setHallLocation(location);
                     setHallCapacity(hall.capacity || null);
-                    // Auto-populate location fields
                     setValue("city", location.city);
                     setValue("state", location.state);
                     setValue("country", location.country);
@@ -177,140 +152,59 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
     }
   }, [initialData?.bookingId, bookingDate, setValue]);
 
-
+  useEffect(() => {
+    if (bannerUrl && bannerUrl !== bannerPreview) setBannerPreview(bannerUrl);
+  }, [bannerUrl, bannerPreview]);
 
   const tabs = [
-    { id: "basic", label: "Basic Info", icon: FileText },
+    { id: "basic", label: "Basics", icon: FileText },
     { id: "timing", label: "Timing", icon: Calendar },
-    { id: "attendance", label: "Attendance", icon: Users },
+    { id: "attendance", label: "Audience", icon: Users },
     { id: "location", label: "Location", icon: MapPin },
     { id: "requirements", label: "Services", icon: ClipboardList },
-    { id: "visibility", label: "Visibility", icon: Sparkles },
+    { id: "visibility", label: "Access", icon: Eye },
   ];
 
-  const handleBannerChange = (e) => {
-    const file = e.target.files?.[0];
+  const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
+  const activeMeta = tabs[currentIndex] || tabs[0];
+
+  const handleBannerChange = (event) => {
+    const file = event.target.files?.[0];
     if (!file) return;
-
-    // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB");
       setBannerError("Image must be less than 5MB");
+      toast.error("Image must be less than 5MB");
       return;
     }
-
-    // Validate file type
     if (!["image/jpeg", "image/png", "image/gif", "image/webp"].includes(file.type)) {
-      toast.error("Only JPG, PNG, GIF, or WEBP allowed");
       setBannerError("Only JPG, PNG, GIF, or WEBP allowed");
+      toast.error("Only JPG, PNG, GIF, or WEBP allowed");
       return;
     }
-
-    setBannerFile(file);
-    setBannerError(null);
-
-    // Create preview
+    setBannerError("Image preview only. Add a hosted image URL if you want this saved now.");
     const reader = new FileReader();
     reader.onloadend = () => setBannerPreview(reader.result);
     reader.readAsDataURL(file);
   };
 
-  const uploadBanner = async () => {
-    if (!bannerFile) return;
-    
-    if (!initialData?._id) {
-      toast.error("Event must be saved before uploading banner");
-      return;
-    }
-    
-    try {
-      setBannerUploading(true);
-      setBannerError(null);
-
-      // Step 1: Get presigned URL from backend
-      const ext = `.${bannerFile.name.split('.').pop()}`;
-      const { data } = await axiosInstance.post(
-        ROUTES.API.ORGANIZER.EVENT_BANNER_UPLOAD_URL,
-        {
-          fileExtension: ext,
-          contentType: bannerFile.type,
-        }
-      );
-
-      const uploadUrl = data?.data?.uploadUrl;
-      const publicUrl = data?.data?.publicUrl;
-      const key = data?.data?.key;
-
-      if (!uploadUrl || !publicUrl || !key) {
-        throw new Error('Upload URL not received');
-      }
-
-      // Step 2: Upload to S3 using presigned URL
-      const response = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': bannerFile.type },
-        body: bannerFile,
-      });
-
-      if (!response.ok) throw new Error('S3 upload failed');
-
-      // Step 3: Confirm upload to backend
-      const confirmRes = await axiosInstance.post(
-        ROUTES.API.ORGANIZER.EVENT_BANNER_CONFIRM(initialData._id),
-        {
-          s3Key: key,
-          publicUrl: publicUrl,
-        }
-      );
-
-      // Update form with confirmed URL
-      const confirmedUrl = confirmRes.data?.event?.bannerUrl || publicUrl;
-      setValue('bannerUrl', confirmedUrl, { shouldDirty: true });
-      setBannerFile(null);
-      setBannerPreview(confirmedUrl);
-
-      toast.success('Banner uploaded successfully');
-    } catch (err) {
-      const message = err?.response?.data?.message || err.message || 'Upload failed';
-      toast.error(`❌ Upload failed: ${message}`);
-      setBannerError(message);
-    } finally {
-      setBannerUploading(false);
-    }
-  };
-
   const handleFormSubmit = async (data) => {
-    // Validate event times exist
     if (!data.eventStartTime || !data.eventEndTime) {
       toast.error("Event start and end times are required");
       return;
     }
-
-    // Validate event start time < end time
     if (data.eventStartTime >= data.eventEndTime) {
       toast.error("Event start time must be before end time");
       return;
     }
-
-    // Validate registration dates
-    if (data.registrationStartDate && data.registrationEndDate) {
-      if (new Date(data.registrationStartDate) > new Date(data.registrationEndDate)) {
-        toast.error("Registration start date must be before end date");
-        return;
-      }
+    if (data.registrationStartDate && data.registrationEndDate && new Date(data.registrationStartDate) > new Date(data.registrationEndDate)) {
+      toast.error("Registration start date must be before end date");
+      return;
+    }
+    if (data.registrationEndDate && bookingDate && new Date(data.registrationEndDate) > new Date(bookingDate)) {
+      toast.error("Registration must end before or on event date");
+      return;
     }
 
-    // Validate registration end date is before or on event date
-    if (data.registrationEndDate && bookingDate) {
-      const regEndDate = new Date(data.registrationEndDate);
-      const eventDate = new Date(bookingDate);
-      if (regEndDate > eventDate) {
-        toast.error("Registration must end before or on event date");
-        return;
-      }
-    }
-
-    // Validate attendees don't exceed hall capacity
     const maxAttendeesNum = data.maxAttendees ? parseInt(data.maxAttendees) : null;
     const expectedAttendeesNum = data.expectedAttendees ? parseInt(data.expectedAttendees) : null;
 
@@ -324,24 +218,19 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
         return;
       }
     }
-
-    // Validate expected attendees <= max attendees
     if (maxAttendeesNum && expectedAttendeesNum && expectedAttendeesNum > maxAttendeesNum) {
       toast.error("Expected attendees cannot exceed maximum attendees");
       return;
     }
 
-    // Convert time-only inputs to datetime by combining with booking date
     let startDateTime = null;
     let endDateTime = null;
-    
     if (data.eventStartTime && bookingDate) {
-      const bookDateStr = new Date(bookingDate).toISOString().split('T')[0];
+      const bookDateStr = new Date(bookingDate).toISOString().split("T")[0];
       startDateTime = `${bookDateStr}T${data.eventStartTime}:00`;
     }
-    
     if (data.eventEndTime && bookingDate) {
-      const bookDateStr = new Date(bookingDate).toISOString().split('T')[0];
+      const bookDateStr = new Date(bookingDate).toISOString().split("T")[0];
       endDateTime = `${bookDateStr}T${data.eventEndTime}:00`;
     }
 
@@ -350,14 +239,11 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
         ...data,
         startDateTime,
         endDateTime,
-        eventDate: bookingDate, // Use booking date as event date
-        tags: data.tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter((t) => t),
+        eventDate: bookingDate,
+        tags: data.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
         isPublic: visibility === "public",
-        maxAttendees: data.maxAttendees ? parseInt(data.maxAttendees) : null,
-        expectedAttendees: data.expectedAttendees ? parseInt(data.expectedAttendees) : null,
+        maxAttendees: maxAttendeesNum,
+        expectedAttendees: expectedAttendeesNum,
         location: {
           city: data.city || null,
           state: data.state || null,
@@ -367,608 +253,297 @@ export default function ProfessionalEventForm({ initialData = null, onSubmit, is
     }
   };
 
+  const goNext = () => setActiveTab(tabs[Math.min(currentIndex + 1, tabs.length - 1)].id);
+  const goPrev = () => setActiveTab(tabs[Math.max(currentIndex - 1, 0)].id);
+
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6 sm:space-y-8">
-      {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2 border-b border-[#3a1224]/10 pb-3 sm:pb-4 overflow-x-auto">
-        {tabs.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold uppercase tracking-widest transition-all whitespace-nowrap flex-shrink-0 ${
-              activeTab === id
-                ? "bg-[#3a1224] text-[#C0A04C] shadow-md"
-                : "bg-[#fdfaf6] text-[#3a1224]/60 border border-[#3a1224]/5 hover:border-[#C0A04C]/30"
-            }`}
-          >
-            <Icon size={16} className="flex-shrink-0" />
-            <span className="hidden sm:inline">{label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Basic Info Tab */}
-      {activeTab === "basic" && (
-        <div className="space-y-5 sm:space-y-6">
-          <h3 className="text-lg sm:text-xl font-black text-[#3a1224] flex items-center gap-3 uppercase tracking-wider">
-            <FileText size={20} className="text-[#C0A04C]" />
-            Event Basic Information
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-            <div>
-              <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
-                Event Name *
-              </label>
-              <input
-                type="text"
-                placeholder="Enter event name"
-                {...register("name", { required: "Event name is required" })}
-                className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
-              />
-              {errors.name && (
-                <p className="text-rose-500 text-[8px] sm:text-xs mt-1.5 font-bold ml-2">{errors.name.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
-                Event Category *
-              </label>
-              <select
-                {...register("eventCategory", { required: "Category is required" })}
-                className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all appearance-none"
-              >
-                {EVENT_CATEGORIES.map(({ value, label }) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              {errors.eventCategory && (
-                <p className="text-rose-500 text-[8px] sm:text-xs mt-1.5 font-bold ml-2">{errors.eventCategory.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
-                Event Type / Subtype
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., formal dinner, product showcase"
-                {...register("type")}
-                className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
-                Event Banner Image
-              </label>
-              <div className="space-y-2 sm:space-y-3">
-                {bannerPreview && (
-                  <div className="relative">
-                    <img 
-                      src={bannerPreview} 
-                      alt="Banner preview" 
-                      className="w-full h-24 sm:h-32 object-cover rounded-lg sm:rounded-xl border border-[#3a1224]/5"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setBannerPreview(null);
-                        setBannerFile(null);
-                        setValue('bannerUrl', '');
-                      }}
-                      className="absolute top-2 right-2 p-1 sm:p-1.5 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
-                      title="Remove banner"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                )}
-
-                {!bannerPreview && (
-                  <label className="flex-1 cursor-pointer">
-                    <div className="flex items-center justify-center gap-2 px-3 sm:px-4 py-3 sm:py-4 border-2 border-dashed border-[#C0A04C]/40 rounded-lg sm:rounded-xl bg-[#C0A04C]/5 hover:bg-[#C0A04C]/10 transition-colors">
-                      <Upload size={16} className="text-[#C0A04C] flex-shrink-0" />
-                      <span className="text-xs sm:text-sm font-bold text-[#3a1224]/60 uppercase tracking-widest">
-                        {bannerFile ? bannerFile.name : 'Upload Image'}
-                      </span>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleBannerChange}
-                      disabled={bannerUploading}
-                      className="hidden"
-                    />
-                  </label>
-                )}
-
-                {bannerFile && !bannerUploading && (
-                  <button
-                    type="button"
-                    onClick={uploadBanner}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-[#3a1224] text-white rounded-lg sm:rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest hover:bg-[#3a1224]/90 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Upload size={14} />
-                    Upload Banner
-                  </button>
-                )}
-
-                {bannerUploading && (
-                  <div className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-[#C0A04C]/10 text-[#C0A04C] rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold text-center uppercase animate-pulse">
-                    Uploading...
-                  </div>
-                )}
-
-                {bannerError && (
-                  <p className="text-rose-500 text-xs font-bold">{bannerError}</p>
-                )}
-
-                <input type="hidden" {...register("bannerUrl")} value={bannerPreview || ""} />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
-              Description *
-            </label>
-            <textarea
-              rows={4}
-              placeholder="Detailed event description, objectives, and key highlights..."
-              {...register("description", { required: "Description is required" })}
-              className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all resize-none"
-            />
-            {errors.description && (
-              <p className="text-rose-500 text-[8px] sm:text-xs mt-1.5 font-bold ml-2">{errors.description.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
-              Event Tags (comma-separated)
-            </label>
-            <input
-              type="text"
-              placeholder="wedding, celebration, formal, training, etc."
-              {...register("tags")}
-              className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
-            />
-            <p className="text-[8px] sm:text-[9px] text-[#3a1224]/50 font-semibold ml-2 mt-1.5">Add tags to help attendees find your event</p>
-          </div>
-        </div>
-      )}
-
-      {/* Timing Tab */}
-      {activeTab === "timing" && (
-        <div className="space-y-5 sm:space-y-6">
-          <h3 className="text-lg sm:text-xl font-black text-[#3a1224] flex items-center gap-3 uppercase tracking-wider">
-            <Calendar size={20} className="text-[#C0A04C]" />
-            Event Timing & Registration
-          </h3>
-
-          {bookingDate && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg sm:rounded-xl p-3 sm:p-4 flex gap-3">
-              <AlertCircle size={18} className="text-blue-700 flex-shrink-0 mt-0.5" />
-              <div className="text-xs sm:text-sm">
-                <p className="font-black text-blue-900 uppercase tracking-widest">Event Date Locked to Booking</p>
-                <p className="text-blue-800 mt-1 font-semibold">
-                  Your event will be held on <strong>{new Date(bookingDate).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>
-                </p>
-              </div>
-            </div>
-          )}
-
-          {bookingLoading && (
-            <div className="bg-[#3a1224]/5 border border-[#3a1224]/10 rounded-lg sm:rounded-xl p-3 sm:p-4 text-[#3a1224]/60 text-xs sm:text-sm font-semibold">
-              Loading booking details...
-            </div>
-          )}
-
-          <div>
-            <h4 className="font-black text-[#3a1224] text-sm sm:text-base uppercase tracking-widest mb-3 sm:mb-4">Event Times</h4>
-            <p className="text-[9px] sm:text-[10px] font-bold text-[#3a1224]/50 uppercase tracking-widest ml-2 mb-4">Automatically set based on your booking slot</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-              <div>
-                <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
-                  Start Time
-                </label>
-                <div className="flex gap-3">
-                  <input
-                    type="time"
-                    {...register("eventStartTime", { required: "Start time is required" })}
-                    disabled={!!bookingSlot}
-                    className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
-                  {bookingSlot && (
-                    <div className="flex items-center px-4 bg-emerald-50 border border-emerald-200 rounded-lg sm:rounded-xl">
-                      <span className="font-bold text-emerald-700 text-sm sm:text-base whitespace-nowrap">
-                        {formatTime24to12(watch("eventStartTime"))}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                {errors.eventStartTime && (
-                  <p className="text-rose-500 text-[8px] sm:text-xs mt-1.5 font-bold ml-2">{errors.eventStartTime.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
-                  End Time
-                </label>
-                <div className="flex gap-3">
-                  <input
-                    type="time"
-                    {...register("eventEndTime", { required: "End time is required" })}
-                    disabled={!!bookingSlot}
-                    className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
-                  {bookingSlot && (
-                    <div className="flex items-center px-4 bg-emerald-50 border border-emerald-200 rounded-lg sm:rounded-xl">
-                      <span className="font-bold text-emerald-700 text-sm sm:text-base whitespace-nowrap">
-                        {formatTime24to12(watch("eventEndTime"))}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                {errors.eventEndTime && (
-                  <p className="text-rose-500 text-[8px] sm:text-xs mt-1.5 font-bold ml-2">{errors.eventEndTime.message}</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {(() => {
-            const startTime = watch("eventStartTime");
-            const endTime = watch("eventEndTime");
-            let duration = null;
-            if (startTime && endTime) {
-              const [startH, startM] = startTime.split(":").map(Number);
-              const [endH, endM] = endTime.split(":").map(Number);
-              const startMins = startH * 60 + startM;
-              const endMins = endH * 60 + endM;
-              if (endMins > startMins) {
-                const diffMins = endMins - startMins;
-                const hours = Math.floor(diffMins / 60);
-                const mins = diffMins % 60;
-                duration = `${hours}h ${mins}m`;
-              }
-            }
-            return duration ? (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg sm:rounded-xl p-3 sm:p-4">
-                <p className="text-[9px] sm:text-xs font-black text-emerald-700 uppercase tracking-widest">Event Duration & Timing</p>
-                <p className="text-lg sm:text-xl font-black text-emerald-600 mt-1">{duration}</p>
-                <p className="text-sm text-emerald-700 font-semibold mt-2">
-                  {formatTime24to12(startTime)} - {formatTime24to12(endTime)}
-                </p>
-              </div>
-            ) : null;
-          })()}
-
-          <div className="border-t border-[#3a1224]/5 pt-4 sm:pt-5">
-            <h4 className="font-black text-[#3a1224] text-sm sm:text-base uppercase tracking-widest mb-3 sm:mb-4">Registration Period</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-              <div>
-                <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
-                  Registration Opens
-                </label>
-                <input
-                  type="date"
-                  {...register("registrationStartDate")}
-                  className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
-                />
-                <p className="text-[8px] sm:text-[9px] text-[#3a1224]/50 font-semibold ml-2 mt-1.5">When registration opens for attendees</p>
-              </div>
-
-              <div>
-                <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2 mb-2 sm:mb-3">
-                  Registration Closes *
-                </label>
-                <input
-                  type="date"
-                  {...register("registrationEndDate", {
-                    required: "Registration close date is required",
-                    validate: (value) => {
-                      if (!value || !bookingDate) return true;
-                      const regDate = new Date(value);
-                      const bookDate = new Date(bookingDate);
-                      if (regDate > bookDate) {
-                        return "Registration cannot close after event date";
-                      }
-                      return true;
-                    }
-                  })}
-                  max={bookingDate ? new Date(bookingDate).toISOString().split('T')[0] : undefined}
-                  className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-xl text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 outline-none transition-all"
-                />
-                {errors.registrationEndDate && (
-                  <p className="text-rose-500 text-[8px] sm:text-xs mt-1.5 font-bold ml-2">{errors.registrationEndDate.message}</p>
-                )}
-                <p className="text-[8px] sm:text-[9px] text-[#3a1224]/50 font-semibold ml-2 mt-1.5">Must be before or on event date</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Attendance Tab */}
-      {activeTab === "attendance" && (
-        <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Users size={20} className="text-amber-600" />
-            Attendance & Audience
-          </h3>
-
-          {/* Hall Capacity Info */}
-          {hallCapacity && (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-bold text-blue-900">Hall Capacity: <span className="text-lg text-blue-700">{hallCapacity}</span></p>
-                <p className="text-xs text-blue-700 mt-1">Maximum and expected attendees cannot exceed this capacity</p>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Maximum Attendees {hallCapacity && <span className="text-xs text-gray-500">(Max: {hallCapacity})</span>}
-              </label>
-              <input
-                type="number"
-                min="1"
-                max={hallCapacity || undefined}
-                placeholder="Expected capacity"
-                {...register("maxAttendees")}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
-                  maxAttendees && hallCapacity && parseInt(maxAttendees) > hallCapacity
-                    ? "border-red-300 focus:ring-red-500 bg-red-50"
-                    : "border-gray-300 focus:ring-amber-500"
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <aside className="border border-[#e8dcc8] bg-[#fbf8f2] p-4 lg:sticky lg:top-24 lg:self-start">
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#3a1224]/42">Listing steps</p>
+        <div className="mt-4 space-y-1">
+          {tabs.map(({ id, label, icon: Icon }, index) => {
+            const active = activeTab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setActiveTab(id)}
+                className={`flex w-full items-center gap-3 border px-3 py-3 text-left transition ${
+                  active ? "border-[#3a1224] bg-white text-[#3a1224]" : "border-transparent text-[#3a1224]/55 hover:bg-white/70"
                 }`}
-              />
-              {maxAttendees && hallCapacity && parseInt(maxAttendees) > hallCapacity && (
-                <p className="text-sm text-red-600 font-bold mt-1">⚠️ Exceeds hall capacity of {hallCapacity}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Expected Attendees {hallCapacity && <span className="text-xs text-gray-500">(Max: {hallCapacity})</span>}
-              </label>
-              <input
-                type="number"
-                min="0"
-                max={hallCapacity || undefined}
-                placeholder="Anticipated number"
-                {...register("expectedAttendees")}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
-                  expectedAttendees && hallCapacity && parseInt(expectedAttendees) > hallCapacity
-                    ? "border-red-300 focus:ring-red-500 bg-red-50"
-                    : "border-gray-300 focus:ring-amber-500"
-                }`}
-              />
-              {expectedAttendees && hallCapacity && parseInt(expectedAttendees) > hallCapacity && (
-                <p className="text-sm text-red-600 font-bold mt-1">⚠️ Exceeds hall capacity of {hallCapacity}</p>
-              )}
-              {expectedAttendees && maxAttendees && parseInt(expectedAttendees) > parseInt(maxAttendees) && (
-                <p className="text-sm text-orange-600 font-bold mt-1">⚠️ Cannot exceed maximum attendees ({maxAttendees})</p>
-              )}
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Target Audience
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., corporate professionals, families, youth"
-                {...register("targetAudience")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Dress Code
-              </label>
-              <select
-                {...register("dressCode")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               >
-                <option value="">Not specified</option>
-                <option value="casual">Casual</option>
-                <option value="business_casual">Business Casual</option>
-                <option value="business">Business Formal</option>
-                <option value="black_tie">Black Tie</option>
-                <option value="custom">Custom</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Age Restriction
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., 18+, 21+, or All ages"
-                {...register("ageRestriction")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              />
-            </div>
-          </div>
+                <span className={`flex h-7 w-7 items-center justify-center text-xs font-black ${active ? "bg-[#3a1224] text-white" : "bg-white text-[#3a1224]/45"}`}>
+                  {index + 1}
+                </span>
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="text-sm font-black">{label}</span>
+              </button>
+            );
+          })}
         </div>
-      )}
+        <div className="mt-5 border-t border-[#e8dcc8] pt-4">
+          <p className="text-xs font-bold leading-5 text-[#3a1224]/48">
+            The booking controls date and venue. This form only shapes the guest-facing listing.
+          </p>
+        </div>
+      </aside>
 
-      {/* Location Tab */}
-      {activeTab === "location" && (
-        <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <MapPin size={20} className="text-amber-600" />
-            Event Location
-          </h3>
+      <section className="border border-[#e8dcc8] bg-white">
+        <div className="border-b border-[#e8dcc8] px-5 py-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#C0A04C]">Step {currentIndex + 1} of {tabs.length}</p>
+          <h3 className="mt-1 text-xl font-black text-[#3a1224]">{activeMeta.label}</h3>
+        </div>
 
-          {hallLocation ? (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex gap-3">
-              <AlertCircle size={20} className="text-emerald-700 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-emerald-800">
-                Location is locked to your booked venue. You cannot change this location.
-              </p>
-            </div>
-          ) : (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
-              <AlertCircle size={20} className="text-blue-700 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-blue-800">
-                Location will be automatically set once you select a booking
-              </p>
+        <div className="p-5">
+          {activeTab === "basic" && (
+            <div className="space-y-5">
+              <FieldGrid>
+                <TextField label="Event name" required error={errors.name?.message}>
+                  <input {...register("name", { required: "Event name is required" })} placeholder="e.g., Product launch evening" className={inputClass} />
+                </TextField>
+                <TextField label="Event category" required error={errors.eventCategory?.message}>
+                  <select {...register("eventCategory", { required: "Category is required" })} className={inputClass}>
+                    {EVENT_CATEGORIES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </TextField>
+                <TextField label="Subtype">
+                  <input {...register("type")} placeholder="e.g., formal dinner, workshop" className={inputClass} />
+                </TextField>
+                <TextField label="Banner image">
+                  <div className="space-y-3">
+                    {bannerPreview ? (
+                      <div className="overflow-hidden border border-[#e8dcc8]">
+                        <img src={bannerPreview} alt="Banner preview" className="h-28 w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBannerPreview("");
+                            setValue("bannerUrl", "");
+                            setBannerError(null);
+                          }}
+                          className="flex w-full items-center justify-center gap-2 border-t border-[#e8dcc8] bg-white px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Remove preview
+                        </button>
+                      </div>
+                    ) : null}
+                    <label className="flex h-11 cursor-pointer items-center justify-center gap-2 border border-dashed border-[#e8dcc8] bg-[#fbf8f2] text-sm font-bold text-[#3a1224]/60 hover:bg-white">
+                      <Upload className="h-4 w-4" />
+                      Preview image
+                      <input type="file" accept="image/*" onChange={handleBannerChange} className="hidden" />
+                    </label>
+                    <input {...register("bannerUrl")} placeholder="Hosted banner URL, optional" className={inputClass} />
+                    {bannerError && <p className="text-xs font-bold text-amber-700">{bannerError}</p>}
+                  </div>
+                </TextField>
+              </FieldGrid>
+
+              <TextField label="Description" required error={errors.description?.message}>
+                <textarea {...register("description", { required: "Description is required" })} rows={5} placeholder="Explain what guests will attend, who it is for, and what they should expect." className={`${inputClass} h-auto resize-none py-3 leading-6`} />
+              </TextField>
+
+              <TextField label="Tags">
+                <input {...register("tags")} placeholder="workshop, networking, dinner" className={inputClass} />
+                <p className="mt-1 text-xs text-[#3a1224]/42">Separate tags with commas.</p>
+              </TextField>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                City
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., Kathmandu"
-                {...register("city")}
-                disabled={!!hallLocation}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-50"
-              />
+          {activeTab === "timing" && (
+            <div className="space-y-5">
+              {bookingDate && <InfoBox title="Event date locked to booking" text={`This event will be held on ${formatDate(bookingDate)}.`} tone="blue" />}
+              {bookingLoading && <InfoBox title="Loading booking details" text="We are reading the venue booking date and slot." />}
+
+              <FieldGrid>
+                <TextField label="Start time" error={errors.eventStartTime?.message}>
+                  <div className="flex gap-2">
+                    <input type="time" {...register("eventStartTime", { required: "Start time is required" })} disabled={!!bookingSlot} className={inputClass} />
+                    {bookingSlot && <TimeBadge value={formatTime24to12(watch("eventStartTime"))} />}
+                  </div>
+                </TextField>
+                <TextField label="End time" error={errors.eventEndTime?.message}>
+                  <div className="flex gap-2">
+                    <input type="time" {...register("eventEndTime", { required: "End time is required" })} disabled={!!bookingSlot} className={inputClass} />
+                    {bookingSlot && <TimeBadge value={formatTime24to12(watch("eventEndTime"))} />}
+                  </div>
+                </TextField>
+                <TextField label="Registration opens">
+                  <input type="date" {...register("registrationStartDate")} className={inputClass} />
+                </TextField>
+                <TextField label="Registration closes" required error={errors.registrationEndDate?.message}>
+                  <input
+                    type="date"
+                    {...register("registrationEndDate", {
+                      required: "Registration close date is required",
+                      validate: (value) => {
+                        if (!value || !bookingDate) return true;
+                        if (new Date(value) > new Date(bookingDate)) return "Registration cannot close after event date";
+                        return true;
+                      },
+                    })}
+                    max={bookingDate ? new Date(bookingDate).toISOString().split("T")[0] : undefined}
+                    className={inputClass}
+                  />
+                </TextField>
+              </FieldGrid>
             </div>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                State/Province
-              </label>
-              <input
-                type="text"
-                placeholder="State or province"
-                {...register("state")}
-                disabled={!!hallLocation}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-50"
-              />
+          {activeTab === "attendance" && (
+            <div className="space-y-5">
+              {hallCapacity && <InfoBox title={`Hall capacity: ${hallCapacity}`} text="Maximum and expected attendees cannot exceed this capacity." tone="blue" />}
+              <FieldGrid>
+                <TextField label="Maximum attendees">
+                  <input type="number" min="1" max={hallCapacity || undefined} {...register("maxAttendees")} className={inputClass} />
+                  {maxAttendees && hallCapacity && parseInt(maxAttendees) > hallCapacity && <p className="mt-1 text-xs font-bold text-red-600">Exceeds hall capacity.</p>}
+                </TextField>
+                <TextField label="Expected attendees">
+                  <input type="number" min="0" max={hallCapacity || undefined} {...register("expectedAttendees")} className={inputClass} />
+                  {expectedAttendees && maxAttendees && parseInt(expectedAttendees) > parseInt(maxAttendees) && <p className="mt-1 text-xs font-bold text-red-600">Cannot exceed maximum attendees.</p>}
+                </TextField>
+                <TextField label="Target audience">
+                  <input {...register("targetAudience")} placeholder="e.g., corporate professionals, families" className={inputClass} />
+                </TextField>
+                <TextField label="Dress code">
+                  <select {...register("dressCode")} className={inputClass}>
+                    <option value="">Not specified</option>
+                    <option value="casual">Casual</option>
+                    <option value="business_casual">Business Casual</option>
+                    <option value="business">Business Formal</option>
+                    <option value="black_tie">Black Tie</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </TextField>
+                <TextField label="Age restriction">
+                  <input {...register("ageRestriction")} placeholder="e.g., 18+, 21+, or All ages" className={inputClass} />
+                </TextField>
+              </FieldGrid>
             </div>
+          )}
 
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Country
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., Nepal"
-                {...register("country")}
-                disabled={!!hallLocation}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-50"
+          {activeTab === "location" && (
+            <div className="space-y-5">
+              <InfoBox
+                title={hallLocation ? "Location locked to booked venue" : "Location comes from booking"}
+                text={hallLocation ? "The event location is inherited from the selected venue booking." : "Location details will fill in once booking details load."}
+                tone={hallLocation ? "green" : "blue"}
               />
+              <FieldGrid>
+                <TextField label="City">
+                  <input {...register("city")} disabled={!!hallLocation} className={inputClass} />
+                </TextField>
+                <TextField label="State / province">
+                  <input {...register("state")} disabled={!!hallLocation} className={inputClass} />
+                </TextField>
+                <TextField label="Country">
+                  <input {...register("country")} disabled={!!hallLocation} className={inputClass} />
+                </TextField>
+              </FieldGrid>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* Requirements Tab */}
-      {activeTab === "requirements" && (
-        <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <ClipboardList size={20} className="text-amber-600" />
-            Special Requirements
-          </h3>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Additional Notes
-            </label>
-            <textarea
-              rows="4"
-              placeholder="Any special requirements, arrangements, or notes for the venue staff"
-              {...register("specialRequirements")}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Visibility Tab */}
-      {activeTab === "visibility" && (
-        <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Sparkles size={20} className="text-amber-600" />
-            Event Visibility & Access
-          </h3>
-
-          <div className="space-y-4">
-            <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50"
-              style={{ borderColor: visibility === "public" ? "#C0A04C" : undefined }}>
-              <input
-                type="radio"
-                value="public"
-                {...register("visibility")}
-                className="w-5 h-5 border-gray-300 text-amber-600 focus:ring-amber-500"
-              />
-              <div>
-                <p className="font-medium text-gray-900">Public Event</p>
-                <p className="text-sm text-gray-500">Anyone can view and register for this event</p>
+          {activeTab === "requirements" && (
+            <div className="space-y-5">
+              <TextField label="Venue notes">
+                <textarea {...register("specialRequirements")} rows={5} placeholder="Any special arrangements, setup notes, accessibility needs, or venue staff instructions." className={`${inputClass} h-auto resize-none py-3 leading-6`} />
+              </TextField>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <CheckOption register={register} name="catering" label="Catering needed" />
+                <CheckOption register={register} name="decoration" label="Decoration needed" />
+                <CheckOption register={register} name="requiresTicket" label="Tickets required" />
               </div>
-            </label>
+            </div>
+          )}
 
-            <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50"
-              style={{ borderColor: visibility === "private" ? "#C0A04C" : undefined }}>
-              <input
-                type="radio"
-                value="private"
-                {...register("visibility")}
-                className="w-5 h-5 border-gray-300 text-amber-600 focus:ring-amber-500"
-              />
-              <div>
-                <p className="font-medium text-gray-900">Private Event</p>
-                <p className="text-sm text-gray-500">Only invited guests can access with code</p>
+          {activeTab === "visibility" && (
+            <div className="space-y-5">
+              <div className="grid gap-3 md:grid-cols-2">
+                <RadioCard register={register} active={visibility === "public"} value="public" title="Public event" text="Visible in event discovery and open for registration." />
+                <RadioCard register={register} active={visibility === "private"} value="private" title="Private event" text="Only guests with the access code can open it." />
               </div>
-            </label>
-          </div>
-
-          {visibility === "private" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Access Code
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., WEDDING2024"
-                {...register("accessCode")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              />
-              <p className="text-gray-500 text-xs mt-1">
-                Share this code with invited guests to access the event
-              </p>
+              {visibility === "private" && (
+                <TextField label="Access code">
+                  <input {...register("accessCode")} placeholder="e.g., WEDDING2026" className={inputClass} />
+                </TextField>
+              )}
             </div>
           )}
         </div>
-      )}
 
-      {/* Form Actions */}
-      <div className="flex gap-4 pt-6 border-t border-gray-200">
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="flex-1 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition-colors"
-        >
-          {isLoading ? "Saving..." : initialData ? "Update Event" : "Create Event"}
-        </button>
-        <button
-          type="button"
-          className="flex-1 border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 rounded-lg transition-colors"
-          onClick={() => window.history.back()}
-        >
-          Cancel
-        </button>
-      </div>
+        <div className="flex flex-col gap-3 border-t border-[#e8dcc8] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-2">
+            <button type="button" onClick={goPrev} disabled={currentIndex === 0} className="h-10 border border-[#e8dcc8] px-4 text-sm font-bold text-[#3a1224] hover:bg-[#fbf8f2] disabled:opacity-40">Back</button>
+            <button type="button" onClick={goNext} disabled={currentIndex === tabs.length - 1} className="h-10 border border-[#e8dcc8] px-4 text-sm font-bold text-[#3a1224] hover:bg-[#fbf8f2] disabled:opacity-40">Next</button>
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => window.history.back()} className="h-10 border border-[#e8dcc8] px-4 text-sm font-bold text-[#3a1224]/65 hover:bg-[#fbf8f2]">Cancel</button>
+            <button type="submit" disabled={isLoading} className="h-10 bg-[#3a1224] px-5 text-sm font-bold text-white hover:bg-[#4b1830] disabled:opacity-50">
+              {isLoading ? "Saving..." : initialData ? "Update event" : "Create event"}
+            </button>
+          </div>
+        </div>
+      </section>
     </form>
+  );
+}
+
+const inputClass = "h-11 w-full border border-[#e8dcc8] bg-white px-3 text-sm font-bold text-[#3a1224] outline-none transition focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/15 disabled:cursor-not-allowed disabled:bg-[#fbf8f2] disabled:text-[#3a1224]/45";
+
+function FieldGrid({ children }) {
+  return <div className="grid gap-4 md:grid-cols-2">{children}</div>;
+}
+
+function TextField({ label, required, error, children }) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/40">
+        {label}{required ? " *" : ""}
+      </span>
+      {children}
+      {error && <span className="mt-1 block text-xs font-bold text-red-600">{error}</span>}
+    </label>
+  );
+}
+
+function InfoBox({ title, text, tone = "neutral" }) {
+  const tones = {
+    neutral: "border-[#e8dcc8] bg-[#fbf8f2] text-[#3a1224]",
+    blue: "border-blue-200 bg-blue-50 text-blue-800",
+    green: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  };
+  return (
+    <div className={`flex gap-3 border p-4 ${tones[tone]}`}>
+      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+      <div>
+        <p className="text-sm font-black">{title}</p>
+        <p className="mt-1 text-sm leading-6 opacity-80">{text}</p>
+      </div>
+    </div>
+  );
+}
+
+function TimeBadge({ value }) {
+  return <span className="flex h-11 shrink-0 items-center border border-emerald-200 bg-emerald-50 px-3 text-sm font-black text-emerald-700">{value}</span>;
+}
+
+function CheckOption({ register, name, label }) {
+  return (
+    <label className="flex items-center gap-3 border border-[#e8dcc8] bg-[#fbf8f2] px-4 py-3">
+      <input type="checkbox" {...register(name)} className="h-4 w-4 accent-[#3a1224]" />
+      <span className="text-sm font-bold text-[#3a1224]">{label}</span>
+    </label>
+  );
+}
+
+function RadioCard({ register, active, value, title, text }) {
+  return (
+    <label className={`flex cursor-pointer gap-3 border p-4 ${active ? "border-[#3a1224] bg-[#fbf8f2]" : "border-[#e8dcc8] bg-white"}`}>
+      <input type="radio" value={value} {...register("visibility")} className="mt-1 h-4 w-4 accent-[#3a1224]" />
+      <span>
+        <span className="block text-sm font-black text-[#3a1224]">{title}</span>
+        <span className="mt-1 block text-xs leading-5 text-[#3a1224]/50">{text}</span>
+      </span>
+    </label>
   );
 }

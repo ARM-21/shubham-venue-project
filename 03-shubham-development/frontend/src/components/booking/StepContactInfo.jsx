@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { CheckCircle2, Check, Lock } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { FormTextField, FormTextarea, PrimaryButton, SecondaryButton, ActionButtonGroup } from './FormInputs';
+import { FormTextField, FormTextarea, inputCls } from './FormInputs';
 
 export default function StepContactInfo({ data, onUpdate, onNext, onPrev, userEmail }) {
   const [isVerifying, setIsVerifying] = useState(false);
@@ -12,7 +12,13 @@ export default function StepContactInfo({ data, onUpdate, onNext, onPrev, userEm
   const [otp, setOtp] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(data.phoneVerified || false);
 
-  const { register, handleSubmit, formState: { errors }, watch, reset } = useForm({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    reset,
+  } = useForm({
     defaultValues: {
       fullName: data.fullName || '',
       phone: data.phone || '',
@@ -22,7 +28,7 @@ export default function StepContactInfo({ data, onUpdate, onNext, onPrev, userEm
       specialInstructions: data.specialInstructions || '',
       contactPreference: data.contactPreference || 'both',
       saveAsDefault: data.saveAsDefault || false,
-    }
+    },
   });
 
   useEffect(() => {
@@ -36,7 +42,11 @@ export default function StepContactInfo({ data, onUpdate, onNext, onPrev, userEm
       contactPreference: data.contactPreference || 'both',
       saveAsDefault: data.saveAsDefault || false,
     });
-  }, [data.fullName, data.phone, data.email, data.deliveryAddress, data.city, data.specialInstructions, data.contactPreference, data.saveAsDefault, data.phoneVerified, userEmail, reset]);
+  }, [
+    data.fullName, data.phone, data.email, data.deliveryAddress, data.city,
+    data.specialInstructions, data.contactPreference, data.saveAsDefault,
+    data.phoneVerified, userEmail, reset,
+  ]);
 
   const phoneValue = watch('phone');
 
@@ -45,14 +55,12 @@ export default function StepContactInfo({ data, onUpdate, onNext, onPrev, userEm
       toast.error('Please enter a valid phone number');
       return;
     }
-
     setIsVerifying(true);
     try {
-      // API call to send OTP
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       toast.success('OTP sent to your phone');
       setOtpSent(true);
-    } catch (error) {
+    } catch {
       toast.error('Failed to send OTP');
     } finally {
       setIsVerifying(false);
@@ -64,15 +72,13 @@ export default function StepContactInfo({ data, onUpdate, onNext, onPrev, userEm
       toast.error('Please enter a valid 4-digit OTP');
       return;
     }
-
     setIsVerifying(true);
     try {
-      // API call to verify OTP
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success('Phone verified successfully!');
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      toast.success('Phone verified successfully');
       setPhoneVerified(true);
       setOtpSent(false);
-    } catch (error) {
+    } catch {
       toast.error('Invalid OTP');
     } finally {
       setIsVerifying(false);
@@ -84,8 +90,7 @@ export default function StepContactInfo({ data, onUpdate, onNext, onPrev, userEm
       toast.error('Please verify your phone number');
       return;
     }
-
-    const contactData = {
+    onUpdate({
       fullName: formData.fullName,
       email: formData.email,
       phone: formData.phone,
@@ -95,93 +100,90 @@ export default function StepContactInfo({ data, onUpdate, onNext, onPrev, userEm
       contactPreference: formData.contactPreference,
       saveAsDefault: formData.saveAsDefault,
       phoneVerified: true,
-    };
-
-    onUpdate(contactData);
+    });
     onNext();
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Full Name */}
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      {/* Full name */}
       <FormTextField
-        label="Full Name"
-        placeholder="John Doe"
+        label="Full name"
+        placeholder="Your full name"
         required
         {...register('fullName', { required: 'Full name is required' })}
         error={errors.fullName?.message}
       />
 
-      {/* Email */}
+      {/* Email — read-only */}
       <FormTextField
-        label="Email"
+        label="Email address"
         type="email"
         placeholder="your@email.com"
         disabled
         required
+        hint="Auto-filled from your account"
         {...register('email', { required: 'Email is required' })}
         error={errors.email?.message}
       />
-      <p className="text-xs text-slate-500 -mt-4">Auto-filled from your account</p>
 
-      {/* Phone Number with OTP */}
-      <div className="space-y-3">
-        <label className="block text-sm font-semibold text-slate-900">
-          Phone Number <span className="text-red-500">*</span>
+      {/* Phone + OTP */}
+      <div className="space-y-1.5">
+        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#3a1224]/50">
+          Phone number <span className="text-red-500">*</span>
         </label>
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <input
-              type="tel"
-              {...register('phone', { required: 'Phone is required', minLength: { value: 10, message: 'Enter valid phone' } })}
-              placeholder="9841234567"
-              disabled={phoneVerified}
-              className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 transition-all placeholder:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-50"
-            />
-          </div>
+        <div className="flex gap-2">
+          <input
+            type="tel"
+            {...register('phone', {
+              required: 'Phone is required',
+              minLength: { value: 10, message: 'Enter a valid phone number' },
+            })}
+            placeholder="9841234567"
+            disabled={phoneVerified}
+            className={`min-w-0 flex-1 ${inputCls}`}
+          />
           {!phoneVerified ? (
             <button
               type="button"
               onClick={handleSendOtp}
               disabled={isVerifying || !phoneValue || phoneValue.length < 10 || otpSent}
-              className="h-12 px-4 bg-[#C0A04C] hover:bg-[#b39041] text-white rounded-lg font-semibold text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="h-[46px] shrink-0 rounded-2xl bg-[#3a1224] px-4 text-[11px] font-black uppercase tracking-[0.15em] text-[#C0A04C] transition hover:bg-[#4a172d] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {otpSent ? 'OTP Sent' : 'Send OTP'}
+              {otpSent ? 'Sent' : 'Send OTP'}
             </button>
           ) : (
-            <button
-              type="button"
-              disabled
-              className="h-12 px-4 bg-green-50 border border-green-200 text-green-700 rounded-lg font-semibold text-sm flex items-center gap-2"
-            >
-              <CheckCircle2 className="w-4 h-4" />
+            <div className="flex h-[46px] shrink-0 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-xs font-bold text-emerald-700">
+              <CheckCircle2 className="h-4 w-4" />
               Verified
-            </button>
+            </div>
           )}
         </div>
         {errors.phone && (
-          <p className="text-sm text-red-500 font-medium">• {errors.phone.message}</p>
+          <p className="text-xs font-bold text-red-600">• {errors.phone.message}</p>
         )}
       </div>
 
-      {/* OTP Input */}
+      {/* OTP entry */}
       {otpSent && !phoneVerified && (
-        <div className="space-y-3">
-          <label className="block text-sm font-semibold text-slate-900">Enter OTP</label>
-          <div className="flex gap-3">
+        <div className="space-y-1.5">
+          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#3a1224]/50">
+            Enter OTP
+          </label>
+          <div className="flex gap-2">
             <input
               type="text"
               maxLength="4"
               placeholder="0000"
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-              className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 text-center text-xl font-bold focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20"
+              className="flex-1 bg-[#fbf8f2] border border-[#e8dcc8] rounded-2xl px-4 py-3 text-center text-xl font-black tracking-[0.3em] text-[#3a1224] focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/15 focus:outline-none transition-colors"
             />
             <button
               type="button"
               onClick={handleVerifyOtp}
               disabled={isVerifying || otp.length !== 4}
-              className="h-12 px-4 bg-[#3a1224] hover:bg-[#4a172d] text-white rounded-lg font-semibold text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="h-[46px] shrink-0 rounded-2xl bg-[#3a1224] px-5 text-[11px] font-black uppercase tracking-[0.15em] text-[#C0A04C] transition hover:bg-[#4a172d] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Verify
             </button>
@@ -191,8 +193,8 @@ export default function StepContactInfo({ data, onUpdate, onNext, onPrev, userEm
 
       {/* Address */}
       <FormTextarea
-        label="Event Address"
-        placeholder="Street address, building name, house number..."
+        label="Event address"
+        placeholder="Street address, building name, area..."
         rows={3}
         required
         {...register('address', { required: 'Address is required' })}
@@ -202,60 +204,78 @@ export default function StepContactInfo({ data, onUpdate, onNext, onPrev, userEm
       {/* City */}
       <FormTextField
         label="City"
-        placeholder="e.g., Kathmandu"
+        placeholder="e.g. Kathmandu"
         required
         {...register('city', { required: 'City is required' })}
         error={errors.city?.message}
       />
 
-      {/* Special Instructions */}
+      {/* Special instructions */}
       <FormTextarea
-        label="Special Instructions"
-        placeholder="Parking info, gate codes, special access instructions, allergies, dietary needs..."
+        label="Special instructions"
+        hint="Optional — parking, access codes, dietary needs, anything the team should know"
+        placeholder="Any notes for the venue team..."
         rows={3}
         {...register('specialInstructions')}
         error={errors.specialInstructions?.message}
       />
 
-      {/* Contact Preference */}
-      <div className="space-y-3">
-        <label className="block text-sm font-semibold text-slate-900">Preferred Contact Method</label>
-        <div className="space-y-2">
+      {/* Contact preference */}
+      <div className="space-y-1.5">
+        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#3a1224]/50">
+          Preferred contact method
+        </label>
+        <div className="space-y-1.5">
           {[
-            { value: 'email', label: 'Email' },
-            { value: 'sms', label: 'SMS' },
-            { value: 'both', label: 'Both Email & SMS' },
+            { value: 'email', label: 'Email only' },
+            { value: 'sms', label: 'SMS only' },
+            { value: 'both', label: 'Both email & SMS' },
           ].map((method) => (
-            <label key={method.value} className="flex items-center p-3 border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+            <label
+              key={method.value}
+              className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#e8dcc8] px-4 py-2.5 transition hover:bg-[#fbf8f2]"
+            >
               <input
                 type="radio"
                 {...register('contactPreference')}
                 value={method.value}
-                className="w-4 h-4 text-[#C0A04C] border-slate-300 rounded"
+                className="h-4 w-4 accent-[#C0A04C]"
               />
-              <span className="ml-3 font-medium text-slate-900 text-sm">{method.label}</span>
+              <span className="text-sm font-medium text-[#3a1224]">{method.label}</span>
             </label>
           ))}
         </div>
       </div>
 
-      {/* Save as Default */}
-      <label className="flex items-center gap-3 p-3 border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+      {/* Save as default */}
+      <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#e8dcc8] px-4 py-3 transition hover:bg-[#fbf8f2]">
         <input
           type="checkbox"
           {...register('saveAsDefault')}
-          className="w-4 h-4 text-[#C0A04C] border-slate-300 rounded cursor-pointer"
+          className="h-4 w-4 accent-[#C0A04C] cursor-pointer"
         />
-        <span className="font-medium text-slate-900 text-sm">Save this address as my default</span>
+        <span className="text-sm font-medium text-[#3a1224]">
+          Save this address as my default
+        </span>
       </label>
 
-      {/* Navigation Buttons */}
-      <ActionButtonGroup>
-        <SecondaryButton onClick={onPrev}>← Back</SecondaryButton>
-        <PrimaryButton type="submit" disabled={!phoneVerified}>
-          Continue →
-        </PrimaryButton>
-      </ActionButtonGroup>
+      {/* Navigation */}
+      <div className="flex gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onPrev}
+          className="flex h-11 flex-1 items-center justify-center rounded-2xl border border-[#e8dcc8] bg-white text-[11px] font-black uppercase tracking-[0.18em] text-[#3a1224] transition hover:bg-[#f8f4ed]"
+        >
+          Back
+        </button>
+        <button
+          type="submit"
+          disabled={!phoneVerified}
+          className="flex h-11 flex-1 items-center justify-center rounded-2xl bg-[#3a1224] text-[11px] font-black uppercase tracking-[0.18em] text-[#C0A04C] transition hover:bg-[#4a172d] disabled:opacity-50"
+        >
+          Continue
+        </button>
+      </div>
     </form>
   );
 }

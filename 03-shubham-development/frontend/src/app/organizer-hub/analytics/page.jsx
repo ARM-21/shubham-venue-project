@@ -1,15 +1,25 @@
 'use client';
 
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Users, CheckCircle2, DollarSign, Calendar, AlertCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AlertCircle, CalendarDays, CheckCircle2, CircleDollarSign, TrendingUp, Users } from 'lucide-react';
 import BreadcrumbNav from 'components/organizer/BreadcrumbNav';
 import { useQueryOrganizerAnalytics } from '@queries/organizer/analytics';
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+}
+
+function getLatestPoint(monthly) {
+  return [...monthly].reverse().find((item) => Number(item.revenue || item.attendees || 0) > 0) || monthly[monthly.length - 1] || {};
+}
 
 export default function Analytics() {
   const { data: analyticsData, isLoading, isError, error } = useQueryOrganizerAnalytics();
 
-  // Extract stats from analytics data
   const stats = analyticsData?.stats || {
     totalEvents: 0,
     totalAttendees: 0,
@@ -18,7 +28,6 @@ export default function Analytics() {
     upcomingEvents: 0,
   };
 
-  // Extract chart data
   const chartData = {
     monthly: analyticsData?.monthlyTrend || [
       { month: 'Jan', revenue: 0, attendees: 0 },
@@ -29,155 +38,202 @@ export default function Analytics() {
       { month: 'Jun', revenue: 0, attendees: 0 },
     ],
     eventStatus: analyticsData?.eventStatus || [
-      { name: 'Completed', value: 0, color: '#10b981' },
-      { name: 'Upcoming', value: 0, color: '#f59e0b' },
-      { name: 'Draft', value: 0, color: '#6b7280' },
+      { name: 'Completed', value: 0, color: '#28705f' },
+      { name: 'Upcoming', value: 0, color: '#b8872f' },
+      { name: 'Draft', value: 0, color: '#7c6f63' },
     ],
   };
 
-  const statCards = [
-    { icon: Calendar, label: 'Total Events', value: stats.totalEvents, color: '#3a1224' },
-    { icon: Users, label: 'Total Attendees', value: stats.totalAttendees, color: '#C0A04C' },
-    { icon: CheckCircle2, label: 'Check-in Rate', value: `${stats.checkInRate}%`, color: '#10b981' },
-    { icon: DollarSign, label: 'Total Revenue', value: `$${stats.totalRevenue.toLocaleString()}`, color: '#f59e0b' },
-    { icon: TrendingUp, label: 'Upcoming Events', value: stats.upcomingEvents, color: '#8b5cf6' },
+  const latest = getLatestPoint(chartData.monthly);
+  const totalStatusCount = chartData.eventStatus.reduce((sum, item) => sum + Number(item.value || 0), 0);
+
+  const statRows = [
+    { label: 'Revenue', value: formatCurrency(stats.totalRevenue), note: 'Ticket revenue', icon: CircleDollarSign, emphasis: true },
+    { label: 'Attendees', value: stats.totalAttendees, note: 'Registrations tracked', icon: Users },
+    { label: 'Check-in rate', value: `${stats.checkInRate || 0}%`, note: 'Checked in at venue', icon: CheckCircle2 },
+    { label: 'Events', value: stats.totalEvents, note: `${stats.upcomingEvents || 0} upcoming`, icon: CalendarDays },
   ];
 
   return (
-    <div className="min-h-screen bg-[#fdfaf6] relative">
-      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/80 to-[#fdfaf6] pointer-events-none z-0" />
+    <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 pb-10">
+      <BreadcrumbNav />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 pt-32 pb-20">
-        {/* Breadcrumb */}
-        <div className="mb-8">
-          <BreadcrumbNav />
+      <header className="overflow-hidden border border-[#e8dcc8] bg-white">
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="px-5 py-6 sm:px-7 lg:px-8">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#C0A04C]">Analytics</p>
+            <h1 className="mt-3 text-3xl font-black leading-tight text-[#3a1224] sm:text-4xl">Event performance</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#3a1224]/58">
+              Review revenue, registration volume, check-ins, and event status so planning decisions are based on actual activity.
+            </p>
+          </div>
+
+          <div className="border-t border-[#e8dcc8] bg-[#fbf8f2] p-5 lg:border-l lg:border-t-0 lg:p-6">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#3a1224]/42">Latest active month</p>
+            <p className="mt-3 text-2xl font-black text-[#3a1224]">{latest.month || '-'}</p>
+            <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-[#e8dcc8] bg-[#e8dcc8]">
+              <MiniStat label="Revenue" value={formatCurrency(latest.revenue)} />
+              <MiniStat label="Attendees" value={latest.attendees ?? 0} />
+            </div>
+          </div>
         </div>
+      </header>
 
-        {/* Header */}
-        <header className="mb-16">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-[1px] bg-[#C0A04C]" />
-            <span className="text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.4em]">Analytics</span>
+      {isError && (
+        <div className="flex items-start gap-3 border border-red-200 bg-red-50 px-4 py-3">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+          <div>
+            <p className="text-sm font-bold text-red-900">Failed to load analytics</p>
+            <p className="mt-0.5 text-sm text-red-700">{error?.message || 'Please try refreshing the page.'}</p>
           </div>
-          <h1 className="text-4xl sm:text-6xl font-display font-bold text-white mb-4">
-            Event <span className="text-[#C0A04C] italic font-serif">Analytics</span>
-          </h1>
-          <p className="text-white/70 text-base sm:text-lg font-light max-w-2xl">
-            Track your event performance, revenue, and attendee engagement metrics.
-          </p>
-        </header>
+        </div>
+      )}
 
-        {/* Error State */}
-        {isError && (
-          <div className="mb-8 bg-red-50 border border-red-200 rounded-2xl p-6 flex items-start gap-4">
-            <AlertCircle className="text-red-600 mt-1" size={24} />
-            <div>
-              <p className="text-red-900 font-semibold">Failed to load analytics</p>
-              <p className="text-red-700 text-sm">{error?.message || 'Please try refreshing the page.'}</p>
-            </div>
-          </div>
-        )}
+      {isLoading ? (
+        <LoadingSummary />
+      ) : !isError ? (
+        <>
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {statRows.map((row) => (
+              <MetricCard key={row.label} {...row} />
+            ))}
+          </section>
 
-        {/* Loading State */}
-        {isLoading && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="bg-white/95 rounded-2xl shadow-lg p-6 animate-pulse">
-                  <div className="w-12 h-12 bg-gray-300 rounded-xl mb-4" />
-                  <div className="h-4 bg-gray-300 rounded w-3/4 mb-2" />
-                  <div className="h-8 bg-gray-300 rounded w-1/2" />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Stat Cards */}
-        {!isLoading && !isError && (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-              {statCards.map((card, idx) => {
-                const Icon = card.icon;
-                return (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: idx * 0.05 }}
-                    className="bg-white/95 rounded-2xl shadow-lg border border-[#3a1224]/5 p-6 hover:shadow-xl transition-shadow"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#C0A04C]/20 to-[#C0A04C]/10 flex items-center justify-center">
-                        <Icon size={24} style={{ color: card.color }} />
-                      </div>
-                    </div>
-                    <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2">{card.label}</p>
-                    <p className="text-3xl font-black text-[#3a1224]">{card.value}</p>
-                  </motion.div>
-                );
-              })}
-            </div>
-
-            {/* Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Revenue & Attendees Trend */}
-              <div className="lg:col-span-2 bg-white/95 rounded-3xl shadow-lg border border-[#3a1224]/5 p-8">
-                <h2 className="text-2xl font-display font-bold text-[#3a1224] mb-6">Revenue & Attendees Trend</h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={chartData.monthly}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
+          <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="border border-[#e8dcc8] bg-white">
+              <PanelHeader
+                eyebrow="Trend"
+                title="Revenue and attendance"
+                description="Monthly movement across tracked events. Revenue and attendee lines are shown together to reveal demand quality."
+              />
+              <div className="h-[360px] px-3 py-5 sm:px-5">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData.monthly} margin={{ left: 0, right: 12, top: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eadfcb" />
+                    <XAxis dataKey="month" tick={{ fill: '#6f5a62', fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: '#6f5a62', fontSize: 12 }} axisLine={false} tickLine={false} />
                     <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="revenue" stroke="#C0A04C" strokeWidth={2} dot={{ fill: '#3a1224' }} />
-                    <Line type="monotone" dataKey="attendees" stroke="#3a1224" strokeWidth={2} dot={{ fill: '#C0A04C' }} />
+                    <Line type="monotone" dataKey="revenue" stroke="#b8872f" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="attendees" stroke="#3a1224" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-
-              {/* Event Status Distribution */}
-              <div className="bg-white/95 rounded-3xl shadow-lg border border-[#3a1224]/5 p-8">
-                <h2 className="text-2xl font-display font-bold text-[#3a1224] mb-6">Event Status</h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie data={chartData.eventStatus} cx="50%" cy="50%" labelLine={false} label={({ percent }) => `${(percent * 100).toFixed(0)}%`} outerRadius={100} fill="#8884d8" dataKey="value">
-                      {chartData.eventStatus.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="mt-6 space-y-2">
-                  {chartData.eventStatus.map((status, idx) => (
-                    <div key={idx} className="flex items-center gap-3 text-sm">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }} />
-                      <span className="text-[#3a1224]/70">{status.name}</span>
-                      <span className="ml-auto font-bold text-[#3a1224]">{status.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
 
-            {/* Monthly Revenue Bar Chart */}
-            <div className="mt-8 bg-white/95 rounded-3xl shadow-lg border border-[#3a1224]/5 p-8">
-              <h2 className="text-2xl font-display font-bold text-[#3a1224] mb-6">Monthly Revenue</h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={chartData.monthly}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
+            <aside className="flex flex-col gap-5">
+              <div className="border border-[#e8dcc8] bg-white">
+                <PanelHeader eyebrow="Mix" title="Event status" description="Current event portfolio by lifecycle." compact />
+                <div className="h-[220px] px-3 py-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={chartData.eventStatus} cx="50%" cy="50%" innerRadius={48} outerRadius={82} paddingAngle={2} dataKey="value">
+                        {chartData.eventStatus.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="divide-y divide-[#e8dcc8] border-t border-[#e8dcc8]">
+                  {chartData.eventStatus.map((status) => {
+                    const percent = totalStatusCount > 0 ? Math.round((Number(status.value || 0) / totalStatusCount) * 100) : 0;
+                    return (
+                      <div key={status.name} className="flex items-center gap-3 px-5 py-3 text-sm">
+                        <span className="h-2.5 w-2.5" style={{ backgroundColor: status.color }} />
+                        <span className="text-[#3a1224]/65">{status.name}</span>
+                        <span className="ml-auto font-black text-[#3a1224]">{status.value}</span>
+                        <span className="w-10 text-right text-xs font-bold text-[#3a1224]/35">{percent}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="border border-[#e8dcc8] bg-[#fbf8f2] p-5">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#3a1224]/42">Planning signal</p>
+                <p className="mt-3 text-sm font-black text-[#3a1224]">
+                  {Number(stats.upcomingEvents || 0) > 0 ? `${stats.upcomingEvents} upcoming event${stats.upcomingEvents === 1 ? '' : 's'}` : 'No upcoming events'}
+                </p>
+                <p className="mt-2 text-xs leading-5 text-[#3a1224]/50">
+                  {Number(stats.upcomingEvents || 0) > 0
+                    ? 'Use the trend charts to compare expected demand against recent attendance.'
+                    : 'Create or publish events before this report can show forward-looking demand.'}
+                </p>
+              </div>
+            </aside>
+          </section>
+
+          <section className="border border-[#e8dcc8] bg-white">
+            <PanelHeader
+              eyebrow="Revenue"
+              title="Monthly revenue"
+              description="Use this view for payout checks, high-performing months, and event pricing decisions."
+            />
+            <div className="h-[320px] px-3 py-5 sm:px-5">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData.monthly} margin={{ left: 0, right: 12, top: 10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eadfcb" />
+                  <XAxis dataKey="month" tick={{ fill: '#6f5a62', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#6f5a62', fontSize: 12 }} axisLine={false} tickLine={false} />
                   <Tooltip />
-                  <Bar dataKey="revenue" fill="#3a1224" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="revenue" fill="#3a1224" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </>
-        )}
+          </section>
+        </>
+      ) : null}
+    </main>
+  );
+}
+
+function MiniStat({ label, value }) {
+  return (
+    <div className="bg-white px-4 py-3">
+      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/40">{label}</p>
+      <p className="mt-1 text-lg font-black text-[#3a1224]">{value}</p>
+    </div>
+  );
+}
+
+function MetricCard({ label, value, note, icon: Icon, emphasis = false }) {
+  return (
+    <div className={`border p-5 ${emphasis ? 'border-[#3a1224] bg-[#3a1224] text-white' : 'border-[#e8dcc8] bg-white text-[#3a1224]'}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${emphasis ? 'text-white/55' : 'text-[#3a1224]/40'}`}>{label}</p>
+          <p className="mt-3 text-3xl font-black">{value}</p>
+        </div>
+        <div className={`flex h-10 w-10 items-center justify-center border ${emphasis ? 'border-white/15 bg-white/10' : 'border-[#e8dcc8] bg-[#fbf8f2]'}`}>
+          <Icon className={`h-5 w-5 ${emphasis ? 'text-[#C0A04C]' : 'text-[#3a1224]/45'}`} />
+        </div>
       </div>
+      <p className={`mt-3 text-xs leading-5 ${emphasis ? 'text-white/60' : 'text-[#3a1224]/45'}`}>{note}</p>
+    </div>
+  );
+}
+
+function PanelHeader({ eyebrow, title, description, compact = false }) {
+  return (
+    <div className={`border-b border-[#e8dcc8] px-5 ${compact ? 'py-4' : 'py-5'}`}>
+      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#C0A04C]">{eyebrow}</p>
+      <h2 className="mt-1 text-base font-black text-[#3a1224]">{title}</h2>
+      {description && <p className="mt-1 max-w-2xl text-xs leading-5 text-[#3a1224]/45">{description}</p>}
+    </div>
+  );
+}
+
+function LoadingSummary() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="border border-[#e8dcc8] bg-white p-5">
+          <div className="h-3 w-24 animate-pulse bg-[#3a1224]/10" />
+          <div className="mt-4 h-8 w-20 animate-pulse bg-[#3a1224]/10" />
+          <div className="mt-3 h-3 w-32 animate-pulse bg-[#3a1224]/10" />
+        </div>
+      ))}
     </div>
   );
 }
