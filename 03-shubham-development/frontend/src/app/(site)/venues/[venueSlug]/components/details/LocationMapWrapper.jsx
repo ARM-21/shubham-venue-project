@@ -28,50 +28,57 @@ export const LocationMapWrapper = ({ venueData, venueLocation }) => {
 
   if (!shouldLoadMap) {
     return (
-      <div className="grid min-h-[320px] bg-[linear-gradient(135deg,#fffaf0_0%,#f4eadc_100%)] lg:grid-cols-[0.92fr_1.08fr]">
-        <div className="flex flex-col justify-between p-6 sm:p-8">
-          <div>
-            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#3a1224] shadow-sm">
-              <MapPin className="h-6 w-6" />
+      <div className="flex min-h-[300px] flex-col justify-between bg-[#fbf8f2] p-6 sm:p-8">
+        {/* Address block */}
+        <div>
+          <div className="mb-4 flex items-start gap-3">
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#3a1224] text-[#C0A04C]">
+              <MapPin className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#3a1224]/40">Address</p>
+              <p className="mt-1 text-sm font-bold leading-6 text-[#3a1224]">{address}</p>
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#C0A04C]">Venue Address</p>
-            <h3 className="mt-3 text-2xl font-black text-[#3a1224]">Plan guest arrival with the exact area.</h3>
-            <p className="mt-3 max-w-md text-sm leading-6 text-[#3a1224]/65">{address}</p>
           </div>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            {googleMapsApiKey ? (
-              <button
-                type="button"
-                onClick={() => setShouldLoadMap(true)}
-                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full bg-[#3a1224] px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#3a1224]/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C0A04C]"
-              >
-                <Map className="h-4 w-4" />
-                View map
-              </button>
-            ) : null}
-            <a
-              href={directionsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[#C0A04C]/40 bg-white px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-[#3a1224] transition hover:border-[#C0A04C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C0A04C]"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Open directions
-            </a>
-          </div>
+          {/* Location detail rows */}
+          {venueData?.location && typeof venueData.location === 'object' && (
+            <div className="mt-4 space-y-2 border-t border-[#e8dcc8] pt-4">
+              {[
+                { label: 'City', value: venueData.location.city },
+                { label: 'State', value: venueData.location.state },
+                { label: 'Country', value: venueData.location.country },
+              ].filter((r) => r.value).map((row) => (
+                <div key={row.label} className="flex items-center justify-between text-sm">
+                  <span className="text-[#3a1224]/40 font-medium">{row.label}</span>
+                  <span className="font-bold text-[#3a1224]">{row.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="relative hidden overflow-hidden border-l border-[#C0A04C]/20 bg-[#3a1224] lg:block">
-          <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(#C0A04C_1px,transparent_1px),linear-gradient(90deg,#C0A04C_1px,transparent_1px)] [background-size:42px_42px]" />
-          <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#C0A04C]/40 bg-white/10" />
-          <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#C0A04C] text-[#3a1224] shadow-[0_20px_50px_rgba(0,0,0,0.25)]">
-            <MapPin className="h-6 w-6" />
-          </div>
-          <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/10 bg-white/10 p-4 text-white backdrop-blur-md">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C0A04C]">Area Preview</p>
-            <p className="mt-2 text-sm leading-6 text-white/75">{address}</p>
-          </div>
+        {/* Actions */}
+        <div className="mt-8 flex flex-wrap gap-3">
+          {googleMapsApiKey && (
+            <button
+              type="button"
+              onClick={() => setShouldLoadMap(true)}
+              className="flex h-10 items-center gap-2 rounded-2xl bg-[#3a1224] px-5 text-[11px] font-black uppercase tracking-[0.18em] text-[#C0A04C] transition hover:bg-[#4a1a2e]"
+            >
+              <Map className="h-3.5 w-3.5" />
+              Show on map
+            </button>
+          )}
+          <a
+            href={directionsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-10 items-center gap-2 rounded-2xl border border-[#e8dcc8] bg-white px-5 text-[11px] font-black uppercase tracking-[0.18em] text-[#3a1224] transition hover:border-[#C0A04C]/50"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            Get directions
+          </a>
         </div>
       </div>
     );

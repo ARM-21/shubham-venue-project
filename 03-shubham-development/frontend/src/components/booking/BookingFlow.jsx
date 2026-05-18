@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import axiosInstance from 'lib/axios';
 import { ROUTES } from 'config/routes';
 import toast from 'react-hot-toast';
-import { Clock, Check, ArrowRight, Lock, AlertCircle, CheckCircle2, Zap, Users, Building2 } from 'lucide-react';
+import { Building2, CalendarDays, Check, Clock, MapPin, ShieldCheck, Users } from 'lucide-react';
 import Step1EventDetails from './Step1EventDetails';
 import Step2MenuSelection from './Step2MenuSelection';
 import Step3Decorations from './Step3Decorations';
@@ -14,8 +14,66 @@ import BookingSuccess from './BookingSuccess';
 import StepAvailabilityConfirmation from './StepAvailabilityConfirmation';
 import StepContactInfo from './StepContactInfo';
 import StepBookingReview from './StepBookingReview';
+import BookingSidebarSummary from './BookingSidebarSummary';
 import { useAuth } from 'contexts/AuthProvider';
 import { getSlotMultiplier } from '../../utils/booking.utils';
+import { SLOT_LABELS } from 'constants/slots';
+import { cn, resolveImage } from 'components/site/SitePrimitives';
+
+const STEP_COPY = {
+  availability: {
+    title: 'Confirm availability',
+    shortTitle: 'Availability',
+    description: 'Make sure the selected date, slot, and guest count are still open before adding details.',
+  },
+  contact: {
+    title: 'Contact information',
+    shortTitle: 'Contact',
+    description: 'Add the phone and address details the venue team will use for coordination.',
+  },
+  details: {
+    title: 'Event details',
+    shortTitle: 'Event',
+    description: 'Tell us what you are hosting so the team can prepare the venue correctly.',
+  },
+  menu: {
+    title: 'Menu selection',
+    shortTitle: 'Menu',
+    description: 'Choose food packages or menu items that match your guest plan.',
+  },
+  decor: {
+    title: 'Decoration options',
+    shortTitle: 'Decor',
+    description: 'Add optional decoration support if your event needs it.',
+  },
+  review: {
+    title: 'Review booking',
+    shortTitle: 'Review',
+    description: 'Check your venue, contact, menu, decoration, and pricing details before payment.',
+  },
+  payment: {
+    title: 'Secure payment',
+    shortTitle: 'Payment',
+    description: 'Complete payment while your slot is temporarily reserved.',
+  },
+};
+
+const normalizeImage = (image) => {
+  if (typeof image === 'string') return image;
+  return image?.url || image?.secureUrl || image?.src || image?.path || image?.key || '';
+};
+
+const formatDisplayDate = (value) => {
+  if (!value) return 'Date not selected';
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+  return value;
+};
 
 export default function BookingFlow({ hall, initialDate, initialSlot, initialGuests }) {
   const router = useRouter();
@@ -55,7 +113,11 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
   const [timeLeft, setTimeLeft] = useState(null);
   const [isReserved, setIsReserved] = useState(false);
 
-  const isOrganizerEligible = Boolean(user?.isOrganizerEligible) || (user?.role || '').toLowerCase() === 'admin';
+  const draftKey = `booking_draft_${hall._id}`;
+  const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+
+  const isOrganizerEligible =
+    Boolean(user?.isOrganizerEligible) || (user?.role || '').toLowerCase() === 'admin';
 
   const steps = useMemo(() => {
     if (bookingData.bookingPurpose === 'organizer') {
@@ -63,9 +125,8 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
         { key: 'availability', title: 'Availability', step: 1 },
         { key: 'contact', title: 'Contact', step: 2 },
         { key: 'details', title: 'Details', step: 3 },
-        { key: 'menu', title: 'Menu', step: 4 },
-        { key: 'review', title: 'Review', step: 5 },
-        { key: 'payment', title: 'Payment', step: 6 },
+        { key: 'review', title: 'Review', step: 4 },
+        { key: 'payment', title: 'Payment', step: 5 },
       ];
     }
     return [
@@ -87,15 +148,46 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
       try {
         const res = await axiosInstance.get(ROUTES.API.PROFILE.ME);
         const freshUser = res.data?.user;
-        if (freshUser) {
-          setUser(freshUser);
-        }
+        if (freshUser) setUser(freshUser);
       } catch (err) {
         console.error('Failed to refresh user profile:', err);
       }
     };
     refreshUserProfile();
   }, [setUser]);
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (!draft.savedAt || Date.now() - draft.savedAt > DRAFT_TTL_MS) {
+        localStorage.removeItem(draftKey);
+        return;
+      }
+      const purpose = draft.bookingData?.bookingPurpose || 'customer';
+      const stepKeys = purpose === 'organizer'
+        ? ['availability', 'contact', 'details', 'review', 'payment']
+        : ['availability', 'contact', 'details', 'menu', 'decor', 'review', 'payment'];
+      const safeIndex = Math.min(draft.currentStepIndex ?? 0, stepKeys.indexOf('payment') - 1);
+      setBookingData((prev) => ({ ...prev, ...draft.bookingData }));
+      setCurrentStepIndex(Math.max(0, safeIndex));
+      if (safeIndex > 0) toast.success('Booking progress restored from your last session.');
+    } catch {
+      localStorage.removeItem(draftKey);
+    }
+  }, [draftKey, DRAFT_TTL_MS]);
+
+  // Persist draft on every change, except while on the payment step
+  useEffect(() => {
+    if (currentStepKey === 'payment') return;
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({ bookingData, currentStepIndex, savedAt: Date.now() }));
+    } catch {
+      // quota exceeded — ignore
+    }
+  }, [bookingData, currentStepIndex, currentStepKey, draftKey]);
 
   useEffect(() => {
     if (currentStepKey !== 'payment' || !timeLeft) return;
@@ -108,9 +200,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
       router.push(ROUTES.SITE.VENUES(hall.slug));
       return;
     }
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
+    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
   }, [timeLeft, currentStepKey, router, hall.slug]);
 
@@ -159,10 +249,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
 
   const handlePurposeChange = (purpose) => {
     if (purpose === bookingData.bookingPurpose) return;
-    setBookingData((prev) => ({
-      ...prev,
-      bookingPurpose: purpose,
-    }));
+    setBookingData((prev) => ({ ...prev, bookingPurpose: purpose }));
   };
 
   const nextStep = useCallback(async () => {
@@ -173,32 +260,43 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
       try {
         await createReservation();
         setCurrentStepIndex(nextIndex);
-      } catch (error) {
+      } catch {
         return;
       }
     } else {
       setCurrentStepIndex(nextIndex);
     }
-  }, [currentStepIndex, steps]);
+  }, [createReservation, currentStepIndex, steps]);
 
   const prevStep = useCallback(() => {
-    if (currentStepKey === 'payment' && reservationId) {
+    if (currentStepKey === 'payment' && reservationId) releaseReservation();
+    if (currentStepIndex > 0) setCurrentStepIndex(currentStepIndex - 1);
+  }, [currentStepKey, currentStepIndex, releaseReservation, reservationId]);
+
+  const goToStep = useCallback((targetIndex) => {
+    if (targetIndex > currentStepIndex) return;
+    if (currentStepKey === 'payment' && reservationId && targetIndex < currentStepIndex)
       releaseReservation();
-    }
-    if (currentStepIndex > 0) {
-      setCurrentStepIndex(currentStepIndex - 1);
-    }
-  }, [currentStepKey, reservationId, currentStepIndex]);
+    setCurrentStepIndex(targetIndex);
+  }, [currentStepIndex, currentStepKey, releaseReservation, reservationId]);
 
   const calculateTotal = useCallback(() => {
     const pricePerHour = Number(hall?.pricePerHour) || 0;
     const multiplier = getSlotMultiplier(bookingData?.slot);
     const hallPrice = pricePerHour * multiplier;
-    const menuTotal = bookingData.bookingPurpose === 'organizer' ? 0 : (Number(bookingData?.menuTotal) || 0);
-    const decorationTotal = bookingData.bookingPurpose === 'organizer' ? 0 : (Number(bookingData?.decorationTotal) || 0);
+    const menuTotal =
+      bookingData.bookingPurpose === 'organizer' ? 0 : Number(bookingData?.menuTotal) || 0;
+    const decorationTotal =
+      bookingData.bookingPurpose === 'organizer' ? 0 : Number(bookingData?.decorationTotal) || 0;
     const total = hallPrice + menuTotal + decorationTotal;
     return Number.isFinite(total) ? total : 0;
-  }, [hall?.pricePerHour, bookingData?.slot, bookingData?.bookingPurpose, bookingData?.menuTotal, bookingData?.decorationTotal]);
+  }, [
+    hall?.pricePerHour,
+    bookingData?.slot,
+    bookingData?.bookingPurpose,
+    bookingData?.menuTotal,
+    bookingData?.decorationTotal,
+  ]);
 
   if (bookingSuccess) {
     return <BookingSuccess bookingReference={bookingSuccess} />;
@@ -208,270 +306,206 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
   const multiplier = getSlotMultiplier(bookingData?.slot);
   const hallPrice = pricePerHour * multiplier;
   const total = calculateTotal();
+  const currentStepMeta = STEP_COPY[currentStepKey] || steps[currentStepIndex] || {};
+  const progressPercent = (currentStep / steps.length) * 100;
+  const hallImage = resolveImage(
+    normalizeImage(hall?.images?.[0]),
+    '/assets/business-images/placeholder2.jpg'
+  );
+  const locationText =
+    [hall?.location?.city || hall?.city, hall?.location?.state || hall?.state]
+      .filter(Boolean)
+      .join(', ') ||
+    hall?.address ||
+    'Shubham Venue';
 
   return (
-    <div className="min-h-screen bg-[#ffffff] relative selection:bg-[black]/30 overflow-hidden">
-      {/* Background Gradient - Behind Everything */}
-      <div className="absolute top-0 left-0 w-full h-[700px] bg-gradient-to-b from-[#3a1224] via-[#3a1224]/70 to-[#1b1919] pointer-events-none z-0" />
+    <div className="min-h-screen bg-[#FDFCFB] text-[#3a1224] selection:bg-[#C0A04C]/30">
 
-      {/* Header Section - NOT Sticky */}
-      <header className="relative z-10 bg-transparent pt-32 sm:pt-40 pb-6 sm:pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 mb-3 sm:mb-4">
-            <div className="w-6 sm:w-8 h-[1px] bg-[#6b5f44]" />
-            <span className="text-[9px] sm:text-[10px] font-black text-[#C0A04C] uppercase tracking-[0.3em] sm:tracking-[0.4em]">Complete Your Event</span>
-          </div>
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 lg:gap-8 mb-8 lg:mb-12">
-            <div className="flex-1">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-display font-bold text-white mb-2 sm:mb-3 leading-[1] sm:leading-[0.95]">
-                Book Your <span className="text-[#C0A04C] italic font-serif text-2xl sm:text-3xl lg:text-4xl xl:text-5xl">{hall?.name || 'Venue'}</span>
+      {/* ── Hero — matches site-wide transparent-navbar pattern (pt-40) ── */}
+      <section className="relative isolate overflow-hidden bg-[#3a1224] pb-14 pt-40">
+        {/* Blurred background image */}
+        <img
+          src={hallImage}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover opacity-20 blur-sm"
+        />
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(58,18,36,0.97),rgba(58,18,36,0.88)_55%,rgba(58,18,36,0.72))]" />
+        {/* Bottom fade into page background */}
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#FDFCFB] to-transparent" />
+
+        <div className="relative z-10 mx-auto max-w-[1320px] px-4 sm:px-6 lg:px-8">
+          {/* Breadcrumb label */}
+          <p className="text-[10px] font-black uppercase tracking-[0.38em] text-[#C0A04C]">
+            Venue Booking
+          </p>
+
+          {/* Hall identity */}
+          <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/20 shadow-xl">
+              <img src={hallImage} alt={hall?.name} className="h-full w-full object-cover" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-3xl font-black leading-tight text-white sm:text-4xl">
+                {hall?.name || 'Complete your booking'}
               </h1>
-              <p className="text-white/70 text-xs sm:text-sm lg:text-base font-light leading-relaxed max-w-2xl">
-                Complete all steps to finalize your event booking.
+              <p className="mt-1.5 flex items-center gap-1.5 text-sm text-white/60">
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-[#C0A04C]" />
+                {locationText}
               </p>
             </div>
-            <div className="flex flex-col items-start sm:items-end gap-1.5 sm:gap-2 flex-shrink-0">
-              <p className="text-xs sm:text-sm font-bold text-white">{steps[currentStepIndex]?.title}</p>
-              <p className="text-[10px] sm:text-xs text-white/60">Step {currentStep} of {steps.length}</p>
-              <div className="w-32 sm:w-48 h-1 sm:h-1.5 bg-white/20 rounded-full overflow-hidden mt-1 sm:mt-2">
-                <div 
-                  className="h-full bg-gradient-to-r from-[#C0A04C] to-[#D4B557] transition-all duration-500"
-                  style={{ width: `${(currentStep / steps.length) * 100}%` }}
-                />
-              </div>
-            </div>
           </div>
-        </div>
-      </header>
 
-      {/* Horizontal Step Indicator - NOT Sticky */}
-      <div className="hidden sm:block m-auto bg-transparent/40 backdrop-blur-md  pt-6 sm:pt-8 pb-6 sm:pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 md:flex items-center justify-center rounded-lg">
-          <div className="w-full flex items-center justify-start gap-2 sm:gap-3 overflow-x-auto pb-2 ">
-              {steps.map((step, idx) => {
+          {/* Booking facts */}
+          <div className="mt-7 grid max-w-2xl gap-3 sm:grid-cols-3">
+            <HeroFact icon={CalendarDays} label="Date" value={formatDisplayDate(bookingData.date)} />
+            <HeroFact icon={Clock} label="Slot" value={SLOT_LABELS[bookingData.slot] || bookingData.slot} />
+            <HeroFact icon={Users} label="Guests" value={`${bookingData.guests} guests`} />
+          </div>
+
+          {/* Step progress strip */}
+          <div className="mt-8 flex flex-wrap items-center gap-1.5">
+            {steps.map((step, idx) => {
+              const meta = STEP_COPY[step.key] || step;
               const isCompleted = idx < currentStepIndex;
               const isCurrent = idx === currentStepIndex;
               return (
-                <div key={step.key} className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
-                  {/* Step Badge */}
-                  <button
-                    onClick={() => idx < currentStepIndex && setCurrentStepIndex(idx)}
-                    disabled={idx > currentStepIndex}
-                    className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full font-bold text-[9px] sm:text-xs lg:text-sm transition-all whitespace-nowrap ${
-                      isCompleted
-                        ? 'bg-emerald-500/90 border border-emerald-400 text-emerald-300 hover:bg-emerald-500/30 cursor-pointer'
-                        : isCurrent
-                        ? 'bg-[#C0A04C] text-[#3a1224] shadow-xl ring-2 ring-[#C0A04C]/50'
-                        : 'bg-white/50 border border-white/60 text-white/90 hover:bg-white/60 shadow-lg'
-                    }`}
-                  >
-                    <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[8px] sm:text-xs font-black flex-shrink-0 ${
-                      isCompleted
-                        ? 'bg-green-400/40 text-green-300'
-                        : isCurrent
-                        ? 'bg-[#3a1224] text-[#C0A04C]'
-                        : 'bg-white/70 text-white'
-                    }`}>
-                      {isCompleted ? <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : step.step}
-                    </div>
-                    <span className="hidden sm:inline">{step.title}</span>
-                  </button>
-                  
-                    {idx < steps.length - 1 && (
-                      <div className={`w-2 sm:w-3 h-0.5 ${
-                        isCompleted ? 'bg-green-400/60' : 'bg-white/60 shadow-sm'
-                      }`} />
+                <button
+                  key={step.key}
+                  type="button"
+                  onClick={() => goToStep(idx)}
+                  disabled={idx > currentStepIndex}
+                  aria-current={isCurrent ? 'step' : undefined}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-black transition-all',
+                    isCurrent && 'border-[#C0A04C] bg-[#C0A04C] text-[#3a1224]',
+                    isCompleted && 'cursor-pointer border-white/20 bg-white/10 text-white hover:bg-white/20',
+                    idx > currentStepIndex && 'cursor-default border-white/10 bg-transparent text-white/30'
                   )}
-                  </div>
-                );
-              })}
-            </div>
+                >
+                  <span className={cn(
+                    'flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-black',
+                    isCurrent && 'bg-[#3a1224] text-[#C0A04C]',
+                    isCompleted && 'bg-white text-[#3a1224]',
+                    idx > currentStepIndex && 'bg-white/15 text-white/40'
+                  )}>
+                    {isCompleted ? <Check className="h-2.5 w-2.5" /> : step.step}
+                  </span>
+                  <span className="hidden sm:inline">{meta.shortTitle || step.title}</span>
+                </button>
+              );
+            })}
           </div>
 
-      {/* Main Content Area */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24 lg:pb-32 pt-6 sm:pt-8">
-        {/* Reservation Timer - Inside Main */}
-        {isReserved && timeLeft !== null && (
-          <div className="mb-4 sm:mb-6 bg-amber-50/80 border border-amber-200/50 rounded-lg sm:rounded-2xl backdrop-blur-sm p-3 sm:p-4">
-            <div className="flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm">
-              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 flex-shrink-0" />
-              <span className="text-amber-900 font-semibold text-center">
-                Reservation expires in <span className="font-black text-amber-700 ml-1">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
-              </span>
-            </div>
+          {/* Progress bar */}
+          <div className="mt-4 h-1 max-w-2xl overflow-hidden rounded-full bg-white/15">
+            <div
+              className="h-full rounded-full bg-[#C0A04C] transition-all duration-500"
+              style={{ width: `${progressPercent}%` }}
+            />
           </div>
-        )}
+        </div>
+      </section>
 
-        {/* Timer Alert - Inside Main */}
-        {currentStepKey === 'payment' && isReserved && timeLeft && (
-          <div className="mb-4 sm:mb-6 bg-amber-50/80 border border-amber-200/50 rounded-lg sm:rounded-2xl backdrop-blur-sm p-3 sm:p-4">
-            <div className="flex items-center gap-2 sm:gap-3 justify-center text-xs sm:text-sm">
-              <AlertCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0" />
-              <span className="text-amber-900 font-semibold">Complete payment in</span>
-              <span className="font-display font-bold text-amber-600 tabular-nums">
-                {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-              </span>
+      {/* ── Main content ── */}
+      <main className="mx-auto max-w-[1320px] px-4 pb-28 pt-8 sm:px-6 sm:pt-10 lg:pb-16 lg:px-8">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_356px] lg:items-start lg:gap-8">
+
+          {/* ── Left: step content ── */}
+          <div className="min-w-0">
+
+            {/* Reservation expiry banner */}
+            {isReserved && timeLeft !== null && (
+              <div className="mb-5 flex flex-wrap items-center gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <Clock className="h-4 w-4 shrink-0 text-amber-600" />
+                <span className="font-semibold">
+                  {currentStepKey === 'payment' ? 'Complete payment in' : 'Reservation expires in'}
+                </span>
+                <span className="font-black tabular-nums text-amber-700">
+                  {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+                </span>
+              </div>
+            )}
+
+            {/* Step header */}
+            <div className="mb-6">
+              <p className="text-[10px] font-black uppercase tracking-[0.32em] text-[#C0A04C]">
+                Step {currentStep} of {steps.length}
+              </p>
+              <h2 className="mt-2 text-2xl font-black leading-tight text-[#3a1224] sm:text-3xl">
+                {currentStepMeta.title}
+              </h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-[#3a1224]/55">
+                {currentStepMeta.description}
+              </p>
             </div>
-          </div>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-          {/* Left Sidebar - Booking Summary */}
-          <div className="md:col-span-1 lg:col-span-1 order-2 md:order-1">
-            {/* Summary Card - Sticky at appropriate position */}
-            <div className="sticky top-20 sm:top-24 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 border-2 border-slate-200 shadow-lg space-y-6 sm:space-y-8 z-20">
-              {/* Hall Image */}
-              <div className="rounded-lg sm:rounded-xl overflow-hidden h-24 sm:h-32 bg-gradient-to-br from-slate-100 to-slate-200">
-                <img
-                  src={hall.images?.[0] || '/assets/business-images/placeholder2.jpg'}
-                  alt={hall.name}
-                  className="w-full h-full object-cover"
-                />
+
+            {/* Booking mode selector — step 1, organizer-eligible users only */}
+            {isOrganizerEligible && currentStepIndex === 0 && currentStepKey === 'availability' && (
+              <div className="mb-5 rounded-2xl border border-[#e8dcc8] bg-white p-4 shadow-sm">
+                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#C0A04C]">
+                  Booking mode
+                </p>
+                <p className="mt-1 text-sm font-black text-[#3a1224]">
+                  How would you like to use this booking?
+                </p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {[
+                    {
+                      value: 'customer',
+                      label: 'Private booking',
+                      desc: 'Full booking with menu and decoration choices.',
+                      details: '7-step guided flow',
+                      icon: Users,
+                    },
+                    {
+                      value: 'organizer',
+                      label: 'Organizer venue booking',
+                      desc: 'Reserve this hall for a public event. Create the event page from your dashboard after payment.',
+                      details: '5-step professional flow',
+                      icon: Building2,
+                    },
+                  ].map((type) => {
+                    const IconComponent = type.icon;
+                    const isSelected = bookingData.bookingPurpose === type.value;
+                    return (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => handlePurposeChange(type.value)}
+                        className={cn(
+                          'flex items-start gap-3 rounded-2xl border p-3.5 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C0A04C]',
+                          isSelected
+                            ? 'border-[#C0A04C] bg-[#C0A04C]/8 shadow-[0_0_0_1px_#C0A04C]'
+                            : 'border-[#e8dcc8] bg-[#f8f4ed] hover:border-[#C0A04C]/60'
+                        )}
+                      >
+                        <span className={cn(
+                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
+                          isSelected ? 'bg-[#C0A04C] text-[#3a1224]' : 'bg-white text-[#3a1224]/50'
+                        )}>
+                          <IconComponent className="h-4.5 w-4.5" />
+                        </span>
+                        <span>
+                          <span className="block text-sm font-black text-[#3a1224]">{type.label}</span>
+                          <span className="mt-0.5 block text-xs leading-5 text-[#3a1224]/55">
+                            {type.desc}
+                          </span>
+                          <span className="mt-1.5 block text-[9px] font-black uppercase tracking-[0.2em] text-[#C0A04C]">
+                            {type.details}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+            )}
 
-              {/* Hall Details */}
-              <div className="space-y-3 sm:space-y-4 border-t border-slate-200 pt-4 sm:pt-4">
-                <div>
-                  <p className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-widest">Venue</p>
-                  <p className="font-bold text-slate-900 text-xs sm:text-sm mt-1">{hall.name}</p>
-                </div>
-                <div className="space-y-2 sm:space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs sm:text-sm text-slate-600">Date & Time</span>
-                    <span className="font-semibold text-slate-900 text-xs sm:text-sm">{bookingData.slot}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs sm:text-sm text-slate-600">Guests</span>
-                    <span className="font-semibold text-slate-900 text-xs sm:text-sm">{bookingData.guests} people</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Price Breakdown */}
-              <div className="border-t border-slate-200 pt-3 sm:pt-4 space-y-1.5 sm:space-y-2">
-                <div className="flex justify-between text-xs sm:text-sm">
-                  <span className="text-slate-600">Hall ({multiplier}h)</span>
-                  <span className="font-semibold text-slate-900">Rs {hallPrice.toLocaleString()}</span>
-                </div>
-                {bookingData.menuTotal > 0 && (
-                  <div className="flex justify-between text-xs sm:text-sm">
-                    <span className="text-slate-600">Menu</span>
-                    <span className="font-semibold text-slate-900">Rs {bookingData.menuTotal.toLocaleString()}</span>
-                  </div>
-                )}
-                {bookingData.decorationTotal > 0 && (
-                  <div className="flex justify-between text-xs sm:text-sm">
-                    <span className="text-slate-600">Decorations</span>
-                    <span className="font-semibold text-slate-900">Rs {bookingData.decorationTotal.toLocaleString()}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Total Amount */}
-              <div className="bg-gradient-to-br from-[#C0A04C]/10 to-[#D4B557]/10 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-[#C0A04C]/20">
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest">Total</span>
-                  <span className="text-lg sm:text-2xl font-display font-bold text-[#C0A04C]">Rs {total.toLocaleString()}</span>
-                </div>
-              </div>
-
-              {/* Security Badge */}
-              <div className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-500 pt-2">
-                <Lock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                <span>SSL Secured • PCI Compliant</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Content Area */}
-          <div className="md:col-span-2 lg:col-span-3 order-1 md:order-2">
-            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg border-2 border-slate-200 p-4 sm:p-6 md:p-8 lg:p-12">
-              {/* Step Header */}
-              {currentStepKey !== 'payment' && (
-                <div className="mb-6 sm:mb-8 pb-6 sm:pb-8 border-b border-slate-200">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1 sm:mb-2">{steps[currentStepIndex]?.title}</h1>
-                  <p className="text-xs sm:text-sm text-slate-600">Complete this step to continue your booking</p>
-                </div>
-              )}
-              {/* Booking Type Selection - Show ONLY at first step for organizer-eligible users */}
-              {isOrganizerEligible && currentStepIndex === 0 && currentStepKey === 'availability' && (
-                <div className="space-y-6 sm:space-y-8">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-6 h-[1px] bg-[#C0A04C]" />
-                    <span className="text-[9px] font-black text-[#C0A04C] uppercase tracking-[0.3em]">Choose Your Path</span>
-                  </div>
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-text-2xl mb-1 sm:mb-2">Select Booking Type</h2>
-                    <p className="text-sm sm:text-base text-slate-600 font-medium">Choose how you'd like to proceed with this venue booking</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                    {[
-                      { 
-                        value: 'customer', 
-                        label: 'Personal Event', 
-                        desc: 'Book with menu & decoration selection',
-                        details: '7-step process with full customization',
-                        icon: Users 
-                      },
-                      { 
-                        value: 'organizer', 
-                        label: 'Professional Event',
-                        desc: 'Direct venue booking for events',
-                        details: '5-step simplified process',
-                        icon: Building2,
-                        featured: true
-                      }
-                    ].map((type) => {
-                      const IconComponent = type.icon;
-                      const isSelected = bookingData.bookingPurpose === type.value;
-                      return (
-                        <button
-                          key={type.value}
-                          onClick={() => handlePurposeChange(type.value)}
-                          className={`relative p-6 sm:p-8 rounded-2xl sm:rounded-3xl border-2 transition-all text-left overflow-hidden group ${
-                            isSelected
-                              ? 'border-[#C0A04C] bg-gradient-to-br from-[#C0A04C]/10 to-[#C0A04C]/5'
-                              : 'border-slate-200 bg-slate-50 hover:border-[#C0A04C]/40 hover:bg-white'
-                          }`}
-                        >
-                          {type.featured && !isSelected && (
-                            <div className="absolute top-3 right-3 px-3 py-1 bg-[#C0A04C] text-white text-[9px] font-black uppercase tracking-widest rounded-full">
-                              ⭐ Recommended
-                            </div>
-                          )}
-                          
-                          <div className="flex items-start justify-between mb-4 sm:mb-6">
-                            <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl ${isSelected ? 'bg-[#C0A04C]/20' : 'bg-white group-hover:bg-[#C0A04C]/5'}`}>
-                              <IconComponent className={`w-6 h-6 sm:w-7 sm:h-7 ${isSelected ? 'text-[#C0A04C]' : 'text-slate-400 group-hover:text-[#C0A04C]'}`} />
-                            </div>
-                            {isSelected && (
-                              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#C0A04C] text-white flex items-center justify-center flex-shrink-0">
-                                <Check className="w-4 h-4" />
-                              </div>
-                            )}
-                          </div>
-                          
-                          <h3 className="font-black text-slate-900 text-lg sm:text-xl mb-1 sm:mb-2">{type.label}</h3>
-                          <p className="text-sm sm:text-base text-slate-700 font-semibold mb-3 sm:mb-4">{type.desc}</p>
-                          <p className="text-xs sm:text-sm text-slate-500 font-medium">{type.details}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="flex gap-3 pt-6 sm:pt-8 border-t border-slate-200">
-                    <button
-                      onClick={nextStep}
-                      disabled={!bookingData.bookingPurpose}
-                      className="flex-1 px-6 sm:px-8 py-3 sm:py-4 bg-[#C0A04C] hover:bg-[#b39041] disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black uppercase tracking-widest rounded-xl sm:rounded-2xl transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
-                    >
-                      Continue
-                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Availability Step */}
+            {/* Step form card */}
+            <div className="rounded-3xl border border-[#e8dcc8] bg-white shadow-[0_8px_40px_-18px_rgba(58,18,36,0.15)] p-5 sm:p-7 lg:p-8">
               {currentStepKey === 'availability' && (
                 <StepAvailabilityConfirmation
                   hallId={hall._id}
@@ -483,8 +517,6 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
                   onChangeSelection={prevStep}
                 />
               )}
-
-              {/* Contact Info Step */}
               {currentStepKey === 'contact' && (
                 <StepContactInfo
                   data={bookingData}
@@ -493,8 +525,6 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
                   onPrev={prevStep}
                 />
               )}
-
-              {/* Event Details Step */}
               {currentStepKey === 'details' && (
                 <Step1EventDetails
                   data={bookingData}
@@ -504,8 +534,6 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
                   bookingPurpose={bookingData.bookingPurpose}
                 />
               )}
-
-              {/* Menu Step */}
               {currentStepKey === 'menu' && (
                 <Step2MenuSelection
                   data={bookingData}
@@ -514,8 +542,6 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
                   onPrev={prevStep}
                 />
               )}
-
-              {/* Decorations Step */}
               {currentStepKey === 'decor' && bookingData.bookingPurpose === 'customer' && (
                 <Step3Decorations
                   data={bookingData}
@@ -524,8 +550,6 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
                   onPrev={prevStep}
                 />
               )}
-
-              {/* Review Step */}
               {currentStepKey === 'review' && (
                 <StepBookingReview
                   hall={hall}
@@ -534,34 +558,82 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
                   onNext={nextStep}
                   onPrev={prevStep}
                   onEditStep={(stepKey) => {
-                    const idx = steps.findIndex(s => s.key === stepKey);
-                    if (idx !== -1) setCurrentStepIndex(idx);
+                    const idx = steps.findIndex((s) => s.key === stepKey);
+                    if (idx !== -1) goToStep(idx);
                   }}
                 />
               )}
-
-              {/* Payment Step */}
               {currentStepKey === 'payment' && (
-                <div>
-                  <Step4Payment
-                    data={{
-                      ...bookingData,
-                      hallPrice: hallPrice,
-                      total: total,
-                    }}
-                    reservationId={reservationId}
-                    onUpdate={updateBookingData}
-                    onNext={(bookingRef) => {
-                      setBookingSuccess(bookingRef);
-                    }}
-                    onPrev={prevStep}
-                  />
-                </div>
+                <Step4Payment
+                  data={{ ...bookingData, hallPrice, total }}
+                  reservationId={reservationId}
+                  onUpdate={updateBookingData}
+                  onNext={(bookingRef) => {
+                    try { localStorage.removeItem(draftKey); } catch {}
+                    setBookingSuccess(bookingRef);
+                  }}
+                  onPrev={prevStep}
+                />
               )}
             </div>
+
+            {/* Trust row */}
+            <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2">
+              <TrustBadge icon={ShieldCheck} text="SSL-secured checkout" />
+              <TrustBadge icon={CalendarDays} text="Slot held during checkout only" />
+              <TrustBadge icon={Users} text="No hidden charges" />
+            </div>
           </div>
+
+          {/* ── Right: sticky summary sidebar ── */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-24">
+              <BookingSidebarSummary
+                hall={hall}
+                bookingData={bookingData}
+                calculateTotal={calculateTotal}
+              />
+            </div>
+          </aside>
         </div>
       </main>
+
+      {/* ── Mobile sticky bottom bar ── */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#e8dcc8] bg-white/95 px-4 py-3 shadow-[0_-4px_24px_rgba(58,18,36,0.09)] backdrop-blur-sm lg:hidden">
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-4">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#3a1224]/40">
+              Estimated total
+            </p>
+            <p className="text-lg font-black text-[#3a1224]">NPR {total.toLocaleString()}</p>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-full border border-[#e8dcc8] bg-[#f8f4ed] px-3 py-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-[#C0A04C]" />
+            <span className="text-[10px] font-bold text-[#3a1224]/55">Secure booking</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeroFact({ icon: Icon, label, value }) {
+  return (
+    <div className="rounded-2xl border border-white/15 bg-white/10 p-3.5 backdrop-blur-sm">
+      <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.22em] text-[#C0A04C]">
+        <Icon className="h-3 w-3" />
+        {label}
+      </div>
+      <p className="mt-1.5 truncate text-sm font-bold text-white">{value}</p>
+    </div>
+  );
+}
+
+function TrustBadge({ icon: Icon, text }) {
+  return (
+    <div className="flex items-center gap-1.5 text-xs text-[#3a1224]/40">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-[#C0A04C]" />
+      {text}
     </div>
   );
 }

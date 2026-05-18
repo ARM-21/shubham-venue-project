@@ -18,7 +18,7 @@ import {
   GuestManifest,
   CancellationTerminal,
 } from "components/organizer/event-detail";
-import { Fingerprint } from "lucide-react";
+import { Fingerprint, Info } from "lucide-react";
 
 const ATTENDEE_LIMIT = 20;
 
@@ -129,11 +129,11 @@ export default function OrganizerEventDetailPage() {
       // Show specific success message based on status change
       if (values.status !== event?.status) {
         if (values.status === "PUBLISHED") {
-          toast.success("✓ Event published successfully!");
+          toast.success("Event published");
         } else if (values.status === "DRAFT") {
-          toast.success("✓ Event moved back to draft");
+          toast.success("Event moved back to draft");
         } else if (values.status === "CANCELLED") {
-          toast.success("✓ Event cancelled - All attendees have been notified");
+          toast.success("Event cancelled. Attendees have been notified.");
         }
       } else {
         toast.success("Event updated");
@@ -282,19 +282,19 @@ export default function OrganizerEventDetailPage() {
   if (!isApproved) {
     return (
       <div className="max-w-2xl mx-auto py-20">
-        <div className="bg-white rounded-3xl border border-[#3a1224]/5 p-12 text-center shadow-sm">
-          <div className="w-20 h-20 bg-[#3a1224]/5 rounded-2xl flex items-center justify-center mx-auto mb-8">
-            <Fingerprint className="w-10 h-10 text-[#3a1224]" />
+        <div className="border border-[#e8dcc8] bg-white p-8 text-center">
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center border border-[#e8dcc8] bg-[#fbf8f2]">
+            <Fingerprint className="h-7 w-7 text-[#3a1224]" />
           </div>
-          <h2 className="text-3xl font-black text-[#3a1224] mb-4">Verification Required</h2>
-          <p className="text-[#3a1224]/60 mb-10 leading-relaxed font-medium">
+          <h2 className="text-2xl font-black text-[#3a1224]">Verification required</h2>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#3a1224]/60">
             You need to be a verified producer to manage events. Check your application status on the dashboard.
           </p>
           <button
             onClick={() => router.push(ROUTES.SITE.ORGANIZER)}
-            className="px-10 py-5 bg-[#3a1224] text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="mt-7 bg-[#3a1224] px-6 py-3 text-sm font-bold text-white hover:bg-[#4b1830]"
           >
-            Go to Dashboard
+            Go to dashboard
           </button>
         </div>
       </div>
@@ -311,23 +311,23 @@ export default function OrganizerEventDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#fdfaf6] via-white to-[#fdfaf6] pb-16">
+    <main className="bg-[#FDFCFB] pb-12">
       {/* Banner */}
       <EventBanner event={event} onBack={() => router.push(ROUTES.SITE.ORGANIZER_EVENTS)} />
 
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 py-8 sm:py-12 space-y-10">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
         
         {/* Pending Review Alert */}
         {event?.status === "PENDING_REVIEW" && (
-          <div className="p-4 sm:p-6 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
+          <div className="border border-amber-200 bg-amber-50 p-4 sm:p-5">
             <div className="flex gap-4">
-              <div className="text-blue-600 text-xl font-black py-0.5">ℹ️</div>
+              <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
               <div>
-                <p className="text-blue-900 font-black text-sm sm:text-base mb-2">Event Awaiting Admin Review</p>
-                <p className="text-blue-700 text-xs sm:text-sm leading-relaxed mb-3">
+                <p className="font-black text-sm sm:text-base text-amber-900 mb-2">Event Awaiting Admin Review</p>
+                <p className="text-amber-800 text-xs sm:text-sm leading-relaxed mb-3">
                   Your event has been submitted for admin review and will be published once approved. This typically takes 24-48 hours.
                 </p>
-                <p className="text-blue-600 text-[12px] sm:text-xs font-bold">
+                <p className="text-amber-700 text-[12px] sm:text-xs font-bold">
                   You'll receive an email notification when your event is approved.
                 </p>
               </div>
@@ -344,9 +344,9 @@ export default function OrganizerEventDetailPage() {
         )}
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Left Column: Event Management */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="space-y-6 lg:col-span-2">
             {/* Event Overview */}
             {event && <EventOverview event={event} />}
 
@@ -362,7 +362,7 @@ export default function OrganizerEventDetailPage() {
           </div>
 
           {/* Right Column: Controls */}
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Entry Terminal */}
             <EntryTerminal
               checkinCode={checkinCode}
@@ -403,6 +403,6 @@ export default function OrganizerEventDetailPage() {
           eventId={eventId}
         />
       </div>
-    </div>
+    </main>
   );
 }

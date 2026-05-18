@@ -2,27 +2,30 @@ import { QrCode } from "lucide-react";
 
 export function EntryTerminal({ checkinCode, setCheckinCode, onCheckin, isLoading }) {
   return (
-    <section className="bg-gradient-to-br from-[#3a1224] to-[#5a2844] rounded-2xl p-8 text-white shadow-lg">
-      <div className="flex items-center gap-3 mb-4">
-        <QrCode className="w-5 h-5 text-[#C0A04C]" />
-        <h3 className="text-lg sm:text-xl font-black uppercase tracking-wider">Entry Terminal</h3>
+    <section className="border border-[#e8dcc8] bg-white">
+      <div className="border-b border-[#e8dcc8] px-5 py-4">
+        <div className="flex items-center gap-2">
+          <QrCode className="h-4 w-4 text-[#3a1224]/45" />
+          <h2 className="text-base font-black text-[#3a1224]">Entry check-in</h2>
+        </div>
+        <p className="mt-1 text-xs leading-5 text-[#3a1224]/45">Paste or scan the ticket QR value at the door.</p>
       </div>
-      <p className="text-white/70 text-xs sm:text-sm mb-4 leading-relaxed">Scan QR codes for real-time visitor check-in</p>
-      
-      <div className="space-y-2">
+
+      <div className="space-y-3 p-5">
         <input
           type="text"
-          placeholder="Scan QR code..."
+          placeholder="QR code value"
           value={checkinCode}
-          onChange={(e) => setCheckinCode(e.target.value)}
-          className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-sm font-bold text-white placeholder-white/40 outline-none focus:ring-2 ring-[#C0A04C]/30"
+          onChange={(event) => setCheckinCode(event.target.value)}
+          className="h-11 w-full border border-[#e8dcc8] bg-white px-3 text-sm font-bold text-[#3a1224] outline-none transition focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/15"
         />
         <button
+          type="button"
           onClick={onCheckin}
           disabled={isLoading}
-          className="w-full py-3 bg-[#C0A04C] hover:bg-[#D4B557] text-[#3a1224] rounded-lg text-sm sm:text-base font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
+          className="h-11 w-full bg-[#3a1224] text-sm font-bold text-white transition hover:bg-[#4b1830] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isLoading ? "Validating..." : "✓ Validate Entry"}
+          {isLoading ? "Validating..." : "Validate entry"}
         </button>
       </div>
     </section>

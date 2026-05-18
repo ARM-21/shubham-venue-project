@@ -4,14 +4,6 @@ import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const breadcrumbConfig = {
-  '/organizer-hub': { label: 'Dashboard', icon: '🏠' },
-  '/organizer-hub/events': { label: 'Events', parent: 'Dashboard' },
-  '/organizer-hub/events/new': { label: 'Create Event', parent: 'Events' },
-  '/organizer-hub/settings': { label: 'Settings', parent: 'Dashboard' },
-  '/organizer-hub/analytics': { label: 'Analytics', parent: 'Dashboard' },
-};
-
 export default function BreadcrumbNav() {
   const pathname = usePathname();
   

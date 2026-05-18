@@ -1,516 +1,595 @@
-// components/booking/Step2MenuSelection.jsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useEffect, useMemo } from 'react';
 import axiosInstance from 'lib/axios';
 import toast from 'react-hot-toast';
-import { CheckIcon, PlusIcon, Salad, Flame, Dessert, Wine } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  Minus,
+  Plus,
+  Search,
+  ShoppingBag,
+  Sparkles,
+  Trash2,
+  UtensilsCrossed,
+  X,
+} from 'lucide-react';
 import { ROUTES } from 'config/routes';
-import { FormSelectField, FormTextField, PrimaryButton, SecondaryButton, ActionButtonGroup } from './FormInputs';
+import { cn } from 'components/site/SitePrimitives';
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+const CATEGORY_META = {
+  starter: { label: 'Starters', emoji: '🥗' },
+  appetizer: { label: 'Starters', emoji: '🥗' },
+  appetiser: { label: 'Starters', emoji: '🥗' },
+  main: { label: 'Main Courses', emoji: '🍖' },
+  entrée: { label: 'Main Courses', emoji: '🍖' },
+  entree: { label: 'Main Courses', emoji: '🍖' },
+  dessert: { label: 'Desserts', emoji: '🍰' },
+  sweet: { label: 'Desserts', emoji: '🍰' },
+  drink: { label: 'Beverages', emoji: '🍷' },
+  beverage: { label: 'Beverages', emoji: '🍷' },
+  wine: { label: 'Beverages', emoji: '🍷' },
+};
+
+function resolveCategoryLabel(raw = '') {
+  const key = Object.keys(CATEGORY_META).find((k) => raw.toLowerCase().includes(k));
+  return key ? `${CATEGORY_META[key].emoji} ${CATEGORY_META[key].label}` : `✨ ${raw || 'Other'}`;
+}
+
+// ── main component ────────────────────────────────────────────────────────────
 
 export default function Step2MenuSelection({ data, onUpdate, onNext, onPrev }) {
   const [menuPackages, setMenuPackages] = useState([]);
-  const [customItems, setCustomItems] = useState([]);
-  const [selectedPackage, setSelectedPackage] = useState(data.selectedPackage || null);
-  const [selectedCustomItems, setSelectedCustomItems] = useState(data.selectedMenu || []);
-  const [menuMode, setMenuMode] = useState(data.menuMode || 'package'); // 'package' or 'custom'
+  const [allDishes, setAllDishes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all'); // 'all' or specific category
-  const [itemsPerPage] = useState(6);
-  const [currentPage, setCurrentPage] = useState(1);
 
-  // Get category icon and color
-  const getCategoryStyle = (category) => {
-    const categoryLower = (category || '').toLowerCase();
-    if (categoryLower.includes('starter') || categoryLower.includes('appetizer') || categoryLower.includes('appetiser')) {
-      return { icon: Salad, color: '#10b981', label: '🥗 Starters' };
-    }
-    if (categoryLower.includes('main') || categoryLower.includes('entrée') || categoryLower.includes('entree')) {
-      return { icon: Flame, color: '#ef4444', label: '🍖 Main Courses' };
-    }
-    if (categoryLower.includes('dessert') || categoryLower.includes('sweet')) {
-      return { icon: Dessert, color: '#f59e0b', label: '🍰 Desserts' };
-    }
-    if (categoryLower.includes('drink') || categoryLower.includes('beverage') || categoryLower.includes('wine')) {
-      return { icon: Wine, color: '#8b5cf6', label: '🍷 Beverages' };
-    }
-    return { icon: Salad, color: '#6366f1', label: '✨ ' + category };
-  };
+  const [menuMode, setMenuMode] = useState(data.menuMode || 'package');
+  const [selectedPackage, setSelectedPackage] = useState(data.selectedPackage || null);
+  const [selectedItems, setSelectedItems] = useState(data.selectedMenu || []); // [{itemId, name, category, pricePerUnit, quantity}]
+  const [dietaryNote, setDietaryNote] = useState(data.dietaryRestrictions || '');
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    defaultValues: {
-      dietaryRestrictions: data.dietaryRestrictions || ''
-    }
-  });
+  const [search, setSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [expandedPackage, setExpandedPackage] = useState(null);
 
-  // Fetch menu data
+  // ── data fetch ──────────────────────────────────────────────────────────────
+
   useEffect(() => {
-    fetchMenuData();
+    let ignore = false;
+    async function load() {
+      try {
+        setLoading(true);
+        const res = await axiosInstance.get(ROUTES.API.MENUS.ROOT);
+        const menus = res.data?.menus || res.data?.data || (Array.isArray(res.data) ? res.data : []);
+
+        const seen = new Set();
+        const dishes = [];
+        menus.forEach((menu) => {
+          (menu.sections || []).forEach((sec) => {
+            const catLabel = sec.section?.title || sec.section || 'Other';
+            (sec.dishes || []).forEach((dish) => {
+              if (!seen.has(dish._id)) {
+                seen.add(dish._id);
+                dishes.push({ ...dish, category: catLabel, menuName: menu.name });
+              }
+            });
+          });
+        });
+
+        if (!ignore) {
+          setMenuPackages(menus);
+          setAllDishes(dishes);
+        }
+      } catch {
+        toast.error('Failed to load menu options');
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    load();
+    return () => { ignore = true; };
   }, []);
 
-  const fetchMenuData = async () => {
-    try {
-      setLoading(true);
-      // Fetch menus with their dishes
-      const menusRes = await axiosInstance.get(ROUTES.API.MENUS.ROOT);
-      
-      // Extract menus (packages)
-      const menus = menusRes.data?.menus || menusRes.data?.data || (Array.isArray(menusRes.data) ? menusRes.data : []);
-      setMenuPackages(menus);
-      
-      // Extract all dishes from menus WITH DEDUPLICATION
-      let allDishes = [];
-      const seenDishIds = new Set();
-      
-      menus.forEach((menu) => {
-        if (menu.sections && Array.isArray(menu.sections)) {
-          menu.sections.forEach((section) => {
-            if (section.dishes && Array.isArray(section.dishes)) {
-              section.dishes.forEach((dish) => {
-                // Only add dish if we haven't seen this ID before
-                if (!seenDishIds.has(dish._id)) {
-                  seenDishIds.add(dish._id);
-                  allDishes.push({
-                    ...dish,
-                    menuName: menu.name,
-                    category: section.section?.title || section.section || 'Uncategorized',
-                  });
-                }
-              });
-            }
-          });
-        }
-      });
-      setCustomItems(allDishes);
-    } catch (error) {
-      toast.error('Failed to load menu options');
-      console.error(error);
-      // Set empty arrays on error
-      setMenuPackages([]);
-      setCustomItems([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ── derived values ──────────────────────────────────────────────────────────
 
-  // Calculate total for selected package
-  const calculatePackageTotal = () => {
-    if (!selectedPackage) return 0;
-    return selectedPackage.pricePerPerson * data.guests;
-  };
-
-  // Calculate total for custom items
-  const calculateCustomTotal = () => {
-    return selectedCustomItems.reduce((total, item) => {
-      return total + (item.pricePerUnit * item.quantity);
-    }, 0);
-  };
-
-  // Filter items by search query and category
-  const filteredItems = customItems.filter(item => {
-    const matchesSearch = 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
-
-  // Group filtered items by category
-  const groupedByCategory = filteredItems.reduce((acc, item) => {
-    const category = item.category || 'Other';
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(item);
-    return acc;
-  }, {});
-
-  // Flatten grouped items for pagination
-  const flattenedItems = Object.entries(groupedByCategory).flatMap(([category, items]) => 
-    items.map((item, idx) => ({ ...item, _categoryKey: `${category}-${idx}` }))
+  const categories = useMemo(
+    () => ['all', ...new Set(allDishes.map((d) => d.category))],
+    [allDishes]
   );
 
-  const totalPages = Math.ceil(flattenedItems.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedItems = flattenedItems.slice(startIndex, startIndex + itemsPerPage);
-
-  // Reset to page 1 when search changes
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-    setCurrentPage(1);
-  };
-
-  const getTotal = () => {
-    return menuMode === 'package' ? calculatePackageTotal() : calculateCustomTotal();
-  };
-
-  // Handle package selection
-  const handlePackageSelect = (pkg) => {
-    setSelectedPackage(pkg);
-  };
-
-  // Handle custom item quantity change
-  const handleCustomItemToggle = (item) => {
-    const existingIndex = selectedCustomItems.findIndex(i => i.itemId === item._id);
-
-    if (existingIndex >= 0) {
-      // Remove item
-      setSelectedCustomItems(prev => prev.filter((_, index) => index !== existingIndex));
-    } else {
-      // Add item with default quantity
-      setSelectedCustomItems(prev => [...prev, {
-        itemId: item._id,
-        name: item.name,
-        category: item.category,
-        pricePerUnit: item.pricePerPerson,
-        quantity: data.guests, // Default to guest count
-        total: item.pricePerPerson * data.guests
-      }]);
+  const visibleDishes = useMemo(() => {
+    let list = allDishes;
+    if (activeCategory !== 'all') list = list.filter((d) => d.category === activeCategory);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (d) =>
+          d.name?.toLowerCase().includes(q) ||
+          d.category?.toLowerCase().includes(q) ||
+          d.description?.toLowerCase().includes(q)
+      );
     }
+    return list;
+  }, [allDishes, activeCategory, search]);
+
+  const groupedDishes = useMemo(() => {
+    const map = {};
+    visibleDishes.forEach((d) => {
+      if (!map[d.category]) map[d.category] = [];
+      map[d.category].push(d);
+    });
+    return map;
+  }, [visibleDishes]);
+
+  const packageTotal = selectedPackage
+    ? (selectedPackage.pricePerPerson || 0) * (data.guests || 1)
+    : 0;
+
+  const customTotal = selectedItems.reduce((s, i) => s + (i.pricePerUnit || 0) * (i.quantity || 0), 0);
+
+  const menuTotal = menuMode === 'package' ? packageTotal : customTotal;
+
+  // ── item cart ops ───────────────────────────────────────────────────────────
+
+  const getSelectedItem = (dishId) => selectedItems.find((i) => i.itemId === dishId);
+
+  const addItem = (dish) => {
+    setSelectedItems((prev) => [
+      ...prev,
+      {
+        itemId: dish._id,
+        name: dish.name,
+        category: dish.category,
+        pricePerUnit: dish.price || 0,
+        quantity: data.guests || 1,
+      },
+    ]);
   };
 
-  // Update quantity for custom item
-  const handleQuantityChange = (itemId, newQuantity) => {
-    setSelectedCustomItems(prev => prev.map(item => {
-      if (item.itemId === itemId) {
-        return {
-          ...item,
-          quantity: parseInt(newQuantity) || 0,
-          total: item.pricePerUnit * (parseInt(newQuantity) || 0)
-        };
-      }
-      return item;
-    }));
+  const removeItem = (dishId) =>
+    setSelectedItems((prev) => prev.filter((i) => i.itemId !== dishId));
+
+  const changeQty = (dishId, delta) => {
+    setSelectedItems((prev) =>
+      prev.map((i) =>
+        i.itemId === dishId
+          ? { ...i, quantity: Math.max(1, (i.quantity || 1) + delta) }
+          : i
+      )
+    );
   };
 
-  const onSubmit = (formData) => {
-    // Validate selection
+  // ── submit ──────────────────────────────────────────────────────────────────
+
+  const handleContinue = () => {
     if (menuMode === 'package' && !selectedPackage) {
       toast.error('Please select a menu package');
       return;
     }
-
-    if (menuMode === 'custom' && selectedCustomItems.length === 0) {
-      toast.error('Please select at least one menu item');
+    if (menuMode === 'custom' && selectedItems.length === 0) {
+      toast.error('Please add at least one dish to your custom menu');
       return;
     }
-
-    // Prepare data
-    const menuData = {
-      
+    onUpdate({
       menuMode,
       selectedPackage: menuMode === 'package' ? selectedPackage : null,
-      selectedMenu: menuMode === 'custom' ? selectedCustomItems : [],
-      menuTotal: getTotal(),
-      dietaryRestrictions: formData.dietaryRestrictions
-    };
-
-    onUpdate(menuData);
+      selectedMenu: menuMode === 'custom' ? selectedItems : [],
+      menuTotal,
+      dietaryRestrictions: dietaryNote,
+    });
     onNext();
   };
 
+  // ── loading state ───────────────────────────────────────────────────────────
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-12 h-12 border-4 border-#66213f-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex flex-col items-center justify-center gap-3 py-16">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#eadcc6] border-t-[#C0A04C]" />
+        <p className="text-sm text-[#3a1224]/50">Loading menu options…</p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Menu Mode Toggle */}
-      <div className="flex gap-3 mb-6">
-        <button
-          type="button"
-          onClick={() => setMenuMode('package')}
-          className={`flex-1 h-12 px-6 rounded-lg font-semibold text-sm transition-all ${
-            menuMode === 'package'
-              ? 'bg-[#C0A04C] text-white'
-              : 'bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          <div className="flex items-center justify-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            Menu Packages
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => setMenuMode('custom')}
-          className={`flex-1 h-12 px-6 rounded-lg font-semibold text-sm transition-all ${
-            menuMode === 'custom'
-              ? 'bg-[#C0A04C] text-white'
-              : 'bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          <div className="flex items-center justify-center gap-2">
-            <PlusIcon className="w-4 h-4" />
-            Custom Menu
-          </div>
-        </button>
+    <div className="space-y-6">
+
+      {/* ── Mode toggle ── */}
+      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-[#e8dcc8] bg-[#f8f4ed] p-1.5">
+        {[
+          { value: 'package', label: 'Set Packages', sub: 'Chef-curated bundles' },
+          { value: 'custom', label: 'Build Your Own', sub: 'Pick dish by dish' },
+        ].map((m) => (
+          <button
+            key={m.value}
+            type="button"
+            onClick={() => setMenuMode(m.value)}
+            className={cn(
+              'flex flex-col items-center rounded-xl px-4 py-3 text-center transition-all',
+              menuMode === m.value
+                ? 'bg-[#3a1224] text-white shadow-md'
+                : 'text-[#3a1224]/60 hover:text-[#3a1224]'
+            )}
+          >
+            <span className="text-sm font-black">{m.label}</span>
+            <span className={cn('mt-0.5 text-[10px]', menuMode === m.value ? 'text-white/60' : 'text-[#3a1224]/40')}>
+              {m.sub}
+            </span>
+          </button>
+        ))}
       </div>
 
-      {/* Package Selection */}
-      {menuMode === 'package' && menuPackages.map((pkg) => (
-        <div
-          key={pkg._id}
-          onClick={() => handlePackageSelect(pkg)}
-          className={`relative border rounded-lg p-6 cursor-pointer transition-all ${
-            selectedPackage?._id === pkg._id
-              ? 'border-[#C0A04C] bg-[#C0A04C]/5 ring-2 ring-[#C0A04C]/10'
-              : 'border-slate-200 bg-white hover:border-slate-300'
-          }`}
-        >
-          {/* Package Header */}
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h4 className="text-lg font-bold text-slate-900">{pkg.name}</h4>
-              <p className="text-sm text-slate-600 mt-1">{pkg.description}</p>
-            </div>
-            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-              selectedPackage?._id === pkg._id ? 'border-[#C0A04C] bg-[#C0A04C]' : 'border-slate-300'
-            }`}>
-              {selectedPackage?._id === pkg._id && (
-                <CheckIcon width={16} color='white' />
-              )}
-            </div>
-          </div>
-
-          {/* Package Items */}
-          <div className="space-y-2 mb-4">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Includes:</p>
-            <ul className="space-y-1">
-              {pkg.sections.slice(0, 5).map((item, index) => (
-                <li key={index} className="text-sm text-slate-700 flex items-start">
-                  <span className="text-[#C0A04C] mr-2">•</span>
-                  {item.section.title}
-                </li>
-              ))}
-              {pkg.sections.length > 5 && (
-                <li className="text-sm text-slate-400 italic">
-                  +{pkg.sections.length - 5} more items...
-                </li>
-              )}
-            </ul>
-          </div>
-
-          {/* Price */}
-          <div className="pt-4 border-t border-slate-200">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Per person</span>
-              <span className="text-lg font-bold text-[#C0A04C]">
-                NPR {pkg.pricePerPerson.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex items-center justify-between mt-3">
-              <span className="text-sm font-semibold text-slate-900">
-                Total for {data.guests} guests
-              </span>
-              <span className="text-lg font-bold text-slate-900">
-                NPR {(pkg.pricePerPerson * data.guests).toLocaleString()}
-              </span>
-            </div>
-          </div>
-        </div>
-      ))}
-
-      {/* Custom Menu Selection */}
-      {menuMode === 'custom' && (
-        <div className="space-y-6">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Build Your Custom Menu</p>
-            <p className="text-xs text-slate-600 mt-1">{flattenedItems.length} items available</p>
-          </div>
-
-          {/* Search Filter */}
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search dishes by name, category, or description..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 text-sm font-medium text-slate-900 placeholder-slate-400"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setCurrentPage(1);
-                }}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xl"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* Category Filter */}
-          <div>
-            <label className="text-sm font-semibold text-slate-900 block mb-2">Menu Section</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => {
-                setSelectedCategory(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 text-sm font-medium text-slate-900 bg-white hover:border-slate-400 transition-colors"
-            >
-              <option value="all">All Sections</option>
-              {[...new Set(customItems.map(item => item.category))].sort().map(category => (
-                <option key={category} value={category}>
-                  {getCategoryStyle(category).label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {flattenedItems.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-slate-600 font-medium">No items match your search</p>
-            </div>
+      {/* ══════════════════════════════════════════════════════════════════════
+          PACKAGE MODE
+      ══════════════════════════════════════════════════════════════════════ */}
+      {menuMode === 'package' && (
+        <div className="space-y-4">
+          {menuPackages.length === 0 ? (
+            <EmptyState icon={UtensilsCrossed} title="No packages available" sub="Please contact the venue directly." />
           ) : (
-            <>
-              {/* Category Header */}
-              {paginatedItems.length > 0 && (
-                <div className="mb-6">
-                  <div className="bg-gradient-to-r from-[#C0A04C]/10 to-[#C0A04C]/5 border border-[#C0A04C]/20 rounded-xl p-4">
-                    <p className="text-sm font-semibold text-slate-700">
-                      {paginatedItems[0]?.category ? getCategoryStyle(paginatedItems[0].category).label : '✨ Menu Items'}
-                    </p>
-                  </div>
-                </div>
-              )}
-              
-              {/* Paginated Items */}
-              <div className="space-y-3">
-                {paginatedItems.map((item, idx) => {
-                  const isSelected = selectedCustomItems.some(i => i.itemId === item._id);
-                  const selectedItem = selectedCustomItems.find(i => i.itemId === item._id);
-                  // Create unique key combining item ID and pagination offset
-                  const uniqueKey = `${item._id}-${startIndex + idx}`;
+            menuPackages.map((pkg) => {
+              const isSelected = selectedPackage?._id === pkg._id;
+              const isExpanded = expandedPackage === pkg._id;
+              const pkgTotal = (pkg.pricePerPerson || 0) * (data.guests || 1);
 
-                  return (
-                    <div
-                      key={uniqueKey}
-                      className={`border rounded-lg p-5 transition-all ${
-                        isSelected
-                          ? 'border-[#C0A04C] bg-[#C0A04C]/5'
-                          : 'border-slate-200 bg-white hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        {/* Item Info */}
-                        <div className="flex-1">
-                          <div className="flex items-start gap-3">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => handleCustomItemToggle(item)}
-                              className="mt-1 w-5 h-5 text-[#C0A04C] border-slate-300 rounded focus:ring-[#C0A04C]/20"
-                            />
-                            <div>
-                              <h5 className="font-semibold text-slate-900">{item.name}</h5>
-                              <p className="text-xs text-slate-500 mt-1">{item.category}</p>
-                              {item.description && (
-                                <p className="text-sm text-slate-600 mt-1">{item.description}</p>
-                              )}
-                              <p className="text-sm font-semibold text-[#C0A04C] mt-2">
-                                NPR {item.pricePerPerson} / person
-                              </p>
-                            </div>
-                          </div>
+              return (
+                <div
+                  key={pkg._id}
+                  className={cn(
+                    'overflow-hidden rounded-2xl border transition-all',
+                    isSelected
+                      ? 'border-[#C0A04C] shadow-[0_0_0_2px_rgba(192,160,76,0.25)]'
+                      : 'border-[#e8dcc8] hover:border-[#C0A04C]/50'
+                  )}
+                >
+                  {/* Card header — click to select */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPackage(pkg)}
+                    className="flex w-full items-start gap-4 bg-white p-5 text-left"
+                  >
+                    {/* Radio indicator */}
+                    <span className={cn(
+                      'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all',
+                      isSelected ? 'border-[#C0A04C] bg-[#C0A04C]' : 'border-[#e8dcc8]'
+                    )}>
+                      {isSelected && <span className="h-2 w-2 rounded-full bg-white" />}
+                    </span>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="font-black text-[#3a1224]">{pkg.name}</p>
+                          {pkg.description && (
+                            <p className="mt-0.5 text-sm text-[#3a1224]/55">{pkg.description}</p>
+                          )}
                         </div>
+                        <div className="shrink-0 text-right">
+                          <p className="text-lg font-black text-[#C0A04C]">
+                            NPR {(pkg.pricePerPerson || 0).toLocaleString()}
+                            <span className="ml-1 text-xs font-bold text-[#3a1224]/40">/ person</span>
+                          </p>
+                          <p className="mt-0.5 text-xs text-[#3a1224]/50">
+                            NPR {pkgTotal.toLocaleString()} for {data.guests} guests
+                          </p>
+                        </div>
+                      </div>
 
-                        {/* Quantity Selector */}
-                        {isSelected && (
-                          <div className="ml-4 flex items-center gap-3">
-                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest hidden sm:inline">Qty:</label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={selectedItem.quantity}
-                              onChange={(e) => handleQuantityChange(item._id, e.target.value)}
-                              className="w-16 px-3 py-2 bg-white border border-slate-300 rounded-lg focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 text-center font-semibold text-slate-900"
-                            />
-                            <span className="text-sm font-semibold text-slate-900 ml-2">
-                              NPR {(selectedItem.total || 0).toLocaleString()}
-                            </span>
-                          </div>
-                        )}
+                      {/* Section chips */}
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {(pkg.sections || []).map((sec, i) => (
+                          <span
+                            key={i}
+                            className="rounded-full border border-[#e8dcc8] bg-[#f8f4ed] px-2.5 py-1 text-[10px] font-black text-[#3a1224]/60"
+                          >
+                            {resolveCategoryLabel(sec.section?.title || sec.section || '')}
+                            {sec.dishes?.length ? ` · ${sec.dishes.length}` : ''}
+                          </span>
+                        ))}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </button>
 
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+                  {/* Expand/collapse toggle */}
                   <button
                     type="button"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => setExpandedPackage(isExpanded ? null : pkg._id)}
+                    className="flex w-full items-center justify-center gap-1.5 border-t border-[#f0e8d8] bg-[#faf6ef] py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-[#3a1224]/50 transition hover:bg-[#f0e8d8] hover:text-[#3a1224]"
                   >
-                    Previous
+                    {isExpanded ? (
+                      <>Hide dishes <ChevronUp className="h-3.5 w-3.5" /></>
+                    ) : (
+                      <>View all dishes <ChevronDown className="h-3.5 w-3.5" /></>
+                    )}
                   </button>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-600">
-                      Page <span className="text-[#C0A04C]">{currentPage}</span> of <span className="text-[#C0A04C]">{totalPages}</span>
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
+
+                  {/* Expanded dish listing */}
+                  {isExpanded && (
+                    <div className="border-t border-[#f0e8d8] bg-white px-5 pb-5 pt-4">
+                      {(pkg.sections || []).map((sec, si) => (
+                        <div key={si} className="mb-5 last:mb-0">
+                          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-[#C0A04C]">
+                            {resolveCategoryLabel(sec.section?.title || sec.section || '')}
+                          </p>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {(sec.dishes || []).map((dish) => (
+                              <div
+                                key={dish._id}
+                                className="rounded-xl border border-[#f0e8d8] bg-[#faf6ef] px-3.5 py-3"
+                              >
+                                <p className="text-sm font-black text-[#3a1224]">{dish.name}</p>
+                                {dish.description && (
+                                  <p className="mt-0.5 line-clamp-2 text-xs text-[#3a1224]/50">
+                                    {dish.description}
+                                  </p>
+                                )}
+                                <p className="mt-1.5 text-xs font-bold text-[#C0A04C]">
+                                  NPR {(dish.price || 0).toLocaleString()} / person
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </>
+              );
+            })
           )}
         </div>
       )}
 
-      {/* Additional Options */}
-      <div className="grid grid-cols-1 gap-6 pt-6 border-t border-slate-200">
-        <FormTextField
-          label="Dietary Restrictions"
-          placeholder="e.g., Vegetarian, Vegan, Gluten-free"
-          {...register('dietaryRestrictions')}
+      {/* ══════════════════════════════════════════════════════════════════════
+          CUSTOM MODE
+      ══════════════════════════════════════════════════════════════════════ */}
+      {menuMode === 'custom' && (
+        <div className="space-y-5">
+
+          {/* Search bar */}
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#3a1224]/35" />
+            <input
+              type="text"
+              placeholder="Search dishes…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-2xl border border-[#e8dcc8] bg-white py-3 pl-10 pr-10 text-sm font-medium text-[#3a1224] placeholder-[#3a1224]/35 outline-none transition focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/15"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#3a1224]/40 hover:text-[#3a1224]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Category pills */}
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActiveCategory(cat)}
+                className={cn(
+                  'rounded-full border px-3.5 py-1.5 text-xs font-black transition-all',
+                  activeCategory === cat
+                    ? 'border-[#3a1224] bg-[#3a1224] text-[#C0A04C]'
+                    : 'border-[#e8dcc8] bg-white text-[#3a1224]/60 hover:border-[#3a1224]/30 hover:text-[#3a1224]'
+                )}
+              >
+                {cat === 'all' ? '✦ All dishes' : resolveCategoryLabel(cat)}
+              </button>
+            ))}
+          </div>
+
+          {/* Dish grid grouped by category */}
+          {visibleDishes.length === 0 ? (
+            <EmptyState icon={Search} title="No dishes found" sub="Try a different search term or category." />
+          ) : (
+            Object.entries(groupedDishes).map(([category, dishes]) => (
+              <div key={category}>
+                <p className="mb-3 text-[10px] font-black uppercase tracking-[0.28em] text-[#C0A04C]">
+                  {resolveCategoryLabel(category)}
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {dishes.map((dish) => {
+                    const sel = getSelectedItem(dish._id);
+                    return (
+                      <DishCard
+                        key={dish._id}
+                        dish={dish}
+                        selected={sel}
+                        onAdd={() => addItem(dish)}
+                        onRemove={() => removeItem(dish._id)}
+                        onIncrement={() => changeQty(dish._id, 1)}
+                        onDecrement={() => changeQty(dish._id, -1)}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )}
+
+          {/* Selected items cart */}
+          {selectedItems.length > 0 && (
+            <div className="rounded-2xl border border-[#e8dcc8] bg-[#faf6ef] p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <ShoppingBag className="h-4 w-4 text-[#C0A04C]" />
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#3a1224]/60">
+                  Your menu · {selectedItems.length} {selectedItems.length === 1 ? 'dish' : 'dishes'}
+                </p>
+              </div>
+              <div className="space-y-2">
+                {selectedItems.map((item) => (
+                  <div key={item.itemId} className="flex items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-black text-[#3a1224]">{item.name}</p>
+                      <p className="text-[10px] text-[#3a1224]/45">
+                        NPR {(item.pricePerUnit || 0).toLocaleString()} × {item.quantity}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-sm font-black text-[#3a1224]">
+                      NPR {((item.pricePerUnit || 0) * (item.quantity || 0)).toLocaleString()}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.itemId)}
+                      className="shrink-0 rounded-lg p-1 text-[#3a1224]/30 transition hover:bg-red-50 hover:text-red-500"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Dietary note ── */}
+      <div>
+        <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.22em] text-[#3a1224]/50">
+          Dietary restrictions or notes
+        </label>
+        <textarea
+          rows={2}
+          placeholder="e.g. Two guests are vegetarian, one is gluten-free…"
+          value={dietaryNote}
+          onChange={(e) => setDietaryNote(e.target.value)}
+          className="w-full resize-none rounded-2xl border border-[#e8dcc8] bg-white px-4 py-3 text-sm text-[#3a1224] placeholder-[#3a1224]/30 outline-none transition focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/15"
         />
       </div>
 
-      {/* Total Summary */}
-      <div className="bg-gradient-to-br from-[#3a1224] to-[#4a172d] rounded-lg p-6 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-[#C0A04C] uppercase tracking-widest">Menu Total</p>
-            <p className="text-sm text-[#C0A04C]/70 mt-2">
-              {menuMode === 'package' ? `${selectedPackage?.name || 'No package selected'}` : `${selectedCustomItems.length} items selected`}
-            </p>
-          </div>
-          <p className="text-4xl font-bold text-[#C0A04C]">
-            NPR {getTotal().toLocaleString()}
+      {/* ── Total bar ── */}
+      <div className="flex items-center justify-between rounded-2xl bg-[#3a1224] px-5 py-4">
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-[0.28em] text-[#C0A04C]/70">Menu total</p>
+          <p className="mt-0.5 text-sm text-white/60">
+            {menuMode === 'package'
+              ? selectedPackage
+                ? `${selectedPackage.name} · ${data.guests} guests`
+                : 'No package selected'
+              : selectedItems.length > 0
+              ? `${selectedItems.length} dishes selected`
+              : 'No dishes selected yet'}
           </p>
         </div>
+        <p className="text-2xl font-black text-[#C0A04C]">NPR {menuTotal.toLocaleString()}</p>
       </div>
 
-      {/* Navigation Buttons */}
-      <ActionButtonGroup>
-        <SecondaryButton onClick={onPrev}>← Back</SecondaryButton>
-        <PrimaryButton type="submit">
-          Continue to Decorations →
-        </PrimaryButton>
-      </ActionButtonGroup>
-    </form>
+      {/* ── Navigation ── */}
+      <div className="flex gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onPrev}
+          className="flex h-11 flex-1 items-center justify-center rounded-2xl border border-[#e8dcc8] bg-white text-[11px] font-black uppercase tracking-[0.18em] text-[#3a1224] transition hover:bg-[#f8f4ed]"
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          onClick={handleContinue}
+          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#3a1224] text-[11px] font-black uppercase tracking-[0.18em] text-[#C0A04C] transition hover:bg-[#4a172d] disabled:opacity-50"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Dish card ─────────────────────────────────────────────────────────────────
+
+function DishCard({ dish, selected, onAdd, onRemove, onIncrement, onDecrement }) {
+  return (
+    <div
+      className={cn(
+        'group relative flex flex-col justify-between overflow-hidden rounded-2xl border p-4 transition-all',
+        selected
+          ? 'border-[#C0A04C] bg-white shadow-[0_0_0_2px_rgba(192,160,76,0.18)]'
+          : 'border-[#e8dcc8] bg-white hover:border-[#C0A04C]/50'
+      )}
+    >
+      <div className="min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-sm font-black text-[#3a1224]">{dish.name}</p>
+          <p className="shrink-0 text-xs font-black text-[#C0A04C]">
+            NPR {(dish.price || 0).toLocaleString()}
+            <span className="ml-0.5 font-bold text-[#3a1224]/35">/pp</span>
+          </p>
+        </div>
+        {dish.description && (
+          <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#3a1224]/50">{dish.description}</p>
+        )}
+      </div>
+
+      <div className="mt-3 flex items-center justify-between">
+        {!selected ? (
+          <button
+            type="button"
+            onClick={onAdd}
+            className="flex items-center gap-1.5 rounded-full border border-[#e8dcc8] bg-[#f8f4ed] px-3 py-1.5 text-xs font-black text-[#3a1224] transition hover:border-[#C0A04C] hover:bg-[#C0A04C]/10 hover:text-[#3a1224]"
+          >
+            <Plus className="h-3.5 w-3.5" /> Add
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 overflow-hidden rounded-xl border border-[#e8dcc8] bg-[#f8f4ed]">
+              <button
+                type="button"
+                onClick={onDecrement}
+                className="flex h-7 w-7 items-center justify-center transition hover:bg-[#e8dcc8]"
+              >
+                <Minus className="h-3.5 w-3.5 text-[#3a1224]" />
+              </button>
+              <span className="min-w-[2rem] text-center text-sm font-black text-[#3a1224]">
+                {selected.quantity}
+              </span>
+              <button
+                type="button"
+                onClick={onIncrement}
+                className="flex h-7 w-7 items-center justify-center transition hover:bg-[#e8dcc8]"
+              >
+                <Plus className="h-3.5 w-3.5 text-[#3a1224]" />
+              </button>
+            </div>
+            <span className="text-xs font-bold text-[#3a1224]/50">
+              = NPR {((selected.pricePerUnit || 0) * (selected.quantity || 0)).toLocaleString()}
+            </span>
+          </div>
+        )}
+
+        {selected && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="rounded-lg p-1.5 text-[#3a1224]/25 transition hover:bg-red-50 hover:text-red-500"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+
+function EmptyState({ icon: Icon, title, sub }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#e8dcc8] py-12 text-center">
+      <Icon className="h-8 w-8 text-[#3a1224]/20" />
+      <p className="font-black text-[#3a1224]/50">{title}</p>
+      <p className="text-sm text-[#3a1224]/35">{sub}</p>
+    </div>
   );
 }

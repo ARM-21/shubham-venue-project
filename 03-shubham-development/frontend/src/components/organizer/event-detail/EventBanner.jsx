@@ -1,12 +1,11 @@
-import { motion } from "framer-motion";
-import { XCircle } from "lucide-react";
+import { ArrowLeft, XCircle } from "lucide-react";
 
 export function EventBanner({ event, onBack }) {
   if (!event) {
     return (
-      <div className="text-center py-32 bg-white rounded-3xl border border-dashed border-[#3a1224]/10">
-        <XCircle className="w-12 h-12 text-rose-500/20 mx-auto mb-6" />
-        <p className="text-[#3a1224]/40 text-sm font-bold uppercase tracking-widest">Event record not found</p>
+      <div className="border border-dashed border-[#e8dcc8] bg-white py-24 text-center">
+        <XCircle className="mx-auto mb-5 h-10 w-10 text-rose-500/30" />
+        <p className="text-sm font-bold text-[#3a1224]/45">Event record not found</p>
       </div>
     );
   }
@@ -14,15 +13,15 @@ export function EventBanner({ event, onBack }) {
   function statusTone(status) {
     switch (status?.toUpperCase()) {
       case "PUBLISHED":
-        return "text-emerald-600 bg-emerald-50 border-emerald-100";
+        return "text-emerald-700 bg-emerald-50 border-emerald-200";
       case "PENDING_REVIEW":
-        return "text-blue-600 bg-blue-50 border-blue-100";
+        return "text-blue-700 bg-blue-50 border-blue-200";
       case "DRAFT":
-        return "text-amber-600 bg-amber-50 border-amber-100";
+        return "text-amber-700 bg-amber-50 border-amber-200";
       case "CANCELLED":
-        return "text-rose-600 bg-rose-50 border-rose-100";
+        return "text-rose-700 bg-rose-50 border-rose-200";
       default:
-        return "text-gray-600 bg-gray-50 border-gray-100";
+        return "text-[#3a1224]/60 bg-[#fbf8f2] border-[#e8dcc8]";
     }
   }
 
@@ -31,7 +30,7 @@ export function EventBanner({ event, onBack }) {
       case "PUBLISHED":
         return "Published";
       case "PENDING_REVIEW":
-        return "Pending Admin Review";
+        return "Pending admin review";
       case "DRAFT":
         return "Draft";
       case "CANCELLED":
@@ -42,44 +41,27 @@ export function EventBanner({ event, onBack }) {
   }
 
   return (
-    <div className="relative w-full h-56 sm:h-64 md:h-80 lg:h-96 overflow-hidden rounded-b-3xl">
-      {/* Banner Image */}
-      <div 
-        className="absolute inset-0 bg-gradient-to-br from-[#3a1224] to-[#5a2844] opacity-80"
-        style={{
-          backgroundImage: event.bannerUrl ? `url('${event.bannerUrl}')` : 'none',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/90 via-[#3a1224]/40 to-transparent" />
-      </div>
-
-      {/* Banner Content Overlay */}
-      <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-6 md:p-8 lg:p-10">
-        <div className="flex flex-col gap-3 sm:gap-4">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <span className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-black uppercase tracking-widest border ${statusTone(event.status)}`}>
-              {statusLabel(event.status)}
-            </span>
-            <span className="text-xs sm:text-sm font-black text-white/60 uppercase tracking-[0.3em]">EVENT DETAILS</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
-            {event.name}
-          </h1>
-          <p className="text-xs sm:text-sm text-white/80 font-semibold max-w-2xl line-clamp-2">
-            {event.type} • {event.eventCategory}
+    <section className="border-b border-[#e8dcc8] bg-white">
+      {event.bannerUrl ? (
+        <div className="h-48 w-full overflow-hidden bg-[#fbf8f2] sm:h-60">
+          <img src={event.bannerUrl} alt="" className="h-full w-full object-cover" />
+        </div>
+      ) : null}
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-5 px-4 py-6 sm:px-6 md:px-8 lg:px-10">
+        <button onClick={onBack} className="inline-flex w-fit items-center gap-2 text-sm font-bold text-[#3a1224]/60 hover:text-[#3a1224]">
+          <ArrowLeft className="h-4 w-4" />
+          Back to events
+        </button>
+        <div>
+          <span className={`inline-flex border px-3 py-1 text-xs font-black uppercase tracking-[0.12em] ${statusTone(event.status)}`}>
+            {statusLabel(event.status)}
+          </span>
+          <h1 className="mt-3 max-w-4xl text-2xl font-black leading-tight text-[#3a1224] sm:text-3xl lg:text-4xl">{event.name}</h1>
+          <p className="mt-2 text-sm font-semibold text-[#3a1224]/55">
+            {[event.type, event.eventCategory].filter(Boolean).join(" / ") || "Event details"}
           </p>
         </div>
       </div>
-
-      {/* Action Button in Banner */}
-      <button
-        onClick={onBack}
-        className="absolute top-4 sm:top-6 right-4 sm:right-6 px-4 sm:px-6 py-2 sm:py-3 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-full text-xs sm:text-sm font-black uppercase tracking-widest hover:bg-white/20 transition-all"
-      >
-        ← Back
-      </button>
-    </div>
+    </section>
   );
 }

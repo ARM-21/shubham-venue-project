@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { Flag, Check } from 'lucide-react';
 import { useAuth } from 'contexts/AuthProvider';
 import axiosInstance from 'lib/axios';
 import ReportEventModal from './ReportEventModal';
@@ -12,25 +12,21 @@ export default function ReportEventButton({ eventId, eventName, className = '' }
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
 
-  // Check if user has already reported this event
   useEffect(() => {
     const checkExistingReport = async () => {
       if (!user?.id || !eventId) {
         setIsLoading(false);
         return;
       }
-
       try {
         const response = await axiosInstance.get(`/api/v1/event-reports/check/${eventId}`);
         setHasReported(response.data?.hasReported || false);
-      } catch (error) {
-        // If error, allow reporting (don't block on error)
+      } catch {
         setHasReported(false);
       } finally {
         setIsLoading(false);
       }
     };
-
     checkExistingReport();
   }, [user?.id, eventId]);
 
@@ -39,25 +35,17 @@ export default function ReportEventButton({ eventId, eventName, className = '' }
     setIsOpen(false);
   };
 
-  if (isLoading) {
-    return (
-      <button disabled className="inline-flex items-center gap-2 lg:px-4 lg:py-2.5 rounded-lg border-2 border-[#C0A04C]/30 bg-[#C0A04C]/5 text-[#3a1224]/50 font-semibold text-sm  opacity-50">
-        <AlertCircle size={16} />
-        Loading...
-      </button>
-    );
-  }
+  if (isLoading) return null;
 
   if (hasReported) {
     return (
-      <button
-        disabled
+      <span
         title="You have already reported this event"
-        className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-green-500/50 bg-green-500/10 text-green-700 font-semibold text-sm opacity-75 cursor-not-allowed ${className}`}
+        className={`inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700 ${className}`}
       >
-        <CheckCircle size={16} />
-        Already Reported
-      </button>
+        <Check className="h-3 w-3" />
+        Reported
+      </span>
     );
   }
 
@@ -65,10 +53,10 @@ export default function ReportEventButton({ eventId, eventName, className = '' }
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className={`inline-flex items-center gap-2 lg:px-4 lg:py-2.5 rounded-lg border-2 border-[#C0A04C]/50 bg-[#C0A04C]/10  hover:border-[#C0A04C] hover:bg-[#C0A04C]/20 transition font-semibold py-2 px-2 text-red-500 text-[10px] lg:text-sm ${className}`}
+        className={`inline-flex items-center gap-1.5 rounded-lg border border-[#3a1224]/15 px-3 py-1.5 text-[11px] font-bold text-[#3a1224]/55 transition hover:border-[#3a1224]/30 hover:text-[#3a1224]/80 ${className}`}
       >
-        <AlertCircle size={16} />
-        Report Event
+        <Flag className="h-3 w-3" />
+        Report
       </button>
 
       <ReportEventModal

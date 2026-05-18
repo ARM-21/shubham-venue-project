@@ -1,4 +1,4 @@
-import { Ticket, RefreshCcw, Activity } from "lucide-react";
+import { Activity, RefreshCcw, Ticket } from "lucide-react";
 
 export function TicketInventory({
   ticketTypes,
@@ -15,24 +15,28 @@ export function TicketInventory({
   isSaving,
 }) {
   return (
-    <section className="bg-white rounded-2xl border border-[#3a1224]/5 p-8 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Ticket className="w-5 h-5 text-[#C0A04C]" />
-          <h3 className="text-lg sm:text-xl font-black text-[#3a1224] uppercase tracking-wider">Tickets</h3>
+    <section className="border border-[#e8dcc8] bg-white">
+      <div className="flex items-start justify-between gap-4 border-b border-[#e8dcc8] px-5 py-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <Ticket className="h-4 w-4 text-[#3a1224]/45" />
+            <h2 className="text-base font-black text-[#3a1224]">Ticket inventory</h2>
+          </div>
+          <p className="mt-1 text-xs leading-5 text-[#3a1224]/45">Create tiers and track sold capacity.</p>
         </div>
-        <button 
+        <button
+          type="button"
           onClick={onRefresh}
-          title="Refresh"
-          className="w-9 h-9 rounded-lg bg-[#3a1224]/5 hover:bg-[#C0A04C]/10 text-[#C0A04C] flex items-center justify-center"
+          title="Refresh tickets"
+          className="flex h-9 w-9 items-center justify-center border border-[#e8dcc8] text-[#3a1224]/55 hover:bg-[#fbf8f2]"
         >
-          <RefreshCcw className="w-4 h-4" />
+          <RefreshCcw className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="space-y-3">
-        {ticketTypes.length > 0 && (
-          <div className="space-y-2">
+      <div className="p-5">
+        {ticketTypes.length > 0 ? (
+          <div className="divide-y divide-[#e8dcc8] border border-[#e8dcc8]">
             {ticketTypes.map((type) => (
               <TicketTypeRow
                 key={type._id}
@@ -46,42 +50,45 @@ export function TicketInventory({
               />
             ))}
           </div>
+        ) : (
+          <div className="border border-dashed border-[#e8dcc8] bg-[#fbf8f2] px-4 py-6 text-center">
+            <p className="text-sm font-bold text-[#3a1224]">No ticket types yet</p>
+            <p className="mt-1 text-xs text-[#3a1224]/45">Add at least one tier before publishing paid tickets.</p>
+          </div>
         )}
 
-        {ticketTypes.length > 0 && <div className="h-px bg-[#3a1224]/5" />}
-
-        {/* Add New Ticket */}
-        <div className="pt-1">
-          <p className="text-xs sm:text-sm font-bold text-[#3a1224]/40 uppercase mb-2">Add New Ticket Type</p>
-          <div className="space-y-1.5">
+        <div className="mt-5 border-t border-[#e8dcc8] pt-5">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/40">Add ticket type</p>
+          <div className="mt-3 space-y-2">
             <input
               value={newType.name}
-              onChange={(e) => setNewType({ ...newType, name: e.target.value })}
+              onChange={(event) => setNewType({ ...newType, name: event.target.value })}
               placeholder="Tier name"
-              className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded px-3 py-2 text-xs sm:text-sm font-bold outline-none focus:ring-1 ring-[#C0A04C]/20"
+              className="h-10 w-full border border-[#e8dcc8] bg-white px-3 text-sm font-bold text-[#3a1224] outline-none transition focus:border-[#C0A04C]"
             />
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-2">
               <input
                 type="number"
                 value={newType.price}
-                onChange={(e) => setNewType({ ...newType, price: e.target.value })}
+                onChange={(event) => setNewType({ ...newType, price: event.target.value })}
                 placeholder="Price"
-                className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded px-3 py-2 text-xs sm:text-sm font-bold outline-none focus:ring-1 ring-[#C0A04C]/20"
+                className="h-10 w-full border border-[#e8dcc8] bg-white px-3 text-sm font-bold text-[#3a1224] outline-none transition focus:border-[#C0A04C]"
               />
               <input
                 type="number"
                 value={newType.quantityTotal}
-                onChange={(e) => setNewType({ ...newType, quantityTotal: e.target.value })}
-                placeholder="Qty"
-                className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded px-3 py-2 text-xs sm:text-sm font-bold outline-none focus:ring-1 ring-[#C0A04C]/20"
+                onChange={(event) => setNewType({ ...newType, quantityTotal: event.target.value })}
+                placeholder="Quantity"
+                className="h-10 w-full border border-[#e8dcc8] bg-white px-3 text-sm font-bold text-[#3a1224] outline-none transition focus:border-[#C0A04C]"
               />
             </div>
             <button
+              type="button"
               onClick={onAddTicket}
               disabled={isSaving}
-              className="w-full py-2 bg-[#3a1224] text-white rounded text-xs sm:text-sm font-black uppercase hover:bg-[#3a1224]/90 disabled:opacity-50"
+              className="h-10 w-full bg-[#3a1224] text-sm font-bold text-white hover:bg-[#4b1830] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSaving ? "Adding..." : "+ Add Ticket"}
+              {isSaving ? "Adding..." : "Add ticket"}
             </button>
           </div>
         </div>
@@ -90,57 +97,52 @@ export function TicketInventory({
   );
 }
 
-function TicketTypeRow({
-  type,
-  isEditing,
-  editType,
-  setEditType,
-  onEdit,
-  onSave,
-  onCancel,
-}) {
-  return (
-    <div className="bg-[#fdfaf6] rounded-lg border border-[#3a1224]/5 p-4 group hover:border-[#C0A04C]/30 transition-all">
-      {isEditing ? (
-        <div className="space-y-2">
+function TicketTypeRow({ type, isEditing, editType, setEditType, onEdit, onSave, onCancel }) {
+  if (isEditing) {
+    return (
+      <div className="space-y-2 bg-[#fbf8f2] p-4">
+        <input
+          value={editType.name}
+          onChange={(event) => setEditType({ ...editType, name: event.target.value })}
+          placeholder="Name"
+          className="h-10 w-full border border-[#e8dcc8] bg-white px-3 text-sm font-bold text-[#3a1224] outline-none"
+        />
+        <div className="grid grid-cols-2 gap-2">
           <input
-            value={editType.name}
-            onChange={(e) => setEditType({ ...editType, name: e.target.value })}
-            placeholder="Name"
-            className="w-full bg-white border border-[#3a1224]/10 rounded px-3 py-2 text-xs font-bold focus:ring-1 ring-[#C0A04C]/20 outline-none"
+            type="number"
+            value={editType.price}
+            onChange={(event) => setEditType({ ...editType, price: event.target.value })}
+            placeholder="Price"
+            className="h-10 w-full border border-[#e8dcc8] bg-white px-3 text-sm font-bold text-[#3a1224] outline-none"
           />
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="number"
-              value={editType.price}
-              onChange={(e) => setEditType({ ...editType, price: e.target.value })}
-              placeholder="Price"
-              className="w-full bg-white border border-[#3a1224]/10 rounded px-3 py-2 text-xs font-bold focus:ring-1 ring-[#C0A04C]/20 outline-none"
-            />
-            <input
-              type="number"
-              value={editType.quantityTotal}
-              onChange={(e) => setEditType({ ...editType, quantityTotal: e.target.value })}
-              placeholder="Qty"
-              className="w-full bg-white border border-[#3a1224]/10 rounded px-3 py-2 text-xs font-bold focus:ring-1 ring-[#C0A04C]/20 outline-none"
-            />
-          </div>
-          <div className="flex gap-2 pt-2">
-            <button onClick={onSave} className="flex-1 py-2 bg-[#3a1224] text-white rounded text-xs sm:text-sm font-black uppercase">Save</button>
-            <button onClick={onCancel} className="flex-1 py-2 bg-white border border-[#3a1224]/5 rounded text-xs sm:text-sm font-black uppercase text-[#3a1224]/40">Cancel</button>
-          </div>
+          <input
+            type="number"
+            value={editType.quantityTotal}
+            onChange={(event) => setEditType({ ...editType, quantityTotal: event.target.value })}
+            placeholder="Quantity"
+            className="h-10 w-full border border-[#e8dcc8] bg-white px-3 text-sm font-bold text-[#3a1224] outline-none"
+          />
         </div>
-      ) : (
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-base sm:text-lg font-black text-[#3a1224] mb-1">{type.name}</p>
-            <p className="text-xs sm:text-sm text-[#3a1224]/60">₨ {type.price} • {type.quantitySold}/{type.quantityTotal}</p>
-          </div>
-          <button onClick={onEdit} className="p-2 opacity-0 group-hover:opacity-100 transition-opacity text-[#3a1224]/20 hover:text-[#3a1224]">
-            <Activity className="w-4 h-4" />
-          </button>
+        <div className="flex gap-2 pt-1">
+          <button type="button" onClick={onSave} className="h-9 flex-1 bg-[#3a1224] text-xs font-bold text-white">Save</button>
+          <button type="button" onClick={onCancel} className="h-9 flex-1 border border-[#e8dcc8] bg-white text-xs font-bold text-[#3a1224]/65">Cancel</button>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  const sold = type.quantitySold || 0;
+  const total = type.quantityTotal || 0;
+
+  return (
+    <div className="flex items-center justify-between gap-4 bg-white px-4 py-3">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-black text-[#3a1224]">{type.name}</p>
+        <p className="mt-1 text-xs text-[#3a1224]/50">Rs {type.price} / {sold} of {total} sold</p>
+      </div>
+      <button type="button" onClick={onEdit} className="flex h-8 w-8 items-center justify-center border border-[#e8dcc8] text-[#3a1224]/45 hover:bg-[#fbf8f2]" title="Edit ticket">
+        <Activity className="h-4 w-4" />
+      </button>
     </div>
   );
 }

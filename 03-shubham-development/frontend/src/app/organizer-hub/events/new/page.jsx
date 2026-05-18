@@ -1,15 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
 import { useAuth } from "contexts/AuthProvider";
 import ProfessionalEventForm from "components/organizer/ProfessionalEventForm";
-import { Fingerprint, Zap } from "lucide-react";
-import { motion } from "framer-motion";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CalendarDays, Fingerprint, MapPin, Users, Zap } from "lucide-react";
 
 function formatDate(value) {
   try {
@@ -26,10 +24,13 @@ function formatDate(value) {
 
 export default function OrganizerEventCreatePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedBookingId = searchParams.get("bookingId") || "";
   const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
   const [selectedBookingId, setSelectedBookingId] = useState("");
+  const [preselectedNotFound, setPreselectedNotFound] = useState(false);
   const [status, setStatus] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -56,7 +57,18 @@ export default function OrganizerEventCreatePage() {
       try {
         setLoadingBookings(true);
         const res = await axiosInstance.get(ROUTES.API.ORGANIZER.BOOKINGS, { params: { eligibleForEvent: true } });
-        if (!ignore) setBookings(res.data?.bookings || []);
+        const fetched = res.data?.bookings || [];
+        if (!ignore) {
+          setBookings(fetched);
+          if (preselectedBookingId) {
+            const match = fetched.find((b) => String(b._id) === String(preselectedBookingId));
+            if (match) {
+              setSelectedBookingId(preselectedBookingId);
+            } else {
+              setPreselectedNotFound(true);
+            }
+          }
+        }
       } catch (err) {
         if (!ignore) toast.error(err?.response?.data?.message || "Failed to load eligible bookings");
       } finally {
@@ -149,135 +161,138 @@ export default function OrganizerEventCreatePage() {
 
   if (!isApproved) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#fdfaf6] via-white to-[#fdfaf6] flex items-center justify-center px-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-8 sm:p-10 md:p-12 text-center shadow-sm max-w-md"
-        >
-          <div className="w-16 sm:w-20 h-16 sm:h-20 bg-[#3a1224]/5 rounded-lg sm:rounded-2xl flex items-center justify-center mx-auto mb-6 sm:mb-8">
+      <div className="flex min-h-[70vh] items-center justify-center px-4">
+        <div className="max-w-md border border-[#e8dcc8] bg-white p-8 text-center">
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center border border-[#e8dcc8] bg-[#fbf8f2]">
             <Fingerprint className="w-8 sm:w-10 h-8 sm:h-10 text-[#3a1224]" />
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-[#3a1224] mb-3 sm:mb-4">Verification Required</h2>
-          <p className="text-[#3a1224]/60 mb-8 sm:mb-10 leading-relaxed font-medium text-sm sm:text-base">
-            You need to be a verified producer to create and manage events. Please check your application status on the dashboard.
+          <h2 className="text-2xl font-black text-[#3a1224]">Verification required</h2>
+          <p className="mt-3 text-sm leading-6 text-[#3a1224]/60">
+            You need verified organizer access before creating events. Check your application status on the dashboard.
           </p>
           <button
             onClick={() => router.push(ROUTES.SITE.ORGANIZER)}
-            className="w-full px-6 sm:px-10 py-3 sm:py-4 md:py-5 bg-[#3a1224] text-white rounded-lg sm:rounded-2xl text-xs sm:text-sm font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="mt-7 w-full bg-[#3a1224] px-6 py-3 text-sm font-bold text-white hover:bg-[#4b1830]"
           >
-            Go to Dashboard
+            Go to dashboard
           </button>
-        </motion.div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#fdfaf6] via-white to-[#fdfaf6] pb-16 sm:pb-20">
-      {/* Professional Header Section */}
-      <div className="bg-gradient-to-br from-[#3a1224] to-[#5a2844] text-white py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-10">
-        <div className="max-w-[1200px] mx-auto">
-          <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-            <span className="text-[8px] sm:text-[9px] font-black text-[#C0A04C] uppercase tracking-[0.3em]">Create New</span>
-            <div className="w-8 sm:w-12 h-px bg-[#C0A04C]/40" />
+    <main className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 pb-12">
+      <header className="overflow-hidden border border-[#e8dcc8] bg-white">
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="px-5 py-6 sm:px-7 lg:px-8">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#C0A04C]">Create event</p>
+            <h1 className="mt-3 max-w-3xl text-3xl font-black leading-tight text-[#3a1224] sm:text-4xl">Turn a confirmed venue booking into a public event.</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#3a1224]/58">
+              Start with the booking so the date, venue, and capacity are trustworthy. Then shape the listing guests will actually read.
+            </p>
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-white mb-2 sm:mb-3">
-            Launch Your <span className="text-[#C0A04C]">Professional Event</span>
-          </h1>
-          <p className="text-white/70 text-sm sm:text-base font-medium max-w-2xl leading-relaxed">
-            Transform your confirmed hall booking into a complete digital event experience with comprehensive details, registration management, and attendee tracking.
-          </p>
+          <div className="border-t border-[#e8dcc8] bg-[#fbf8f2] p-5 lg:border-l lg:border-t-0 lg:p-6">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#3a1224]/42">Workflow</p>
+            <div className="mt-4 space-y-3">
+              {["Select booking", "Write listing", "Set access", "Create event"].map((item, index) => (
+                <div key={item} className="flex items-center gap-3">
+                  <span className="flex h-7 w-7 items-center justify-center bg-white text-xs font-black text-[#3a1224]">{index + 1}</span>
+                  <span className="text-sm font-bold text-[#3a1224]/68">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content */}
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 py-10 sm:py-12 md:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+      <div className="grid grid-cols-1 gap-5">
           {/* Step 1: Booking Selection */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-6 sm:p-7 md:p-8 shadow-sm">
-              <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-7 md:mb-8">
-                <div className="w-8 sm:w-10 h-8 sm:h-10 bg-[#3a1224] rounded-lg sm:rounded-xl flex items-center justify-center text-[#C0A04C] font-black text-sm sm:text-base">1</div>
-                <h3 className="text-lg sm:text-xl font-black text-[#3a1224] uppercase tracking-wider">Select Your Booking</h3>
+          <section className="border border-[#e8dcc8] bg-white">
+            <div className="border-b border-[#e8dcc8] px-5 py-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-7 w-7 items-center justify-center bg-[#3a1224] text-sm font-black text-white">1</span>
+                <div>
+                  <h2 className="text-base font-black text-[#3a1224]">Select booking</h2>
+                  <p className="mt-1 text-xs text-[#3a1224]/45">Only eligible confirmed bookings can be converted to events.</p>
+                </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
+              <div className="grid grid-cols-1 gap-5 p-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
                 <div className="space-y-2 sm:space-y-3">
-                  <label className="block text-[9px] sm:text-[10px] font-black text-[#3a1224]/40 uppercase tracking-widest ml-2">Confirmed Booking *</label>
+                  <label className="block text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/40">Confirmed booking</label>
                   <select
                     value={selectedBookingId}
                     onChange={(e) => setSelectedBookingId(e.target.value)}
-                    className="w-full bg-[#fdfaf6] border border-[#3a1224]/5 rounded-lg sm:rounded-2xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 text-sm font-bold text-[#3a1224] focus:ring-2 ring-[#C0A04C]/20 transition-all outline-none appearance-none"
+                    className="w-full border border-[#e8dcc8] bg-white px-4 py-3 text-sm font-bold text-[#3a1224] outline-none transition focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/15"
                   >
                     <option value="">Select a booking...</option>
                     {bookings.map((booking) => (
                       <option key={booking._id} value={booking._id}>
-                        {booking.hallId?.name || "Hall"} — {formatDate(booking.date)} • {booking.guests} guests
+                        {booking.hallId?.name || "Hall"} - {formatDate(booking.date)} - {booking.guests} guests
                       </option>
                     ))}
                   </select>
                   {loadingBookings && (
-                    <p className="text-xs text-[#C0A04C] flex items-center gap-2 font-bold uppercase tracking-widest ml-2">
+                    <p className="flex items-center gap-2 text-xs font-bold text-[#C0A04C]">
                       <Zap className="w-3 h-3 animate-pulse" /> Loading bookings...
                     </p>
                   )}
                   {!loadingBookings && bookings.length === 0 && (
-                    <div className="p-3 sm:p-4 bg-amber-50 rounded-lg sm:rounded-xl border border-amber-200">
-                      <p className="text-xs sm:text-sm text-amber-700 font-medium">No eligible hall bookings found. Please create a booking first.</p>
+                    <div className="border border-amber-200 bg-amber-50 p-3">
+                      <p className="text-sm font-medium text-amber-800">No eligible hall bookings found. Create or confirm a booking first.</p>
+                    </div>
+                  )}
+                  {!loadingBookings && preselectedNotFound && (
+                    <div className="border border-blue-200 bg-blue-50 p-3">
+                      <p className="text-sm font-medium text-blue-800">The booking from your recent payment was not found. It may already be linked to an event or still confirming.</p>
                     </div>
                   )}
                 </div>
 
                 {selectedBooking && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-gradient-to-br from-[#3a1224] to-[#5a2844] rounded-lg sm:rounded-2xl p-4 sm:p-5 md:p-6 text-white"
-                  >
-                    <h4 className="text-base sm:text-lg font-black mb-1">{selectedBooking.hallId?.name || "Venue Name"}</h4>
-                    <p className="text-[8px] sm:text-[9px] font-bold text-white/40 uppercase tracking-[0.2em] mb-4 sm:mb-5">Foundation Details</p>
-                    
-                    <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-5 border-t border-white/10">
-                      <div>
-                        <p className="text-[8px] sm:text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Event Date</p>
-                        <p className="text-sm sm:text-base font-bold">{formatDate(selectedBooking.date)}</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                        <div>
-                          <p className="text-[8px] sm:text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Guests</p>
-                          <p className="text-sm sm:text-base font-bold">{selectedBooking.guests}</p>
-                        </div>
-                        <div>
-                          <p className="text-[8px] sm:text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Slot</p>
-                          <p className="text-sm sm:text-base font-bold capitalize">{selectedBooking.slot}</p>
-                        </div>
-                      </div>
+                  <div className="border border-[#e8dcc8] bg-[#fbf8f2]">
+                    <div className="border-b border-[#e8dcc8] px-5 py-4">
+                      <h3 className="text-base font-black text-[#3a1224]">{selectedBooking.hallId?.name || "Venue name"}</h3>
+                      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a1224]/35">Booking details</p>
                     </div>
-                  </motion.div>
+                    
+                    <div className="grid gap-px bg-[#e8dcc8] sm:grid-cols-3">
+                      <BookingFact icon={CalendarDays} label="Date" value={formatDate(selectedBooking.date)} />
+                      <BookingFact icon={Users} label="Guests" value={selectedBooking.guests || 0} />
+                      <BookingFact icon={MapPin} label="Slot" value={selectedBooking.slot || "-"} />
+                    </div>
+                  </div>
+                )}
+                {!selectedBooking && (
+                  <div className="border border-dashed border-[#e8dcc8] bg-[#fbf8f2] p-5">
+                    <CalendarDays className="h-6 w-6 text-[#3a1224]/25" />
+                    <p className="mt-3 text-sm font-black text-[#3a1224]">Choose a booking to continue</p>
+                    <p className="mt-1 text-xs leading-5 text-[#3a1224]/45">The event form appears after a booking is selected.</p>
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
+          </section>
 
           {/* Step 2: Event Details Form */}
           {selectedBookingId && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="lg:col-span-3"
-            >
-              <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#3a1224]/5 p-6 sm:p-7 md:p-8 shadow-sm">
-                <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-7 md:mb-8">
-                  <div className="w-8 sm:w-10 h-8 sm:h-10 bg-[#3a1224] rounded-lg sm:rounded-xl flex items-center justify-center text-[#C0A04C] font-black text-sm sm:text-base">2</div>
-                  <h3 className="text-lg sm:text-xl font-black text-[#3a1224] uppercase tracking-wider">Comprehensive Event Details</h3>
+            <section className="border border-[#e8dcc8] bg-white">
+              <div className="border-b border-[#e8dcc8] px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-7 w-7 items-center justify-center bg-[#3a1224] text-sm font-black text-white">2</span>
+                  <div>
+                    <h2 className="text-base font-black text-[#3a1224]">Event listing</h2>
+                    <p className="mt-1 text-xs text-[#3a1224]/45">Add the information guests will see before booking a ticket.</p>
+                  </div>
                 </div>
+              </div>
                 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg sm:rounded-xl p-4 mb-6 sm:mb-8 flex gap-3">
+              <div className="p-5">
+                <div className="mb-6 flex gap-3 border border-blue-200 bg-blue-50 p-4">
                   <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs sm:text-sm text-blue-700 font-medium">
-                    Fill in as much detail as possible so attendees get a complete picture of your event. All information will be visible on your event page.
+                  <p className="text-sm font-medium leading-6 text-blue-800">
+                    Keep this practical: title, timing, audience, access rules, and any venue-specific instructions.
                   </p>
                 </div>
                 
@@ -287,10 +302,21 @@ export default function OrganizerEventCreatePage() {
                   isLoading={isCreating}
                 />
               </div>
-            </motion.div>
+            </section>
           )}
-        </div>
       </div>
+    </main>
+  );
+}
+
+function BookingFact({ icon: Icon, label, value }) {
+  return (
+    <div className="bg-[#fbf8f2] px-4 py-4">
+      <div className="flex items-center gap-2 text-[#3a1224]/45">
+        <Icon className="h-4 w-4" />
+        <p className="text-[10px] font-black uppercase tracking-[0.18em]">{label}</p>
+      </div>
+      <p className="mt-2 text-sm font-black capitalize text-[#3a1224]">{value}</p>
     </div>
   );
 }

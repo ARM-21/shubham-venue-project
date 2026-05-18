@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Check, Search, UserRound } from "lucide-react";
+import { Bell, Check, ExternalLink, UserRound } from "lucide-react";
 import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
 
@@ -95,16 +95,16 @@ export default function AdminTopbar({ heading }) {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[var(--admin-muted)]" />
-          <input
-            type="search"
-            placeholder="Search bookings, halls..."
-            className="w-64 pl-10 pr-3 py-2 rounded-lg border-none bg-[var(--admin-surface)] text-white placeholder:text-[var(--admin-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)] focus:bg-[var(--admin-surface-strong)] text-sm"
-          />
-        </div>
-
         <div className="flex items-center gap-2 relative">
+          <button
+            className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-[var(--admin-muted)] hover:text-white hover:bg-[var(--admin-surface)] transition-colors"
+            onClick={() => router.push(ROUTES.HOME)}
+            title="Open customer site"
+          >
+            <ExternalLink className="size-4" />
+            View site
+          </button>
+
           <button
             className="relative p-2 rounded-lg text-[var(--admin-muted)] hover:text-white hover:bg-[var(--admin-surface)] transition-colors"
             onClick={() => setMenuOpen((prev) => !prev)}
@@ -185,7 +185,11 @@ export default function AdminTopbar({ heading }) {
               </div>
             </div>
           ) : null}
-          <button className="p-2 rounded-lg text-[var(--admin-muted)] hover:text-white hover:bg-[var(--admin-surface)] transition-colors">
+          <button
+            className="p-2 rounded-lg text-[var(--admin-muted)] hover:text-white hover:bg-[var(--admin-surface)] transition-colors"
+            onClick={() => router.push(ROUTES.SITE.PROFILE)}
+            title="Open customer profile"
+          >
             <UserRound className="size-5" />
           </button>
         </div>

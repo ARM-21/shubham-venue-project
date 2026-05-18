@@ -1,48 +1,34 @@
 'use client';
 
-/**
- * Professional form input components for the booking flow
- * - FormTextField: Text input field
- * - FormSelectField: Select dropdown
- * - FormTextarea: Textarea field
- * - FormButton: Action buttons
- */
+export const inputCls =
+  'w-full px-4 py-3 bg-[#fbf8f2] border border-[#e8dcc8] rounded-2xl text-[#3a1224] text-sm font-medium transition-colors placeholder:text-[#3a1224]/30 focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/15 focus:outline-none hover:border-[#d4c4a8] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[#f0ebe2]';
 
-export function FormField({ label, required, children, error }) {
+export function FormField({ label, required, hint, error, children }) {
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-semibold text-slate-900">
+    <div className="space-y-1.5">
+      <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#3a1224]/50">
         {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+        {required && <span className="ml-1 text-red-500">*</span>}
       </label>
       {children}
-      {error && (
-        <p className="text-red-600 text-sm font-medium flex items-center gap-1">
-          <span className="text-lg">•</span> {error}
-        </p>
-      )}
+      {hint && !error && <p className="text-xs text-[#3a1224]/45">{hint}</p>}
+      {error && <p className="text-xs font-bold text-red-600">• {error}</p>}
     </div>
   );
 }
 
-export function FormTextField({ label, required, error, ...props }) {
+export function FormTextField({ label, required, error, hint, ...props }) {
   return (
-    <FormField label={label} required={required} error={error}>
-      <input
-        {...props}
-        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 transition-all placeholder:text-slate-400 outline-none hover:border-slate-400 disabled:bg-slate-50 disabled:opacity-60"
-      />
+    <FormField label={label} required={required} error={error} hint={hint}>
+      <input {...props} className={inputCls} />
     </FormField>
   );
 }
 
-export function FormSelectField({ label, required, error, options, ...props }) {
+export function FormSelectField({ label, required, error, hint, options, ...props }) {
   return (
-    <FormField label={label} required={required} error={error}>
-      <select
-        {...props}
-        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 transition-all outline-none hover:border-slate-400"
-      >
+    <FormField label={label} required={required} error={error} hint={hint}>
+      <select {...props} className={inputCls}>
         {options?.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
@@ -53,13 +39,10 @@ export function FormSelectField({ label, required, error, options, ...props }) {
   );
 }
 
-export function FormTextarea({ label, required, error, ...props }) {
+export function FormTextarea({ label, required, error, hint, ...props }) {
   return (
-    <FormField label={label} required={required} error={error}>
-      <textarea
-        {...props}
-        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/20 transition-all resize-none placeholder:text-slate-400 outline-none hover:border-slate-400 disabled:bg-slate-50 disabled:opacity-60"
-      />
+    <FormField label={label} required={required} error={error} hint={hint}>
+      <textarea {...props} className={`${inputCls} resize-none`} />
     </FormField>
   );
 }
@@ -69,9 +52,9 @@ export function PrimaryButton({ children, loading, ...props }) {
     <button
       {...props}
       disabled={loading || props.disabled}
-      className="px-6 py-3 bg-[#C0A04C] text-white rounded-lg font-semibold hover:bg-[#b39041] transition-all shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+      className="flex h-11 flex-1 items-center justify-center rounded-2xl bg-[#3a1224] text-[11px] font-black uppercase tracking-[0.18em] text-[#C0A04C] transition hover:bg-[#4a172d] disabled:opacity-50"
     >
-      {loading ? 'Loading...' : children}
+      {loading ? 'Loading…' : children}
     </button>
   );
 }
@@ -80,7 +63,7 @@ export function SecondaryButton({ children, ...props }) {
   return (
     <button
       {...props}
-      className="px-6 py-3 border border-slate-300 text-slate-900 rounded-lg font-semibold hover:bg-slate-50 transition-all"
+      className="flex h-11 flex-1 items-center justify-center rounded-2xl border border-[#e8dcc8] bg-white text-[11px] font-black uppercase tracking-[0.18em] text-[#3a1224] transition hover:bg-[#f8f4ed]"
     >
       {children}
     </button>
@@ -88,9 +71,5 @@ export function SecondaryButton({ children, ...props }) {
 }
 
 export function ActionButtonGroup({ children }) {
-  return (
-    <div className="flex gap-3 pt-8 border-t border-slate-200">
-      {children}
-    </div>
-  );
+  return <div className="flex gap-3 pt-2">{children}</div>;
 }

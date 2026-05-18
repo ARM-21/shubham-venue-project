@@ -26,6 +26,7 @@ import StatCards from 'components/admin/menu/StatCards';
 import Tabs from 'components/admin/menu/Tabs';
 import FeaturedBundles from 'components/admin/menu/FeaturedBundles';
 import InventorySection from 'components/admin/menu/InventorySection';
+import DecorationManager from 'components/admin/menu/DecorationManager';
 import MenuEditModal from 'components/admin/menu/ui/MenuEditModal';
 import MenuViewModal from 'components/admin/menu/ui/MenuViewModal';
 import DishViewModal from 'components/admin/menu/ui/DishViewModal'; // Fixed path check
@@ -73,6 +74,11 @@ export default function AdminMenusPage() {
       setStats(menusData.stats || {});
     }
   }, [menusData]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("tab") === "decor") setSelectedCategory("decor");
+  }, []);
 
   if (listError) toast.error(listErrorObj?.message || "Failed to load menus");
 
@@ -229,29 +235,35 @@ export default function AdminMenusPage() {
                   setSelectedCategory={setSelectedCategory} 
                 />
 
-                <FeaturedBundles 
-                  menus={menus} 
-                  loading={loading} 
-                  onEdit={setEditingMenu} 
-                  onToggleStatus={(id, current) => statusMutation.mutate({ id, payload: { isActive: !current } })} 
-                  onView={setViewingMenu} 
-                  onDelete={(id) => confirm("Delete this menu?") && deleteMenuMutation.mutate(id)} 
-                  onAddBundle={() => setEditingMenu({})} 
-                />
+                {selectedCategory === "decor" ? (
+                  <DecorationManager />
+                ) : (
+                  <>
+                    <FeaturedBundles
+                      menus={menus}
+                      loading={loading}
+                      onEdit={setEditingMenu}
+                      onToggleStatus={(id, current) => statusMutation.mutate({ id, payload: { isActive: !current } })}
+                      onView={setViewingMenu}
+                      onDelete={(id) => confirm("Delete this menu?") && deleteMenuMutation.mutate(id)}
+                      onAddBundle={() => setEditingMenu({})}
+                    />
 
-                <InventorySection
-                  loading={loading}
-                  selectedCategory={selectedCategory}
-                  setSelectedCategory={setSelectedCategory}
-                  categories={categories}
-                  sections={sections}
-                  dishes={dishes}
-                  toggleDishStatus={toggleDishStatus}
-                  openDishView={setViewingDish}
-                  openDishEdit={setEditingDish}
-                  handleDeleteDish={handleDeleteDish}
-                  onCreatedDish={() => refetch()}
-                />
+                    <InventorySection
+                      loading={loading}
+                      selectedCategory={selectedCategory}
+                      setSelectedCategory={setSelectedCategory}
+                      categories={categories}
+                      sections={sections}
+                      dishes={dishes}
+                      toggleDishStatus={toggleDishStatus}
+                      openDishView={setViewingDish}
+                      openDishEdit={setEditingDish}
+                      handleDeleteDish={handleDeleteDish}
+                      onCreatedDish={() => refetch()}
+                    />
+                  </>
+                )}
               </>
             )}
           </div>

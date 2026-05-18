@@ -31,13 +31,7 @@ export default function OrganizerLayout({ children }) {
       <OrganizerNav user={user} />
       
       {/* Main Framework Content */}
-      <main className="flex-1 w-full min-h-0 flex flex-col relative">
-        {/* Subtle Global Background Gradients */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#3a1224]/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#C0A04C]/5 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2" />
-        </div>
-
+      <main className="flex-1 w-full min-h-0 flex flex-col relative lg:pt-20">
         {/* Dynamic Page Content */}
         <div className="relative flex-1 p-3 sm:p-4 lg:p-6 xl:p-8">
           {children}
@@ -45,8 +39,8 @@ export default function OrganizerLayout({ children }) {
 
         {/* Global Footer (Internal) */}
         <footer className="relative px-8 py-4 border-t border-[#3a1224]/5 hidden sm:flex items-center justify-between">
-           <span className="text-[10px] font-black uppercase tracking-widest text-[#3a1224]/20 italic">Elite Series • Organizer Hub</span>
-           <span className="text-[10px] font-black uppercase tracking-widest text-[#3a1224]/20 italic">SECURE SYSTEM v3.0</span>
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#3a1224]/30">Organizer Hub</p>
+          <p className="text-xs text-[#3a1224]/25">&copy; {new Date().getFullYear()} Venue. All rights reserved.</p>
         </footer>
       </main>
     </div>
