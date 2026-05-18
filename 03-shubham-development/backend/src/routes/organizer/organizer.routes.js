@@ -5,6 +5,7 @@ import { uploadLimiter } from "../../config/rateLimit.config.js";
 import { formatHourTo12 } from "../../utils/time.utils.js";
 import Booking from "../../models/Booking.js";
 import Hall from "../../models/Hall.js";
+import Menu from "../../models/menu/Menu.js";
 import OrganizerEvent from "../../models/OrganizerEvent.js";
 import TicketType from "../../models/TicketType.js";
 import Ticket from "../../models/Ticket.js";
@@ -34,6 +35,52 @@ const ALLOWED_STATUS_TRANSITIONS = {
   "PENDING_REVIEW": [],                         // Cannot change - admin only
   "SUSPENDED": []                               // Cannot change - admin only
 };
+
+const CATERING_PLANS = ["none", "choose_now", "decide_later"];
+
+async function normalizeCateringPayload(body = {}, fallbackGuests = null) {
+  const rawPlan = String(body.cateringPlan || "").trim();
+  const legacyCatering = parseBoolean(body.catering, false);
+  const plan = CATERING_PLANS.includes(rawPlan)
+    ? rawPlan
+    : legacyCatering
+      ? "decide_later"
+      : "none";
+
+  const rawMenuIds = Array.isArray(body.cateringMenus) ? body.cateringMenus : [];
+  let cateringMenus = [];
+  if (plan === "choose_now") {
+    const menuIds = rawMenuIds.map((id) => String(id || "").trim()).filter(Boolean);
+    if (!menuIds.length) {
+      throw Object.assign(new Error("Choose a menu package or select Decide later"), { statusCode: 400 });
+    }
+    if (!menuIds.every((id) => mongoose.Types.ObjectId.isValid(id))) {
+      throw Object.assign(new Error("Invalid catering menu package"), { statusCode: 400 });
+    }
+    const existingMenus = await Menu.find({ _id: { $in: menuIds }, isActive: { $ne: false } }).select("_id").lean();
+    if (existingMenus.length !== menuIds.length) {
+      throw Object.assign(new Error("One or more catering menu packages are unavailable"), { statusCode: 404 });
+    }
+    cateringMenus = existingMenus.map((menu) => menu._id);
+  }
+
+  const guestCount = body.cateringGuestCount !== undefined && body.cateringGuestCount !== ""
+    ? Number(body.cateringGuestCount)
+    : fallbackGuests;
+
+  if (guestCount !== null && guestCount !== undefined && (!Number.isFinite(guestCount) || guestCount < 0)) {
+    throw Object.assign(new Error("Catering guest count must be a non-negative number"), { statusCode: 400 });
+  }
+
+  return {
+    catering: plan !== "none",
+    cateringPlan: plan,
+    cateringMenus,
+    cateringGuestCount: plan === "none" ? null : guestCount,
+    cateringServiceTime: plan === "none" ? "" : String(body.cateringServiceTime || "").trim(),
+    cateringNotes: plan === "none" ? "" : String(body.cateringNotes || "").trim(),
+  };
+}
 
 function startOfToday() {
   const today = new Date();
@@ -94,7 +141,7 @@ router.get("/bookings", isAuthenticated, isOrganizer, async (req, res, next) => 
     const bookings = await Booking.find(filter)
       .sort({ date: -1 })
       .select("hallId date slot status eventName eventType guests totalAmount createdAt")
-      .populate({ path: "hallId", select: "name slug capacity" })
+      .populate({ path: "hallId", select: "name slug capacity location" })
       .lean();
 
     if (String(eligibleForEvent) !== "true") {
@@ -151,6 +198,19 @@ router.post("/events", isAuthenticated, isOrganizer, async (req, res, next) => {
       accessCode,
       startDateTime,
       endDateTime,
+      eventCategory,
+      tags,
+      registrationStartDate,
+      registrationEndDate,
+      maxAttendees,
+      expectedAttendees,
+      targetAudience,
+      dressCode,
+      ageRestriction,
+      specialRequirements,
+      decoration,
+      requiresTicket,
+      location,
     } = req.body || {};
 
     if (!bookingId || !mongoose.Types.ObjectId.isValid(bookingId)) {
@@ -186,6 +246,51 @@ router.post("/events", isAuthenticated, isOrganizer, async (req, res, next) => {
     const derived = deriveEventTimeRange(booking.date, booking.slot);
     const startValue = derived.startDateTime;
     const endValue = derived.endDateTime;
+    const hall = await Hall.findById(booking.hallId).select("capacity location").lean();
+    if (!hall) return res.status(404).json({ message: "Hall not found" });
+
+    const maxAttendeesNum = maxAttendees ? Number(maxAttendees) : null;
+    const expectedAttendeesNum = expectedAttendees ? Number(expectedAttendees) : null;
+    if (maxAttendeesNum !== null && (!Number.isFinite(maxAttendeesNum) || maxAttendeesNum <= 0)) {
+      return res.status(400).json({ message: "Maximum attendees must be greater than 0" });
+    }
+    if (expectedAttendeesNum !== null && (!Number.isFinite(expectedAttendeesNum) || expectedAttendeesNum < 0)) {
+      return res.status(400).json({ message: "Expected attendees cannot be negative" });
+    }
+    if (hall.capacity && maxAttendeesNum && maxAttendeesNum > hall.capacity) {
+      return res.status(400).json({ message: `Maximum attendees (${maxAttendeesNum}) cannot exceed hall capacity (${hall.capacity})` });
+    }
+    if (hall.capacity && expectedAttendeesNum && expectedAttendeesNum > hall.capacity) {
+      return res.status(400).json({ message: `Expected attendees (${expectedAttendeesNum}) cannot exceed hall capacity (${hall.capacity})` });
+    }
+    if (maxAttendeesNum && expectedAttendeesNum && expectedAttendeesNum > maxAttendeesNum) {
+      return res.status(400).json({ message: "Expected attendees cannot exceed maximum attendees" });
+    }
+
+    const regStartValue = registrationStartDate ? new Date(registrationStartDate) : startValue;
+    const regEndValue = registrationEndDate ? new Date(registrationEndDate) : endValue;
+    if (Number.isNaN(regStartValue.getTime()) || Number.isNaN(regEndValue.getTime())) {
+      return res.status(400).json({ message: "Invalid registration date" });
+    }
+    if (regStartValue < startOfToday()) {
+      return res.status(400).json({ message: "Registration cannot open before today" });
+    }
+    if (regEndValue < startOfToday()) {
+      return res.status(400).json({ message: "Registration cannot close before today" });
+    }
+    if (regEndValue < regStartValue) {
+      return res.status(400).json({ message: "Registration close date must be after opening date" });
+    }
+    if (regEndValue > startValue) {
+      return res.status(400).json({ message: "Registration must close before event starts" });
+    }
+
+    const cateringPayload = await normalizeCateringPayload(req.body, expectedAttendeesNum || maxAttendeesNum || Number(booking.guests || 0));
+    const inheritedLocation = {
+      city: location?.city || hall.location?.city || "",
+      state: location?.state || hall.location?.state || "",
+      country: location?.country || hall.location?.country || "",
+    };
 
     const eventDoc = await OrganizerEvent.create({
       organizerId: req.currentUser._id,
@@ -194,15 +299,31 @@ router.post("/events", isAuthenticated, isOrganizer, async (req, res, next) => {
       name: eventTitle,
       type: String(type || booking.eventType || "").trim(),
       description: String(description || "").trim(),
+      eventCategory,
+      tags: Array.isArray(tags) ? tags.map((tag) => String(tag || "").trim()).filter(Boolean) : [],
       isPublic: isPublicValue,
       accessCode: isPublicValue ? null : accessCodeValue,
       bannerUrl: String(bannerUrl || "").trim(),
       eventDate: booking.date,
       startDateTime: startValue,
       endDateTime: endValue,
-      // Default registration times to event times
-      registrationStartDate: startValue,
-      registrationEndDate: endValue,
+      registrationStartDate: regStartValue,
+      registrationEndDate: regEndValue,
+      maxAttendees: maxAttendeesNum,
+      expectedAttendees: expectedAttendeesNum,
+      targetAudience: String(targetAudience || "").trim(),
+      dressCode,
+      ageRestriction: String(ageRestriction || "").trim(),
+      specialRequirements: String(specialRequirements || "").trim(),
+      catering: cateringPayload.catering,
+      cateringPlan: cateringPayload.cateringPlan,
+      cateringMenus: cateringPayload.cateringMenus,
+      cateringGuestCount: cateringPayload.cateringGuestCount,
+      cateringServiceTime: cateringPayload.cateringServiceTime,
+      cateringNotes: cateringPayload.cateringNotes,
+      decoration: parseBoolean(decoration, false),
+      requiresTicket: parseBoolean(requiresTicket, true),
+      location: inheritedLocation,
       status: "DRAFT",
     });
 
@@ -224,6 +345,7 @@ router.get("/events/:id", isAuthenticated, isOrganizer, async (req, res, next) =
     })
       .populate({ path: "hallId", select: "name slug capacity" })
       .populate({ path: "bookingId", select: "date slot status" })
+      .populate({ path: "cateringMenus", select: "name pricePerPerson description slug" })
       .lean();
 
     if (!event) return res.status(404).json({ message: "Event not found" });
@@ -413,6 +535,21 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
       update.expectedAttendees = expectedNum;
     }
 
+    if (
+      typeof req.body.cateringPlan !== "undefined" ||
+      typeof req.body.catering !== "undefined" ||
+      typeof req.body.cateringMenus !== "undefined" ||
+      typeof req.body.cateringGuestCount !== "undefined" ||
+      typeof req.body.cateringServiceTime !== "undefined" ||
+      typeof req.body.cateringNotes !== "undefined"
+    ) {
+      const cateringPayload = await normalizeCateringPayload(
+        req.body,
+        event.expectedAttendees || event.maxAttendees || null,
+      );
+      Object.assign(update, cateringPayload);
+    }
+
     // Validate that times are logical (start < end)
     const nextStart = update.startDateTime || event.startDateTime;
     const nextEnd = update.endDateTime || event.endDateTime;
@@ -504,6 +641,7 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
     const updated = await OrganizerEvent.findByIdAndUpdate(event._id, update, { new: true })
       .populate({ path: "hallId", select: "name slug capacity" })
       .populate({ path: "bookingId", select: "date slot status" })
+      .populate({ path: "cateringMenus", select: "name pricePerPerson description slug" })
       .lean();
 
     let cancellationMetadata = null;
@@ -621,9 +759,9 @@ router.patch("/events/:id", isAuthenticated, isOrganizer, async (req, res, next)
       // Create audit log for event cancellation
       try {
         await createAuditLog({
-          action: "event_cancelled",
+          action: "cancelled",
           performedBy: req.currentUser._id,
-          entityType: "OrganizerEvent",
+          entityType: "event",
           entityId: event._id,
           changes: {
             status: { from: event.status, to: "CANCELLED" },
@@ -1210,7 +1348,11 @@ router.post("/events/:id/duplicate", isAuthenticated, isOrganizer, async (req, r
       registrationStartDate: derived.startDateTime,
       registrationEndDate: derived.endDateTime,
       catering: originalEvent.catering,
+      cateringPlan: originalEvent.cateringPlan,
       cateringMenus: originalEvent.cateringMenus,
+      cateringGuestCount: originalEvent.cateringGuestCount,
+      cateringServiceTime: originalEvent.cateringServiceTime,
+      cateringNotes: originalEvent.cateringNotes,
       decoration: originalEvent.decoration,
       requiresTicket: originalEvent.requiresTicket,
       status: "DRAFT",

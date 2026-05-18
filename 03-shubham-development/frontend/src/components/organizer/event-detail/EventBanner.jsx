@@ -1,4 +1,27 @@
-import { ArrowLeft, XCircle } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { ArrowLeft, Check, Copy, Lock, XCircle } from "lucide-react";
+
+function CopyButton({ value, label }) {
+  const [copied, setCopied] = useState(false);
+  const handle = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {/* silent */}
+  };
+  return (
+    <button
+      onClick={handle}
+      className="flex items-center gap-1.5 border border-[#e8dcc8] bg-white px-3 py-1.5 text-xs font-bold text-[#3a1224] hover:bg-[#fbf8f2] transition-colors"
+    >
+      {copied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+      {copied ? "Copied" : label}
+    </button>
+  );
+}
 
 export function EventBanner({ event, onBack }) {
   if (!event) {
@@ -61,6 +84,37 @@ export function EventBanner({ event, onBack }) {
             {[event.type, event.eventCategory].filter(Boolean).join(" / ") || "Event details"}
           </p>
         </div>
+
+        {/* Shareable link row */}
+        {event.status === "PUBLISHED" && (
+          <div className="border-t border-[#e8dcc8] pt-4">
+            <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/40">
+              {event.isPublic ? "Share event" : "Private event — share with invited guests only"}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Event URL */}
+              <code className="flex-1 truncate border border-[#e8dcc8] bg-[#fbf8f2] px-3 py-1.5 text-xs text-[#3a1224]/70 min-w-0">
+                {typeof window !== "undefined"
+                  ? `${window.location.origin}/events/${event._id}`
+                  : `/events/${event._id}`}
+              </code>
+              <CopyButton
+                value={typeof window !== "undefined" ? `${window.location.origin}/events/${event._id}` : `/events/${event._id}`}
+                label="Copy link"
+              />
+              {/* Access code — only for private events */}
+              {!event.isPublic && event.accessCode && (
+                <>
+                  <div className="flex items-center gap-1.5 border border-[#e8dcc8] bg-[#fbf8f2] px-3 py-1.5">
+                    <Lock className="h-3 w-3 text-[#3a1224]/40" />
+                    <code className="text-xs font-bold text-[#3a1224]">{event.accessCode}</code>
+                  </div>
+                  <CopyButton value={event.accessCode} label="Copy code" />
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

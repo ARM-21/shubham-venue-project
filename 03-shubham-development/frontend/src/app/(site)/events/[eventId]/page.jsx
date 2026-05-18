@@ -13,6 +13,7 @@ import { EventDetails } from "./components/EventDetails";
 import { TicketsSection } from "./components/TicketsSection";
 import { VenueInfo } from "./components/VenueInfo";
 import { RichTextDisplay } from "components/shared/RichTextDisplay";
+import { Check, Copy, Facebook, Linkedin, Lock, Share2 } from "lucide-react";
 
 const PLACEHOLDER_IMAGE = "/assets/business-images/placeholder2.jpg";
 
@@ -27,10 +28,12 @@ export default function EventDetailPage() {
   const [submitting, setSubmitting] = useState(null);
   const [gatewayTicketId, setGatewayTicketId] = useState(null);
   const [ticketTypes, setTicketTypes] = useState([]);
+  const [unlockedEvent, setUnlockedEvent] = useState(null);
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
 
   // Query for event details - handles basic fetch
   const { data: eventData, isLoading, error, refetch } = useQueryEventDetailPublic(eventId, {
-    enabled: !!eventId && !needsAccessCode,
+    enabled: !!eventId && !needsAccessCode && !unlockedEvent,
   });
 
   // Mutation for access code validation
@@ -42,6 +45,7 @@ export default function EventDetailPage() {
       return res.data || {};
     },
     onSuccess: (payload) => {
+      setUnlockedEvent(payload.event || null);
       setTicketTypes(payload.ticketTypes || []);
       setNeedsAccessCode(false);
       toast.success("Access granted");
@@ -51,7 +55,7 @@ export default function EventDetailPage() {
     },
   });
 
-  const event = eventData?.event || null;
+  const event = unlockedEvent || eventData?.event || null;
 
   // Extract and sync ticketTypes from API response
   useEffect(() => {
@@ -105,7 +109,7 @@ export default function EventDetailPage() {
       const payload = {
         eventId,
         ticketTypeId,
-        accessCode: needsAccessCode ? accessCode.trim() : undefined,
+        accessCode: event?.isPublic === false ? accessCode.trim() : undefined,
       };
       if (gateway) payload.gateway = gateway;
 
@@ -118,7 +122,15 @@ export default function EventDetailPage() {
 
       if (res.data?.mode === "free") {
         toast.success("Ticket issued");
-        await refetch();
+        if (event?.isPublic === false) {
+          const latest = await axiosInstance.get(ROUTES.API.EVENTS.DETAIL(eventId), {
+            params: { accessCode: accessCode.trim() },
+          });
+          setUnlockedEvent(latest.data?.event || null);
+          setTicketTypes(latest.data?.ticketTypes || []);
+        } else {
+          await refetch();
+        }
         return;
       }
 
@@ -161,6 +173,44 @@ export default function EventDetailPage() {
     );
   }
 
+  if (needsAccessCode && !event) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-[#FDFCFB] px-6 pt-28">
+        <div className="w-full max-w-lg border border-[#e8dcc8] bg-white p-7">
+          <div className="flex h-11 w-11 items-center justify-center border border-[#e8dcc8] bg-[#fbf8f2] text-[#3a1224]">
+            <Lock className="h-5 w-5" />
+          </div>
+          <p className="mt-5 text-[10px] font-black uppercase tracking-[0.24em] text-[#C0A04C]">Private event</p>
+          <h1 className="mt-2 text-2xl font-black text-[#3a1224]">Enter your access code</h1>
+          <p className="mt-2 text-sm leading-6 text-[#3a1224]/60">
+            This event is invite-only. Use the code from the organizer to view event details and available tickets.
+          </p>
+          <input
+            type="text"
+            value={accessCode}
+            onChange={(e) => setAccessCode(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAccessCodeSubmit()}
+            placeholder="Event access code"
+            className="mt-5 w-full border border-[#e8dcc8] bg-[#fbf8f2] px-4 py-3 text-sm font-medium text-[#3a1224] outline-none transition focus:border-[#C0A04C] focus:bg-white focus:ring-2 focus:ring-[#C0A04C]/15"
+          />
+          <button
+            onClick={handleAccessCodeSubmit}
+            disabled={accessCodeMutation.isPending}
+            className="mt-3 w-full cursor-pointer bg-[#3a1224] px-6 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#4b1830] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {accessCodeMutation.isPending ? "Verifying..." : "Unlock event"}
+          </button>
+          <button
+            onClick={() => router.push(ROUTES.SITE.EVENTS)}
+            className="mt-4 text-sm font-bold text-[#3a1224]/50 hover:text-[#3a1224]"
+          >
+            Browse public events
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   if (!event) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-[#FDFCFB] px-6 pt-28">
@@ -184,10 +234,10 @@ export default function EventDetailPage() {
   const banner = event.bannerUrl || PLACEHOLDER_IMAGE;
   const hallName = event.hallId?.name || "Venue";
   const eventEnded = event.endDateTime ? new Date(event.endDateTime).getTime() < Date.now() : false;
-  
+
   // Check if registration has started
-  const registrationNotStarted = event.registrationStartDate 
-    ? new Date(event.registrationStartDate).getTime() > Date.now() 
+  const registrationNotStarted = event.registrationStartDate
+    ? new Date(event.registrationStartDate).getTime() > Date.now()
     : false;
 
   return (
@@ -195,74 +245,122 @@ export default function EventDetailPage() {
       <EventHero event={event} banner={banner} ticketTypes={ticketTypes} eventEnded={eventEnded} />
 
       <div className="mx-auto max-w-[1400px] px-6 pb-16 pt-10 lg:px-8 lg:pb-24">
-        {error ? (
+        {error && !unlockedEvent ? (
           <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
             {error?.response?.data?.message || error?.message || "We could not refresh the latest event details."}
           </div>
         ) : null}
 
-        {needsAccessCode ? (
-          <div className="mx-auto max-w-lg">
-            <div className="rounded-2xl border border-[#e8dcc8] bg-white p-7">
-              <p className="site-eyebrow mb-1.5">Private event</p>
-              <h2 className="text-2xl font-black text-[#3a1224]">Access code required</h2>
-              <p className="mt-2 text-sm leading-6 text-[#3a1224]/60">
-                Enter the access code provided by the organizer to view tickets and event details.
-              </p>
-              <input
-                type="text"
-                value={accessCode}
-                onChange={(e) => setAccessCode(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAccessCodeSubmit()}
-                placeholder="Event access code"
-                className="mt-5 w-full rounded-xl border border-[#e8dcc8] bg-[#fbf8f2] px-4 py-3 text-sm font-medium text-[#3a1224] outline-none transition focus:border-[#C0A04C] focus:bg-white focus:ring-2 focus:ring-[#C0A04C]/15"
-              />
-              <button
-                onClick={handleAccessCodeSubmit}
-                disabled={accessCodeMutation.isPending}
-                className="mt-3 w-full cursor-pointer rounded-xl bg-[#3a1224] px-6 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#4b1830] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {accessCodeMutation.isPending ? "Verifying…" : "Unlock event"}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-            <div className="space-y-10">
-              <EventDetails event={event} hallName={hallName} />
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+          <div className="space-y-10">
+            <EventDetails event={event} hallName={hallName} />
 
-              {event.description && (
-                <section id="about" className="scroll-mt-28">
-                  <p className="site-eyebrow mb-1.5">About</p>
-                  <h2 className="mb-5 text-2xl font-black text-[#3a1224]">About this event</h2>
-                  <div className="prose prose-base max-w-none text-[#3a1224]/75 prose-p:leading-7 prose-headings:text-[#3a1224] prose-strong:text-[#3a1224]">
-                    <RichTextDisplay content={event.description} />
-                  </div>
-                </section>
-              )}
-
-              <section id="venue" className="scroll-mt-28">
-                <VenueInfo venue={event.hallId} />
+            {event.description && (
+              <section id="about" className="scroll-mt-28">
+                <p className="site-eyebrow mb-1.5">About</p>
+                <h2 className="mb-5 text-2xl font-black text-[#3a1224]">About this event</h2>
+                <div className="prose prose-base max-w-none text-[#3a1224]/75 prose-p:leading-7 prose-headings:text-[#3a1224] prose-strong:text-[#3a1224]">
+                  <RichTextDisplay content={event.description} />
+                </div>
               </section>
-            </div>
+            )}
 
-            <div className="order-first lg:sticky lg:top-28 lg:order-none">
-              <TicketsSection
-                ticketTypes={ticketTypes}
-                onBuyTicket={handleBuyTicket}
-                eventEnded={eventEnded}
-                registrationNotStarted={registrationNotStarted}
-                registrationStartDate={event.registrationStartDate}
-                submitting={submitting}
-                onSelectPaymentGateway={setGatewayTicketId}
-                selectedPaymentGateway={gatewayTicketId}
-                eventCapacity={event.hallId?.capacity || 0}
-                totalSold={ticketTypes.reduce((sum, t) => sum + (t.quantitySold || 0), 0)}
-              />
-            </div>
+            <section id="venue" className="scroll-mt-28">
+              <VenueInfo venue={event.hallId} />
+            </section>
           </div>
-        )}
+
+          <div className="order-first lg:sticky lg:top-28 lg:order-none">
+            <TicketsSection
+              ticketTypes={ticketTypes}
+              onBuyTicket={handleBuyTicket}
+              eventEnded={eventEnded}
+              registrationNotStarted={registrationNotStarted}
+              registrationStartDate={event.registrationStartDate}
+              submitting={submitting}
+              onSelectPaymentGateway={setGatewayTicketId}
+              selectedPaymentGateway={gatewayTicketId}
+              eventCapacity={event.hallId?.capacity || 0}
+              totalSold={ticketTypes.reduce((sum, t) => sum + (t.quantitySold || 0), 0)}
+            />
+            <EventSharePanel
+              event={event}
+              copied={copiedShareLink}
+              onCopy={async () => {
+                const url = window.location.href;
+                try {
+                  await navigator.clipboard.writeText(url);
+                  setCopiedShareLink(true);
+                  toast.success("Event link copied");
+                  window.setTimeout(() => setCopiedShareLink(false), 1800);
+                } catch {
+                  toast.error("Could not copy link");
+                }
+              }}
+            />
+          </div>
+        </div>
       </div>
     </main>
+  );
+}
+
+function EventSharePanel({ event, copied, onCopy }) {
+  const isPublic = event?.isPublic !== false;
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+  const encodedUrl = encodeURIComponent(shareUrl);
+  const encodedTitle = encodeURIComponent(event?.name || "Event at Shubham Venue");
+  const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+  const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+
+  return (
+    <section className="mt-4 border border-[#e8dcc8] bg-white p-5">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-[#e8dcc8] bg-[#fbf8f2] text-[#3a1224]">
+          {isPublic ? <Share2 className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+        </div>
+        <div>
+          <h2 className="text-sm font-black text-[#3a1224]">{isPublic ? "Share this event" : "Private event link"}</h2>
+          <p className="mt-1 text-xs leading-5 text-[#3a1224]/50">
+            {isPublic
+              ? "Share the public listing with guests or your professional network."
+              : "This event is protected. Share the link only with invited guests who already have the access code."}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-2">
+        {isPublic ? (
+          <>
+            <a
+              href={`${facebookUrl}&quote=${encodedTitle}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex h-10 items-center justify-center gap-2 border border-[#e8dcc8] text-sm font-bold text-[#3a1224] hover:bg-[#fbf8f2]"
+            >
+              <Facebook className="h-4 w-4" />
+              Facebook
+            </a>
+            <a
+              href={linkedinUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex h-10 items-center justify-center gap-2 border border-[#e8dcc8] text-sm font-bold text-[#3a1224] hover:bg-[#fbf8f2]"
+            >
+              <Linkedin className="h-4 w-4" />
+              LinkedIn
+            </a>
+          </>
+        ) : null}
+        <button
+          type="button"
+          onClick={onCopy}
+          className="flex h-10 items-center justify-center gap-2 border border-[#e8dcc8] bg-[#3a1224] text-sm font-bold text-white hover:bg-[#4b1830]"
+        >
+          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          {copied ? "Copied" : "Copy link"}
+        </button>
+      </div>
+    </section>
   );
 }

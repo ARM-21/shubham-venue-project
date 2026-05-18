@@ -5,7 +5,7 @@ const auditLogSchema = new mongoose.Schema(
     // Entity info
     entityType: {
       type: String,
-      enum: ["event", "organizer", "user", "system"],
+      enum: ["event", "organizer", "user", "system", "payment", "booking"],
       required: true,
       index: true,
     },
@@ -30,6 +30,12 @@ const auditLogSchema = new mongoose.Schema(
         "rejected",
         "deleted",
         "status_changed",
+        "completed",
+        "failed",
+        "refunded",
+        "cancelled",
+        "commented",
+        "metrics_recalculated",
         "bulk_metrics_recalculation",
       ],
       required: true,
@@ -45,7 +51,7 @@ const auditLogSchema = new mongoose.Schema(
     },
     performedByRole: {
       type: String,
-      enum: ["organizer", "admin", "system"],
+      enum: ["organizer", "admin", "system", "user", "customer"],
       default: "organizer",
     },
 
@@ -64,9 +70,13 @@ const auditLogSchema = new mongoose.Schema(
     metadata: {
       reason: String, // why action was taken
       notes: String, // additional notes
+      gateway: String,
+      transactionId: String,
+      amount: Number,
       references: {
         flagId: mongoose.Schema.Types.ObjectId,
         bookingId: mongoose.Schema.Types.ObjectId,
+        paymentId: mongoose.Schema.Types.ObjectId,
         eventId: mongoose.Schema.Types.ObjectId,
       },
     },

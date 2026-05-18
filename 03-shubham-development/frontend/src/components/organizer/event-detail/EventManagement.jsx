@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
-import { AlertCircle, Check, CheckCircle2, FileText, Globe, Grid3x3, Image as ImageIcon, Link2, Loader, Lock, Trash2, Upload, X, XCircle } from "lucide-react";
+import { AlertCircle, Check, CheckCircle2, FileText, Globe, Grid3x3, Image as ImageIcon, Link2, Loader, Lock, Trash2, Upload, UtensilsCrossed, X, XCircle } from "lucide-react";
 import { useQueryUserUploads } from "@queries/organizer";
 import { USER_UPLOADS_QUERY_KEY } from "@api/organizer/user-uploads-fetcher";
 import { RichTextEditor } from "components/shared/RichTextEditor";
@@ -65,6 +65,8 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
   const [showImageSelector, setShowImageSelector] = useState(false);
   const [imageSelectorTab, setImageSelectorTab] = useState("my-uploads");
   const [customImageUrl, setCustomImageUrl] = useState("");
+  const [menuPackages, setMenuPackages] = useState([]);
+  const [menusLoading, setMenusLoading] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: userUploads = [], isLoading: loadingUploads, refetch: refetchUploads } = useQueryUserUploads("banner", {
@@ -134,6 +136,11 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
       endDateTime: deriveEventDateTime(event?.bookingId?.date || bookingDate, event?.bookingId?.slot, false) || toLocalInputValue(event?.endDateTime),
       registrationStartDate: event?.registrationStartDate ? new Date(event.registrationStartDate).toISOString().slice(0, 16) : "",
       registrationEndDate: event?.registrationEndDate ? new Date(event.registrationEndDate).toISOString().slice(0, 16) : "",
+      cateringPlan: event?.cateringPlan || (event?.catering ? (event?.cateringMenus?.length ? "choose_now" : "decide_later") : "none"),
+      cateringMenuId: event?.cateringMenus?.[0]?._id || event?.cateringMenus?.[0] || "",
+      cateringGuestCount: event?.cateringGuestCount || event?.expectedAttendees || "",
+      cateringServiceTime: event?.cateringServiceTime || "",
+      cateringNotes: event?.cateringNotes || "",
       status: event?.status || "DRAFT",
       cancellationReason: event?.cancellationReason || "",
     },
@@ -144,6 +151,7 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
   const bannerUrl = watch("bannerUrl");
   const registrationStartDate = watch("registrationStartDate");
   const registrationEndDate = watch("registrationEndDate");
+  const cateringPlan = watch("cateringPlan");
   const slotTimingInfo = event?.bookingId?.slot ? deriveEventTimeRange(event.bookingId.slot) : null;
   const isRegEndBeforeStart = registrationStartDate && registrationEndDate && new Date(registrationEndDate) < new Date(registrationStartDate);
   const isEventDateInPast = bookingDate && new Date(bookingDate) < new Date();
@@ -152,6 +160,27 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
   useEffect(() => {
     if (bannerUrl && bannerUrl !== bannerPreview) setBannerPreview(bannerUrl);
   }, [bannerUrl, bannerPreview]);
+
+  useEffect(() => {
+    if (cateringPlan !== "choose_now" || menuPackages.length) return;
+    let ignore = false;
+    setMenusLoading(true);
+    axiosInstance
+      .get(ROUTES.API.MENUS.ROOT)
+      .then((res) => {
+        const menus = res.data?.menus || res.data?.data || (Array.isArray(res.data) ? res.data : []);
+        if (!ignore) setMenuPackages(menus.filter((menu) => menu.isActive !== false));
+      })
+      .catch(() => {
+        if (!ignore) toast.error("Could not load menu packages");
+      })
+      .finally(() => {
+        if (!ignore) setMenusLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [cateringPlan, menuPackages.length]);
 
   const handleSave = async (data) => {
     if (isEventDateInPast && data.status === "PUBLISHED") {
@@ -170,6 +199,10 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
         toast.error("Registration must end before or on event date");
         return;
       }
+    }
+    if (data.cateringPlan === "choose_now" && !data.cateringMenuId) {
+      toast.error("Choose a menu package or select Decide later");
+      return;
     }
     await onSave(data);
     setSaveSuccess(true);
@@ -301,6 +334,55 @@ export function EventManagement({ event, bookingDate, onSave, isSubmitting }) {
           </div>
         </Panel>
 
+        <Panel title="Catering plan" description="Use the shared menu catalogue, but keep organizer catering as a separate event service request.">
+          <div className="grid gap-3 lg:grid-cols-3">
+            <CateringOption register={register} active={cateringPlan === "none"} value="none" title="No catering" note="This event does not need venue catering." />
+            <CateringOption register={register} active={cateringPlan === "choose_now"} value="choose_now" title="Choose menu now" note="Select a package to request for this event." />
+            <CateringOption register={register} active={cateringPlan === "decide_later"} value="decide_later" title="Decide later" note="Request catering once attendance is clearer." />
+          </div>
+
+          {cateringPlan === "choose_now" && (
+            <div className="mt-4 border border-[#e8dcc8] bg-[#fbf8f2] p-4">
+              <div className="mb-4 flex items-start gap-3">
+                <UtensilsCrossed className="mt-0.5 h-5 w-5 text-[#3a1224]/45" />
+                <div>
+                  <p className="text-sm font-black text-[#3a1224]">Menu package request</p>
+                  <p className="mt-1 text-xs leading-5 text-[#3a1224]/50">This records catering intent for the venue team. It is not a paid catering confirmation yet.</p>
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/40">Menu package</span>
+                  <select {...register("cateringMenuId")} disabled={menusLoading} className="h-11 w-full border border-[#e8dcc8] bg-white px-3 text-sm font-bold text-[#3a1224] outline-none focus:border-[#C0A04C]">
+                    <option value="">{menusLoading ? "Loading packages..." : "Select a package"}</option>
+                    {menuPackages.map((menu) => (
+                      <option key={menu._id} value={menu._id}>
+                        {menu.name} - NPR {Number(menu.pricePerPerson || 0).toLocaleString()} / person
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <FormField label="Catering guests" type="number" min="0" {...register("cateringGuestCount")} />
+                <FormField label="Service time" type="time" {...register("cateringServiceTime")} />
+              </div>
+            </div>
+          )}
+
+          {cateringPlan === "decide_later" && (
+            <div className="mt-4 border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-800">
+              <p className="font-black">Catering can be requested later</p>
+              <p className="mt-1">Keep the event moving now. Add a menu request when guest count and timing are clearer.</p>
+            </div>
+          )}
+
+          {cateringPlan !== "none" && (
+            <label className="mt-4 block">
+              <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/40">Catering notes</span>
+              <textarea {...register("cateringNotes")} rows={3} placeholder="Dietary notes, service style, or setup timing." className="w-full resize-none border border-[#e8dcc8] bg-white px-3 py-2 text-sm font-bold leading-6 text-[#3a1224] outline-none focus:border-[#C0A04C]" />
+            </label>
+          )}
+        </Panel>
+
         <Panel title="Publication status" description="Move the event through draft, published, and cancellation states.">
           {bookingDate && (
             <div className={`mb-4 flex gap-3 border p-4 ${isEventDateInPast ? "border-red-200 bg-red-50" : "border-blue-200 bg-blue-50"}`}>
@@ -426,6 +508,18 @@ function VisibilityOption({ register, value, active, icon: Icon, title, note }) 
       <span>
         <span className="block text-sm font-black text-[#3a1224]">{title}</span>
         <span className="mt-1 block text-xs text-[#3a1224]/45">{note}</span>
+      </span>
+    </label>
+  );
+}
+
+function CateringOption({ register, value, active, title, note }) {
+  return (
+    <label className={`flex cursor-pointer items-start gap-3 border px-4 py-3 ${active ? "border-[#3a1224] bg-[#fbf8f2]" : "border-[#e8dcc8] bg-white"}`}>
+      <input type="radio" {...register("cateringPlan")} value={value} className="mt-1" />
+      <span>
+        <span className="block text-sm font-black text-[#3a1224]">{title}</span>
+        <span className="mt-1 block text-xs leading-5 text-[#3a1224]/45">{note}</span>
       </span>
     </label>
   );

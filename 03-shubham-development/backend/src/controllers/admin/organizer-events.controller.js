@@ -177,6 +177,12 @@ export const createOrganizerEvent = async (req, res, next) => {
       );
     }
 
+    const inheritedLocation = {
+      city: location?.city || hall.location?.city || "",
+      state: location?.state || hall.location?.state || "",
+      country: location?.country || hall.location?.country || "",
+    };
+
     // Check organizer trust score
     const trustCalculation = await calculateTrustScore(organizerId);
     const initialStatus =
@@ -205,7 +211,7 @@ export const createOrganizerEvent = async (req, res, next) => {
       cateringMenus: validatedCateringMenus,
       decoration: decoration || false,
       requiresTicket: requiresTicket !== false,
-      location: location || {},
+      location: inheritedLocation,
       bannerUrl,
       accessCode,
       isPublic: isPublic !== false,

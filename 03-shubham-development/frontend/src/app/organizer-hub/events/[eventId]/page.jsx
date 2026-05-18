@@ -114,6 +114,12 @@ export default function OrganizerEventDetailPage() {
         status: values.status,
         cancellationReason: values.status === "CANCELLED" ? values.cancellationReason?.trim() : null,
         expectedAttendees: values.expectedAttendees || null,
+        catering: values.cateringPlan !== "none",
+        cateringPlan: values.cateringPlan || "none",
+        cateringMenus: values.cateringPlan === "choose_now" && values.cateringMenuId ? [values.cateringMenuId] : [],
+        cateringGuestCount: values.cateringPlan === "none" ? null : values.cateringGuestCount || null,
+        cateringServiceTime: values.cateringPlan === "none" ? "" : values.cateringServiceTime || "",
+        cateringNotes: values.cateringPlan === "none" ? "" : values.cateringNotes?.trim() || "",
         // Include registration window dates with time components
         registrationStartDate: regStart || undefined,
         registrationEndDate: regEnd || undefined,
