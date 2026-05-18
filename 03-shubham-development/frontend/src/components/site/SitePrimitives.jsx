@@ -66,19 +66,19 @@ export function SiteButton({
 
 export function SitePageHeader({ eyebrow, title, description, children, align = "left" }) {
   return (
-    <section className="border-b border-[var(--color-sand)] bg-[var(--color-ivory)] pt-28 lg:pt-32">
+    <section className="relative overflow-hidden bg-[var(--color-wine)] pb-16 pt-36 lg:pt-40 text-white">
       <div
         className={cn(
-          "mx-auto max-w-7xl px-6 py-12 lg:px-8 lg:py-16",
+          "relative z-10 mx-auto max-w-7xl px-6 lg:px-8",
           align === "center" && "text-center"
         )}
       >
-        {eyebrow ? <p className="site-eyebrow mb-4">{eyebrow}</p> : null}
-        <h1 className="site-title max-w-4xl text-[var(--color-wine)]">{title}</h1>
+        {eyebrow ? <p className="text-[10px] font-black uppercase tracking-[0.34em] text-[var(--color-champagne)] mb-4">{eyebrow}</p> : null}
+        <h1 className="text-4xl font-black leading-[1.02] tracking-tight sm:text-5xl lg:text-6xl text-white max-w-4xl">{title}</h1>
         {description ? (
           <p
             className={cn(
-              "mt-5 max-w-2xl text-base leading-7 text-[var(--color-stone)]",
+              "mt-5 max-w-2xl text-base leading-7 text-white/80",
               align === "center" && "mx-auto"
             )}
           >

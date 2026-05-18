@@ -12,6 +12,7 @@ import axiosInstance from "lib/axios";
 import { useQueryProfileMy } from "@queries/customer/profile-my";
 import PasswordStrength from "components/auth/PasswordStrength";
 import { validatePasswordForForm } from "utils/passwordValidation";
+import { SitePageHeader, SiteButton, SiteCard } from "components/site/SitePrimitives.jsx";
 
 export default function ProfilePage() {
   const { user: authUser, loading: authLoading, logout, setUser } = useAuth();
@@ -202,17 +203,16 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-[#FDFCFB] px-6 pt-44">
-        <div className="mx-auto max-w-[1200px]">
-          <div className="h-4 w-28 animate-pulse rounded bg-white/20" />
-          <div className="mt-4 h-12 max-w-sm animate-pulse rounded-2xl bg-white/20" />
-          <div className="mt-10 grid gap-6 lg:grid-cols-[330px_minmax(0,1fr)]">
-            <div className="h-80 animate-pulse rounded-[2rem] border border-[#eadfcb] bg-white" />
-            <div className="space-y-5">
-              <div className="h-64 animate-pulse rounded-[2rem] border border-[#eadfcb] bg-white" />
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="h-48 animate-pulse rounded-[2rem] border border-[#eadfcb] bg-white" />
-                <div className="h-48 animate-pulse rounded-[2rem] border border-[#eadfcb] bg-white" />
+      <main className="min-h-screen bg-[var(--color-ivory)]">
+        <SitePageHeader title="My Profile" />
+        <div className="mx-auto max-w-6xl px-6 py-14 lg:px-8">
+          <div className="grid gap-8 lg:grid-cols-[300px_minmax(0,1fr)]">
+            <div className="h-96 animate-pulse rounded-2xl border border-[var(--color-sand)] bg-white" />
+            <div className="space-y-6">
+              <div className="h-64 animate-pulse rounded-2xl border border-[var(--color-sand)] bg-white" />
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="h-48 animate-pulse rounded-2xl border border-[var(--color-sand)] bg-white" />
+                <div className="h-48 animate-pulse rounded-2xl border border-[var(--color-sand)] bg-white" />
               </div>
             </div>
           </div>
@@ -224,264 +224,229 @@ export default function ProfilePage() {
   if (!authUser) return null;
 
   const inputCls =
-    "mt-2 w-full rounded-2xl border border-[#eadfcb] bg-[#FDFCFB] px-5 py-4 text-sm text-[#3a1224] outline-none transition focus:border-[#C0A04C] focus:ring-4 focus:ring-[#C0A04C]/15";
+    "w-full rounded-md border border-[var(--color-sand)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-wine)] focus:border-[var(--color-champagne)] focus:outline-none focus:ring-1 focus:ring-[var(--color-champagne)]";
 
   return (
-    <main className="min-h-screen bg-[#FDFCFB]">
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-[#3a1224] px-6 pb-14 pt-44 text-white">
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#FDFCFB] to-transparent" />
-        <div className="relative mx-auto max-w-[1200px]">
-          <p className="text-[11px] font-black uppercase tracking-[0.34em] text-[#C0A04C]">Account settings</p>
-          <h1 className="mt-5 text-4xl font-black leading-[1.02] tracking-tight sm:text-5xl lg:text-6xl">My Profile</h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-white/76">
-            Manage your personal information, photo, and account security.
-          </p>
-        </div>
-      </section>
+    <main className="min-h-screen bg-[var(--color-ivory)]">
+      <SitePageHeader
+        eyebrow="Account Settings"
+        title="My Profile"
+        description="Manage your personal information, photo, and account security."
+      />
 
-      <section className="mx-auto grid max-w-[1200px] gap-6 px-6 py-10 lg:grid-cols-[330px_minmax(0,1fr)] lg:py-14">
-        {/* Sidebar */}
-        <aside className="space-y-5">
-          {/* Identity card */}
-          <div className="rounded-[2rem] border border-[#eadfcb] bg-white p-6 text-center shadow-[0_22px_70px_-50px_rgba(58,18,36,0.35)]">
-            <div className="relative mx-auto h-28 w-28">
-              <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-[#FDFCFB] bg-[#3a1224]">
-                {displayUser?.profilePicture || avatarPreview ? (
-                  <img
-                    src={avatarPreview || displayUser?.profilePicture}
-                    alt={fullName}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-3xl font-black text-white">
-                    {initials}
-                  </div>
-                )}
+      <section className="mx-auto max-w-6xl px-6 py-10 lg:px-8 lg:py-14">
+        <div className="grid gap-8 lg:grid-cols-[300px_minmax(0,1fr)]">
+          {/* Sidebar */}
+          <aside className="space-y-6">
+            <SiteCard className="p-6 text-center">
+              <div className="relative mx-auto h-24 w-24">
+                <div className="h-24 w-24 overflow-hidden rounded-full border border-[var(--color-sand)] bg-[var(--color-wine)]">
+                  {displayUser?.profilePicture || avatarPreview ? (
+                    <img
+                      src={avatarPreview || displayUser?.profilePicture}
+                      alt={fullName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-3xl font-black text-white">
+                      {initials}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-            <h2 className="mt-5 text-2xl font-black text-[#3a1224]">{fullName}</h2>
-            <p className="mt-1 break-words text-sm font-semibold text-[#3a1224]/55">{displayUser?.email}</p>
-            <span className="mt-4 inline-flex rounded-full border border-[#eadfcb] bg-[#FDFCFB] px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#3a1224]">
-              {displayUser?.role === "admin" ? "Admin" : displayUser?.isOrganizerEligible ? "Organizer" : "Customer"}
-            </span>
-          </div>
+              <h2 className="mt-5 text-xl font-black text-[var(--color-wine)]">{fullName}</h2>
+              <p className="mt-1 break-words text-sm font-semibold text-[var(--color-stone)]">{displayUser?.email}</p>
+              <span className="mt-4 inline-flex rounded-full border border-[var(--color-sand)] bg-[var(--color-ivory)] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-[var(--color-wine)]">
+                {displayUser?.role === "admin" ? "Admin" : displayUser?.isOrganizerEligible ? "Organizer" : "Customer"}
+              </span>
+            </SiteCard>
 
-          {/* Navigation card */}
-          <div className="rounded-[2rem] border border-[#eadfcb] bg-white p-3">
-            <Link
-              href={ROUTES.SITE.BOOKINGS}
-              className="block rounded-xl px-4 py-3 text-sm font-bold text-[#3a1224] transition hover:bg-[#FDFCFB]"
-            >
-              My Bookings
-            </Link>
-            <Link
-              href={ROUTES.SITE.TICKETS}
-              className="block rounded-xl px-4 py-3 text-sm font-bold text-[#3a1224] transition hover:bg-[#FDFCFB]"
-            >
-              My Tickets
-            </Link>
-            <Link
-              href={ROUTES.SITE.ORGANIZER}
-              className="block rounded-xl px-4 py-3 text-sm font-bold text-[#3a1224] transition hover:bg-[#FDFCFB]"
-            >
-              Organizer Hub
-            </Link>
-            <div className="mt-1 border-t border-[#eadfcb] pt-1">
+            <SiteCard className="p-2">
+              <Link
+                href={ROUTES.SITE.BOOKINGS}
+                className="block rounded-lg px-4 py-3 text-sm font-bold text-[var(--color-wine)] transition hover:bg-[var(--color-ivory)] hover:text-[var(--color-champagne)]"
+              >
+                My Bookings
+              </Link>
+              <Link
+                href={ROUTES.SITE.TICKETS}
+                className="block rounded-lg px-4 py-3 text-sm font-bold text-[var(--color-wine)] transition hover:bg-[var(--color-ivory)] hover:text-[var(--color-champagne)]"
+              >
+                My Tickets
+              </Link>
+              <Link
+                href={ROUTES.SITE.ORGANIZER}
+                className="block rounded-lg px-4 py-3 text-sm font-bold text-[var(--color-wine)] transition hover:bg-[var(--color-ivory)] hover:text-[var(--color-champagne)]"
+              >
+                Organizer Hub
+              </Link>
+              <div className="my-1 border-t border-[var(--color-sand)]" />
               <button
                 onClick={handleLogout}
-                className="block w-full cursor-pointer rounded-xl px-4 py-3 text-left text-sm font-black text-red-600 transition hover:bg-red-50"
+                className="block w-full cursor-pointer rounded-lg px-4 py-3 text-left text-sm font-black text-red-600 transition hover:bg-red-50"
               >
                 Log Out
               </button>
-            </div>
-          </div>
-        </aside>
+            </SiteCard>
+          </aside>
 
-        {/* Main content */}
-        <div className="space-y-6">
-          {profileError ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
-              {profileError?.response?.data?.message || profileError?.message || "Could not refresh profile details."}
-            </div>
-          ) : null}
-
-          {/* Account details */}
-          <section className="rounded-[2rem] border border-[#eadfcb] bg-white p-6 shadow-[0_22px_70px_-50px_rgba(58,18,36,0.35)] sm:p-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#C0A04C]">Personal information</p>
-                <h2 className="mt-3 text-2xl font-black text-[#3a1224]">Account details</h2>
+          {/* Main content */}
+          <div className="space-y-6">
+            {profileError ? (
+              <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+                {profileError?.response?.data?.message || profileError?.message || "Could not refresh profile details."}
               </div>
-              {!editing ? (
-                <button
-                  onClick={() => setEditing(true)}
-                  className="cursor-pointer rounded-full bg-[#3a1224] px-5 py-3 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#4b1830]"
-                >
-                  Edit profile
-                </button>
-              ) : null}
-            </div>
+            ) : null}
 
-            {!editing ? (
-              <div className="mt-6 divide-y divide-[#eadfcb]">
-                {[
-                  { label: "First name", value: displayUser?.first_name || displayUser?.firstName },
-                  { label: "Last name", value: displayUser?.last_name || displayUser?.lastName },
-                  {
-                    label: "Email",
-                    value: displayUser?.email,
-                    helper: isOAuthUser ? "Signed in with Google" : "Primary account email",
-                  },
-                  {
-                    label: "Phone",
-                    value: displayUser?.phone,
-                    helper: !displayUser?.phone ? "Add your number for booking updates." : null,
-                  },
-                ].map(({ label, value, helper }) => (
-                  <div key={label} className="py-4 first:pt-0 last:pb-0">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3a1224]/45">{label}</p>
-                    <p className="mt-1.5 text-sm font-bold text-[#3a1224]">{value || <span className="font-semibold text-[#3a1224]/35">Not added</span>}</p>
-                    {helper ? <p className="mt-0.5 text-xs leading-5 text-[#3a1224]/50">{helper}</p> : null}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <form
-                onSubmit={handleSubmitProfile((data) => mutateUpdateProfile(data))}
-                className="mt-7 grid gap-5 md:grid-cols-2"
-              >
-                <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/55">First name</span>
-                  <input
-                    type="text"
-                    {...registerProfile("first_name", { required: "First name is required" })}
-                    className={inputCls}
-                  />
-                  {profileErrors.first_name ? (
-                    <p className="mt-2 text-xs font-bold text-red-600">{profileErrors.first_name.message}</p>
-                  ) : null}
-                </label>
-
-                <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/55">Last name</span>
-                  <input
-                    type="text"
-                    {...registerProfile("last_name", { required: "Last name is required" })}
-                    className={inputCls}
-                  />
-                  {profileErrors.last_name ? (
-                    <p className="mt-2 text-xs font-bold text-red-600">{profileErrors.last_name.message}</p>
-                  ) : null}
-                </label>
-
-                <label className="block md:col-span-2">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/55">Phone</span>
-                  <input
-                    type="tel"
-                    {...registerProfile("phone", {
-                      pattern: { value: /^[0-9]{10}$|^$/, message: "Use 10 digits or leave empty" },
-                    })}
-                    placeholder="9841234567"
-                    className={inputCls}
-                  />
-                  {profileErrors.phone ? (
-                    <p className="mt-2 text-xs font-bold text-red-600">{profileErrors.phone.message}</p>
-                  ) : null}
-                </label>
-
-                <div className="flex flex-col gap-3 sm:flex-row md:col-span-2">
-                  <button
-                    type="submit"
-                    disabled={isUpdatingProfile}
-                    className="cursor-pointer rounded-full bg-[#3a1224] px-6 py-3 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#4b1830] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isUpdatingProfile ? "Saving…" : "Save Changes"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancelEdit}
-                    className="cursor-pointer rounded-full border border-[#eadfcb] px-6 py-3 text-xs font-black uppercase tracking-[0.16em] text-[#3a1224] transition hover:border-[#C0A04C]"
-                  >
-                    Cancel
-                  </button>
+            {/* Account details */}
+            <SiteCard className="p-6 sm:p-8">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="text-xl font-black text-[var(--color-wine)]">Account details</h2>
                 </div>
-              </form>
-            )}
-          </section>
+                {!editing ? (
+                  <SiteButton type="button" onClick={() => setEditing(true)} variant="secondary" size="sm" icon={null}>
+                    Edit profile
+                  </SiteButton>
+                ) : null}
+              </div>
 
-          {/* Photo + Security */}
-          <div className="grid gap-5 md:grid-cols-2">
-            {/* Photo */}
-            <section className="rounded-[2rem] border border-[#eadfcb] bg-white p-6 sm:p-8">
-              <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#C0A04C]">Photo</p>
-              <h2 className="mt-3 text-2xl font-black text-[#3a1224]">Profile photo</h2>
-              <p className="mt-3 text-sm leading-6 text-[#3a1224]/65">
-                JPG, PNG, GIF, or WEBP under 5MB.
-              </p>
-
-              {avatarPreview ? (
-                <img src={avatarPreview} alt="Preview" className="mt-5 h-20 w-20 rounded-2xl object-cover" />
-              ) : null}
-
-              <label className="mt-5 block cursor-pointer rounded-2xl border border-dashed border-[#C0A04C]/60 bg-[#FDFCFB] px-5 py-5 text-center text-sm font-black text-[#3a1224] transition hover:bg-white">
-                {avatarFile ? avatarFile.name : "Choose Photo"}
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  onChange={handleAvatarChange}
-                  className="hidden"
-                />
-              </label>
-
-              {avatarFile ? (
-                <button
-                  onClick={() => mutateGetAvatarUrl(avatarFile)}
-                  disabled={isUploadingPhoto}
-                  className="mt-4 w-full cursor-pointer rounded-full bg-[#C0A04C] px-6 py-3 text-xs font-black uppercase tracking-[0.16em] text-[#3a1224] transition hover:bg-[#d8bc64] disabled:cursor-not-allowed disabled:opacity-50"
+              {!editing ? (
+                <div className="mt-8 grid gap-6 sm:grid-cols-2">
+                  <InfoBlock label="First name" value={displayUser?.first_name || displayUser?.firstName} />
+                  <InfoBlock label="Last name" value={displayUser?.last_name || displayUser?.lastName} />
+                  <InfoBlock
+                    label="Email"
+                    value={displayUser?.email}
+                    helper={isOAuthUser ? "Signed in with Google" : "Primary account email"}
+                  />
+                  <InfoBlock
+                    label="Phone"
+                    value={displayUser?.phone}
+                    helper={!displayUser?.phone ? "Add your number for booking updates." : null}
+                  />
+                </div>
+              ) : (
+                <form
+                  onSubmit={handleSubmitProfile((data) => mutateUpdateProfile(data))}
+                  className="mt-8 grid gap-6 md:grid-cols-2"
                 >
-                  {isUploadingPhoto ? "Uploading…" : "Upload Photo"}
-                </button>
-              ) : null}
-            </section>
+                  <label className="block">
+                    <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-stone)]">First name</span>
+                    <input
+                      type="text"
+                      {...registerProfile("first_name", { required: "First name is required" })}
+                      className={inputCls}
+                    />
+                    {profileErrors.first_name && <p className="mt-2 text-xs font-bold text-red-600">{profileErrors.first_name.message}</p>}
+                  </label>
 
-            {/* Security */}
-            <section className="rounded-[2rem] border border-[#eadfcb] bg-white p-6 sm:p-8">
-              <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#C0A04C]">Security</p>
-              <h2 className="mt-3 text-2xl font-black text-[#3a1224]">
-                {isOAuthUser ? "Google sign-in" : "Password"}
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-[#3a1224]/65">
-                {isOAuthUser
-                  ? "Your account is secured through Google authentication."
-                  : "Keep your account secure with a strong, unique password."}
-              </p>
+                  <label className="block">
+                    <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-stone)]">Last name</span>
+                    <input
+                      type="text"
+                      {...registerProfile("last_name", { required: "Last name is required" })}
+                      className={inputCls}
+                    />
+                    {profileErrors.last_name && <p className="mt-2 text-xs font-bold text-red-600">{profileErrors.last_name.message}</p>}
+                  </label>
 
-              {!isOAuthUser ? (
-                <button
-                  onClick={() => setShowPasswordModal(true)}
-                  className="mt-5 w-full cursor-pointer rounded-full border border-[#3a1224] px-6 py-3 text-xs font-black uppercase tracking-[0.16em] text-[#3a1224] transition hover:bg-[#3a1224] hover:text-white"
-                >
-                  Change Password
-                </button>
-              ) : null}
-            </section>
+                  <label className="block md:col-span-2">
+                    <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-stone)]">Phone</span>
+                    <input
+                      type="tel"
+                      {...registerProfile("phone", {
+                        pattern: { value: /^[0-9]{10}$|^$/, message: "Use 10 digits or leave empty" },
+                      })}
+                      placeholder="9841234567"
+                      className={inputCls}
+                    />
+                    {profileErrors.phone && <p className="mt-2 text-xs font-bold text-red-600">{profileErrors.phone.message}</p>}
+                  </label>
+
+                  <div className="flex flex-col gap-3 sm:flex-row md:col-span-2">
+                    <SiteButton type="submit" disabled={isUpdatingProfile} icon={null}>
+                      {isUpdatingProfile ? "Saving…" : "Save Changes"}
+                    </SiteButton>
+                    <SiteButton type="button" onClick={handleCancelEdit} variant="secondary" icon={null}>
+                      Cancel
+                    </SiteButton>
+                  </div>
+                </form>
+              )}
+            </SiteCard>
+
+            {/* Photo + Security */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <SiteCard className="p-6 sm:p-8">
+                <h2 className="text-lg font-black text-[var(--color-wine)]">Profile photo</h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--color-stone)]">
+                  JPG, PNG, GIF, or WEBP under 5MB.
+                </p>
+
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Preview" className="mt-6 h-20 w-20 rounded-xl object-cover" />
+                ) : null}
+
+                <label className="mt-6 block cursor-pointer rounded-xl border border-dashed border-[var(--color-sand)] bg-[var(--color-ivory)] p-6 text-center text-sm font-bold text-[var(--color-wine)] transition hover:bg-white hover:border-[var(--color-champagne)]">
+                  {avatarFile ? avatarFile.name : "Choose Photo"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                </label>
+
+                {avatarFile ? (
+                  <SiteButton
+                    type="button"
+                    onClick={() => mutateGetAvatarUrl(avatarFile)}
+                    disabled={isUploadingPhoto}
+                    className="mt-4 w-full"
+                    icon={null}
+                  >
+                    {isUploadingPhoto ? "Uploading…" : "Upload Photo"}
+                  </SiteButton>
+                ) : null}
+              </SiteCard>
+
+              <SiteCard className="p-6 sm:p-8">
+                <h2 className="text-lg font-black text-[var(--color-wine)]">
+                  {isOAuthUser ? "Google sign-in" : "Password"}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--color-stone)]">
+                  {isOAuthUser
+                    ? "Your account is secured through Google authentication."
+                    : "Keep your account secure with a strong, unique password."}
+                </p>
+
+                {!isOAuthUser ? (
+                  <SiteButton
+                    type="button"
+                    onClick={() => setShowPasswordModal(true)}
+                    variant="secondary"
+                    className="mt-6 w-full"
+                    icon={null}
+                  >
+                    Change Password
+                  </SiteButton>
+                ) : null}
+              </SiteCard>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Password modal */}
       {showPasswordModal && !isOAuthUser ? (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#3a1224]/80 p-6 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[2rem] bg-white p-6 shadow-2xl sm:p-8">
-            <div className="mb-6 flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#C0A04C]">Security</p>
-                <h2 className="mt-3 text-2xl font-black text-[#3a1224]">Change password</h2>
-              </div>
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[var(--color-wine)]/80 p-6 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+            <div className="mb-8 flex items-start justify-between gap-4">
+              <h2 className="text-2xl font-black text-[var(--color-wine)]">Change password</h2>
               <button
                 onClick={() => { setShowPasswordModal(false); resetPassword(); }}
-                className="cursor-pointer rounded-full border border-[#eadfcb] px-4 py-2 text-sm font-black text-[#3a1224] transition hover:border-[#3a1224]/30"
+                className="cursor-pointer rounded-full border border-[var(--color-sand)] bg-white px-4 py-2 text-xs font-bold text-[var(--color-wine)] transition hover:border-[var(--color-champagne)] hover:bg-[var(--color-ivory)]"
               >
                 Close
               </button>
@@ -492,19 +457,17 @@ export default function ProfilePage() {
               className="space-y-5"
             >
               <label className="block">
-                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/55">Current password</span>
+                <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-stone)]">Current password</span>
                 <input
                   type="password"
                   {...registerPassword("currentPassword", { required: "Current password is required" })}
                   className={inputCls}
                 />
-                {passwordErrors.currentPassword ? (
-                  <p className="mt-2 text-xs font-bold text-red-600">{passwordErrors.currentPassword.message}</p>
-                ) : null}
+                {passwordErrors.currentPassword && <p className="mt-2 text-xs font-bold text-red-600">{passwordErrors.currentPassword.message}</p>}
               </label>
 
               <label className="block">
-                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/55">New password</span>
+                <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-stone)]">New password</span>
                 <input
                   type="password"
                   {...registerPassword("newPassword", {
@@ -513,14 +476,14 @@ export default function ProfilePage() {
                   })}
                   className={inputCls}
                 />
-                {passwordErrors.newPassword ? (
-                  <p className="mt-2 text-xs font-bold text-red-600">{passwordErrors.newPassword.message}</p>
-                ) : null}
-                <PasswordStrength password={newPassword} showRequirements />
+                {passwordErrors.newPassword && <p className="mt-2 text-xs font-bold text-red-600">{passwordErrors.newPassword.message}</p>}
+                <div className="mt-3">
+                  <PasswordStrength password={newPassword} showRequirements />
+                </div>
               </label>
 
               <label className="block">
-                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/55">Confirm password</span>
+                <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-stone)]">Confirm password</span>
                 <input
                   type="password"
                   {...registerPassword("confirmPassword", {
@@ -528,22 +491,28 @@ export default function ProfilePage() {
                   })}
                   className={inputCls}
                 />
-                {passwordErrors.confirmPassword ? (
-                  <p className="mt-2 text-xs font-bold text-red-600">{passwordErrors.confirmPassword.message}</p>
-                ) : null}
+                {passwordErrors.confirmPassword && <p className="mt-2 text-xs font-bold text-red-600">{passwordErrors.confirmPassword.message}</p>}
               </label>
 
-              <button
-                type="submit"
-                disabled={isUpdatingPassword}
-                className="w-full cursor-pointer rounded-full bg-[#3a1224] px-6 py-4 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#4b1830] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isUpdatingPassword ? "Updating…" : "Update Password"}
-              </button>
+              <div className="pt-2">
+                <SiteButton type="submit" disabled={isUpdatingPassword} className="w-full justify-center" icon={null}>
+                  {isUpdatingPassword ? "Updating…" : "Update Password"}
+                </SiteButton>
+              </div>
             </form>
           </div>
         </div>
       ) : null}
     </main>
+  );
+}
+
+function InfoBlock({ label, value, helper }) {
+  return (
+    <div>
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-stone)]">{label}</p>
+      <p className="mt-2 text-sm font-bold text-[var(--color-wine)]">{value || <span className="text-[var(--color-stone)]">Not added</span>}</p>
+      {helper && <p className="mt-1 text-xs text-[var(--color-stone)]">{helper}</p>}
+    </div>
   );
 }

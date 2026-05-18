@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { QRCodeCanvas } from "qrcode.react";
 import { ROUTES } from "config/routes";
 import { useQueryTicketsMy } from "@queries/customer/tickets-my";
+import { SitePageHeader, SiteCard, SiteButton } from "components/site/SitePrimitives.jsx";
 
 const STATUS_OPTIONS = [
   { label: "All", value: "" },
@@ -37,7 +38,7 @@ function formatDateTime(value) {
 
 function StatusBadge({ status }) {
   return (
-    <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${STATUS_STYLES[status] || "border-[#eadfcb] bg-[#FDFCFB] text-[#3a1224]/65"}`}>
+    <span className={`inline-flex rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] ${STATUS_STYLES[status] || "border-[var(--color-sand)] bg-[var(--color-ivory)] text-[var(--color-wine)]"}`}>
       {status || "Unknown"}
     </span>
   );
@@ -45,9 +46,9 @@ function StatusBadge({ status }) {
 
 function TicketsSkeleton() {
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-6">
       {[1, 2, 3].map((item) => (
-        <div key={item} className="h-56 animate-pulse rounded-[2rem] border border-[#eadfcb] bg-white" />
+        <div key={item} className="h-56 animate-pulse rounded-2xl border border-[var(--color-sand)] bg-white" />
       ))}
     </div>
   );
@@ -99,55 +100,36 @@ export default function TicketsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#FDFCFB]">
-      <section className="relative overflow-hidden bg-[#3a1224] px-6 pb-14 pt-44 text-white">
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#FDFCFB] to-transparent" />
-        <div className="relative mx-auto max-w-[1200px]">
-          <p className="text-[11px] font-black uppercase tracking-[0.34em] text-[#C0A04C]">Digital tickets</p>
-          <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h1 className="text-4xl font-black leading-[1.02] tracking-tight sm:text-5xl lg:text-6xl">My Tickets</h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-white/76">
-                View your upcoming bookings, ticket details, and event access.
-              </p>
-            </div>
-            <button
-              onClick={() => refetch()}
-              disabled={isLoading}
-              className="inline-flex cursor-pointer justify-center rounded-full border border-white/15 bg-white/10 px-5 py-3 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Refresh
-            </button>
-          </div>
-        </div>
-      </section>
+    <main className="min-h-screen bg-[var(--color-ivory)]">
+      <SitePageHeader
+        eyebrow="Digital Tickets"
+        title="My Tickets"
+        description="View your upcoming bookings, ticket details, and event access."
+      >
+        <SiteButton type="button" onClick={() => refetch()} disabled={isLoading} variant="secondary" size="sm" icon={null}>
+          Refresh Tickets
+        </SiteButton>
+      </SitePageHeader>
 
-      <section className="mx-auto max-w-[1200px] px-6 py-10 lg:py-14">
+      <section className="mx-auto max-w-5xl px-6 py-10 lg:px-8 lg:py-14">
+        {/* Stats Row */}
         <div className="mb-8 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-[#eadfcb] bg-white p-5">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C0A04C]">All tickets</p>
-            <p className="mt-2 text-3xl font-black text-[#3a1224]">{stats.all}</p>
-          </div>
-          <div className="rounded-2xl border border-[#eadfcb] bg-white p-5">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C0A04C]">Active</p>
-            <p className="mt-2 text-3xl font-black text-[#3a1224]">{stats.active}</p>
-          </div>
-          <div className="rounded-2xl border border-[#eadfcb] bg-white p-5">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C0A04C]">Past/other</p>
-            <p className="mt-2 text-3xl font-black text-[#3a1224]">{stats.inactive}</p>
-          </div>
+          <StatCard label="All tickets" value={stats.all} />
+          <StatCard label="Active" value={stats.active} />
+          <StatCard label="Past/other" value={stats.inactive} />
         </div>
 
-        <div className="mb-8 flex flex-wrap gap-2 rounded-2xl border border-[#eadfcb] bg-white p-2">
+        {/* Filters */}
+        <div className="mb-8 flex flex-wrap gap-2 rounded-xl border border-[var(--color-sand)] bg-white p-2">
           {STATUS_OPTIONS.map((option) => (
             <button
               key={option.label}
               type="button"
               onClick={() => setStatusFilter(option.value)}
-              className={`cursor-pointer rounded-xl px-4 py-2 text-xs font-black uppercase tracking-[0.14em] transition ${
+              className={`cursor-pointer rounded-lg px-4 py-2 text-xs font-black uppercase tracking-[0.14em] transition ${
                 statusFilter === option.value
-                  ? "bg-[#3a1224] text-white"
-                  : "text-[#3a1224]/65 hover:bg-[#FDFCFB]"
+                  ? "bg-[var(--color-wine)] text-white"
+                  : "text-[var(--color-stone)] hover:bg-[var(--color-ivory)] hover:text-[var(--color-wine)]"
               }`}
             >
               {option.label}
@@ -155,122 +137,132 @@ export default function TicketsPage() {
           ))}
         </div>
 
+        {/* Content */}
         {isLoading ? (
           <TicketsSkeleton />
         ) : filtered.length === 0 ? (
-          <div className="rounded-[2rem] border border-dashed border-[#eadfcb] bg-white px-6 py-20 text-center shadow-[0_22px_70px_-50px_rgba(58,18,36,0.35)]">
+          <SiteCard className="border-dashed px-6 py-20 text-center">
             <p className="text-4xl">🎟️</p>
-            <h2 className="mt-5 text-2xl font-black text-[#3a1224]">No tickets yet</h2>
-            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#3a1224]/65">
+            <h2 className="mt-5 text-xl font-black text-[var(--color-wine)]">No tickets yet</h2>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[var(--color-stone)]">
               Your booked tickets will appear here after you reserve an event.
             </p>
-            <Link
-              href={ROUTES.SITE.EVENTS}
-              className="mt-7 inline-flex cursor-pointer justify-center rounded-full bg-[#3a1224] px-6 py-3 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#4b1830]"
-            >
-              Browse Events
-            </Link>
-          </div>
+            <div className="mt-8">
+              <SiteButton href={ROUTES.SITE.EVENTS}>
+                Browse Events
+              </SiteButton>
+            </div>
+          </SiteCard>
         ) : (
-          <div className="grid gap-5">
+          <div className="grid gap-6">
             {filtered.map((ticket) => {
               const event = ticket.eventId || {};
               const ticketType = ticket.ticketTypeId || {};
               const hall = event?.hallId || {};
 
               return (
-                <article key={ticket._id} className="grid gap-0 overflow-hidden rounded-[2rem] border border-[#eadfcb] bg-white shadow-[0_18px_60px_-48px_rgba(58,18,36,0.45)] lg:grid-cols-[260px_minmax(0,1fr)]">
-                  <div className="bg-[#3a1224] p-6 text-center text-white">
-                    <div className="mx-auto inline-block rounded-2xl bg-white p-4">
+                <SiteCard as="article" key={ticket._id} className="grid overflow-hidden lg:grid-cols-[240px_minmax(0,1fr)]">
+                  {/* QR Section */}
+                  <div className="flex flex-col items-center justify-center bg-[var(--color-wine)] p-6 text-white lg:border-r lg:border-[var(--color-wine-hover)]">
+                    <div className="rounded-xl bg-white p-4">
                       <QRCodeCanvas
                         id={`qr-${ticket._id}`}
                         value={ticket.qrCodeValue || ""}
-                        size={148}
+                        size={132}
                         includeMargin={false}
                         level="H"
                       />
                     </div>
-                    <p className="mt-5 text-[10px] font-black uppercase tracking-[0.24em] text-[#C0A04C]">Entry QR</p>
-                    <div className="mt-4 grid grid-cols-2 gap-2">
+                    <p className="mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-champagne)]">
+                      Entry QR
+                    </p>
+                    <div className="mt-4 grid w-full grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => handleDownloadQr(ticket._id)}
-                        className="cursor-pointer rounded-xl border border-white/15 bg-white/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.12em] text-white transition hover:bg-white/15"
+                        className="cursor-pointer rounded-lg border border-white/20 bg-white/10 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-white transition hover:bg-white/20"
                       >
                         Download
                       </button>
                       <button
                         type="button"
                         onClick={() => handleCopyCode(ticket.qrCodeValue)}
-                        className="cursor-pointer rounded-xl border border-white/15 bg-white/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.12em] text-white transition hover:bg-white/15"
+                        className="cursor-pointer rounded-lg border border-white/20 bg-white/10 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-white transition hover:bg-white/20"
                       >
                         Copy
                       </button>
                     </div>
                   </div>
 
+                  {/* Details Section */}
                   <div className="p-6 sm:p-8">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <StatusBadge status={ticket.status} />
-                        <h2 className="mt-4 text-2xl font-black leading-tight text-[#3a1224] sm:text-3xl">
+                        <h2 className="mt-4 text-xl font-black leading-tight text-[var(--color-wine)] sm:text-2xl">
                           {event.name || "Event ticket"}
                         </h2>
-                        <p className="mt-2 text-sm font-black uppercase tracking-[0.18em] text-[#C0A04C]">
+                        <p className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-[var(--color-champagne)]">
                           {ticketType.name || "Access pass"}
                         </p>
                       </div>
-                      <div className="rounded-2xl border border-[#eadfcb] bg-[#FDFCFB] px-5 py-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C0A04C]">Price</p>
-                        <p className="mt-1 text-lg font-black text-[#3a1224]">NPR {Number(ticketType.price || 0).toLocaleString()}</p>
+                      <div className="rounded-xl border border-[var(--color-sand)] bg-[var(--color-ivory)] px-4 py-3 text-right">
+                        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[var(--color-stone)]">Price</p>
+                        <p className="mt-1 text-base font-black text-[var(--color-wine)]">NPR {Number(ticketType.price || 0).toLocaleString()}</p>
                       </div>
                     </div>
 
-                    <div className="mt-6 grid gap-3 md:grid-cols-3">
-                      <div className="rounded-2xl bg-[#FDFCFB] p-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C0A04C]">📅 Date</p>
-                        <p className="mt-2 text-sm font-bold leading-6 text-[#3a1224]">{formatDateTime(event.startDateTime)}</p>
+                    <div className="mt-6 grid gap-4 border-y border-[var(--color-sand)] py-6 sm:grid-cols-3">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-stone)]">Date & Time</p>
+                        <p className="mt-2 text-sm font-bold leading-6 text-[var(--color-wine)]">{formatDateTime(event.startDateTime)}</p>
                       </div>
-                      <div className="rounded-2xl bg-[#FDFCFB] p-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C0A04C]">📍 Venue</p>
-                        <p className="mt-2 text-sm font-bold leading-6 text-[#3a1224]">{hall.name || "Venue"}</p>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-stone)]">Venue</p>
+                        <p className="mt-2 text-sm font-bold leading-6 text-[var(--color-wine)]">{hall.name || "Venue"}</p>
                       </div>
-                      <div className="rounded-2xl bg-[#FDFCFB] p-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C0A04C]">✅ Entry</p>
-                        <p className="mt-2 text-sm font-bold leading-6 text-[#3a1224]">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-stone)]">Status</p>
+                        <p className="mt-2 text-sm font-bold leading-6 text-[var(--color-wine)]">
                           {ticket.checkedInAt ? `Entered ${formatDateTime(ticket.checkedInAt)}` : "Not checked in"}
                         </p>
                       </div>
                     </div>
 
-                    <div className="mt-6 flex flex-col gap-4 border-t border-[#eadfcb] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#3a1224]/45">Entry code</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-stone)]">Entry code</p>
                         <button
                           type="button"
                           onClick={() => handleCopyCode(ticket.qrCodeValue)}
-                          className="mt-1 cursor-pointer break-all text-left font-mono text-xs font-bold text-[#3a1224]/70 transition hover:text-[#3a1224]"
+                          className="mt-1 cursor-pointer break-all text-left font-mono text-xs font-bold text-[var(--color-stone)] transition hover:text-[var(--color-wine)]"
                         >
                           {ticket.qrCodeValue || "No code available"}
                         </button>
                       </div>
 
                       {event._id ? (
-                        <Link
-                          href={ROUTES.SITE.EVENT_DETAIL(event._id)}
-                          className="inline-flex cursor-pointer justify-center rounded-full bg-[#3a1224] px-5 py-3 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#4b1830]"
-                        >
+                        <SiteButton href={ROUTES.SITE.EVENT_DETAIL(event._id)} variant="secondary" size="sm" icon={null}>
                           View Event
-                        </Link>
+                        </SiteButton>
                       ) : null}
                     </div>
                   </div>
-                </article>
+                </SiteCard>
               );
             })}
           </div>
         )}
       </section>
     </main>
+  );
+}
+
+function StatCard({ label, value }) {
+  return (
+    <SiteCard className="p-5">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-stone)]">{label}</p>
+      <p className="mt-2 text-2xl font-black text-[var(--color-wine)]">{value}</p>
+    </SiteCard>
   );
 }

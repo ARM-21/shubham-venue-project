@@ -14,51 +14,37 @@ const images = [
 
 export default function Home() {
   return (
-    <main className="flex flex-col overflow-hidden bg-[var(--color-ivory)]">
-      <section id="hero" className="relative flex flex-col">
-        <Hero images={images} interval={4000} />
-      </section>
+    <main className="flex flex-col bg-white">
+      <Hero images={images} interval={4000} />
 
-      <section id="venues" className="relative bg-[var(--color-ivory)] py-14 sm:py-16 lg:py-20">
+      <section className="bg-white py-14 sm:py-16 lg:py-20">
         <div className="site-container">
-          <SiteSectionHeader
-            eyebrow="Venue Selection"
-            title="Featured Venues"
-            description="Compare verified halls with clear capacity, location, and starting price before opening the full venue details."
-            action={<SiteButton href={ROUTES.SITE.VENUES()} variant="secondary">Browse venues</SiteButton>}
-          />
           <FeaturedVenues />
         </div>
       </section>
 
       <BookingProcess />
 
-      <section id="events" className="bg-[#fbf7f0] py-14 sm:py-16 lg:py-20">
+      <section className="bg-white py-14 sm:py-16 lg:py-20">
         <div className="site-container">
           <UpcomingEvents />
         </div>
       </section>
 
-      <section id="menus" className="border-y border-[var(--color-sand)] bg-white py-14 sm:py-16 lg:py-20">
+      <section className="border-y border-[var(--color-sand)] bg-white py-14 sm:py-16 lg:py-20">
         <div className="site-container">
-          <SiteSectionHeader
-            eyebrow="Menu Packages"
-            title="Curated Menus"
-            description="Choose dependable food packages designed for celebration service, from intimate gatherings to full banquet experiences."
-            action={<SiteButton href={ROUTES.SITE.MENUS} variant="secondary">Explore menus</SiteButton>}
-          />
           <Menus />
         </div>
       </section>
 
-      <section className="bg-[var(--color-ivory)] px-4 py-14 sm:py-16 lg:py-20">
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 rounded-3xl border border-[var(--color-champagne)]/20 bg-[linear-gradient(135deg,#3a1224_0%,#210b15_100%)] p-7 text-white shadow-[0_28px_80px_-54px_rgba(58,18,36,0.8)] sm:p-10 lg:flex-row lg:items-center">
-          <div className="max-w-2xl">
-            <p className="site-eyebrow mb-3">Ready to plan?</p>
-            <h2 className="text-3xl font-black leading-tight tracking-normal sm:text-4xl">Find a date, choose a hall, and start your booking with confidence.</h2>
-            <p className="mt-4 text-sm leading-6 text-white/70 sm:text-base">Start with availability first so every venue, menu, and event detail feels easier to decide.</p>
+      <section className="bg-white px-4 py-14 sm:py-16 lg:py-20">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-6 rounded-[2rem] bg-[var(--color-wine)] px-6 py-10 text-center text-white sm:px-10 lg:flex-row lg:text-left">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-[var(--color-champagne)]">Ready to plan?</p>
+            <h2 className="mt-3 text-2xl font-black leading-tight sm:text-3xl">Find a date and pick a hall.</h2>
+            <p className="mt-3 text-sm text-white/72">Start with availability so every other decision falls into place.</p>
           </div>
-          <SiteButton href={ROUTES.SITE.SEARCH_AVAILABILITY()} variant="gold" size="lg">
+          <SiteButton href={ROUTES.SITE.SEARCH_AVAILABILITY()} variant="gold">
             Check availability
           </SiteButton>
         </div>

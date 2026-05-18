@@ -1,168 +1,164 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { ROUTES } from "config/routes";
-
-const values = [
-  {
-    title: "Clear Planning",
-    text: "Guests should know the venue, date, capacity, and menu options before making a decision.",
-  },
-  {
-    title: "Reliable Service",
-    text: "Every celebration deserves clean spaces, prepared staff, and smooth coordination.",
-  },
-  {
-    title: "Local Hospitality",
-    text: "We bring warm Nepali hospitality into a modern booking experience.",
-  },
-];
-
-const planningSteps = [
-  "Check date and guest count first",
-  "Compare suitable venues",
-  "Review menu packages",
-  "Start booking with guided support",
-];
-
-const stats = [
-  { value: "10+", label: "Years Active", text: "Years of hospitality experience" },
-  { value: "5000+", label: "Happy Guests", text: "Guests served across celebrations" },
-  { value: "100%", label: "Trusted", text: "Focus on reliable service" },
-  { value: "Elite", label: "Service", text: "Event support experience" },
-];
-
-const reasons = [
-  "Guided booking flow",
-  "Venue and menu clarity",
-  "Event-ready spaces",
-  "Friendly local support",
-  "Suitable for weddings, parties, meetings, and gatherings",
-];
+import { SitePageHeader, SiteCard, SiteButton, cn } from "components/site/SitePrimitives.jsx";
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen bg-[#FDFCFB]">
-      <section className="relative overflow-hidden bg-[#3a1224] px-6 pb-12 pt-44 text-white">
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#FDFCFB] to-transparent" />
-        <div className="relative mx-auto grid max-w-[1180px] gap-10 lg:grid-cols-[minmax(0,1fr)_440px] lg:items-center">
+    <main className="min-h-screen bg-white">
+      {/* ── Hero ──────────────────────────────────────────────── */}
+      <SitePageHeader
+        eyebrow="About Shubham Venue"
+        title="Helping every celebration find the right place."
+      >
+        <div className="mt-8 grid gap-8 border-t border-white/20 pt-8 sm:grid-cols-3 sm:gap-12 lg:mt-12 lg:pt-12">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.34em] text-[#C0A04C]">About Shubham Venue</p>
-            <h1 className="mt-6 max-w-4xl text-4xl font-black leading-[1.03] tracking-tight sm:text-5xl lg:text-6xl">
-              Helping Every Celebration Find the Right Place
-            </h1>
-            <p className="mt-6 max-w-2xl text-base leading-7 text-white/78 sm:text-lg">
-              From weddings and engagements to meetings and family gatherings, Shubham Venue helps people plan with more clarity, confidence, and care.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href={ROUTES.SITE.VENUES()} className="inline-flex cursor-pointer justify-center rounded-full bg-[#C0A04C] px-7 py-3.5 text-xs font-black uppercase tracking-[0.16em] text-[#3a1224] transition hover:bg-[#d8bc64]">
-                Explore Venues
-              </Link>
-              <Link href="/contact" className="inline-flex cursor-pointer justify-center rounded-full border border-white/20 bg-white/10 px-7 py-3.5 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-white/15">
-                Contact Us
-              </Link>
+            <p className="text-2xl font-black text-[var(--color-champagne)]">Since 2015</p>
+            <p className="mt-2 text-sm font-medium leading-6 text-white/80">Operating in Waling, Syangja</p>
+          </div>
+          <div>
+            <p className="text-2xl font-black text-[var(--color-champagne)]">5,000+</p>
+            <p className="mt-2 text-sm font-medium leading-6 text-white/80">Guests served across celebrations</p>
+          </div>
+          <div>
+            <p className="text-2xl font-black text-[var(--color-champagne)]">One platform</p>
+            <p className="mt-2 text-sm font-medium leading-6 text-white/80">Venue, menu, booking — all in one place</p>
+          </div>
+        </div>
+      </SitePageHeader>
+
+      {/* ── Story ─────────────────────────────────────────────── */}
+      <section className="site-container py-16 lg:py-24">
+        <div className="grid gap-16 lg:grid-cols-[1fr_420px] lg:items-start">
+          <div className="max-w-2xl">
+            <p className="site-eyebrow mb-4">How it started</p>
+            <h2 className="site-heading text-[var(--color-wine)]">
+              Venue planning used to mean calls, guesswork, and uncertainty.
+            </h2>
+            <div className="mt-6 space-y-6 text-base leading-8 text-[var(--color-stone)]">
+              <p>
+                Planning an event usually meant calling different halls, asking about dates and availability, 
+                comparing prices without clear context, and hoping nothing was missed before the deposit was paid. 
+                Shubham Venue was created to fix that.
+              </p>
+              <p>
+                We bring venue details, real availability, menu packages, and a guided booking flow into one 
+                experience — so families and organizers can plan with confidence instead of confusion.
+              </p>
+              <p>
+                From weddings and engagements to corporate dinners and family gatherings, the platform 
+                is built around the questions people actually ask first.
+              </p>
+            </div>
+            <div className="mt-10 flex flex-wrap gap-4">
+              <SiteButton href={ROUTES.SITE.VENUES()} icon={null}>
+                Browse Venues
+              </SiteButton>
+              <SiteButton href={ROUTES.SITE.SEARCH_AVAILABILITY()} variant="secondary" icon={null}>
+                Check Availability
+              </SiteButton>
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-white/15 bg-white/10 p-3 shadow-[0_30px_90px_-55px_rgba(0,0,0,0.8)]">
-            <div className="relative aspect-[4/3] overflow-hidden rounded-[1.5rem] bg-[#2a0d1a]">
+          <div className="relative">
+            <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-[var(--color-pearl)] border border-[var(--color-sand)]">
               <Image
-                src="/assets/business-images/business-images-carousel/hall2.jpg"
-                alt="Shubham Venue event hall atmosphere"
+                src="/assets/business-images/placeholder2.jpg"
+                alt="Shubham Venue event hall"
                 fill
-                priority
                 className="object-cover"
-                sizes="(min-width: 1024px) 440px, 100vw"
+                sizes="(max-width: 1024px) 100vw, 420px"
+                priority
               />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#3a1224]/90 to-transparent p-5">
-                <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#C0A04C]">Venue atmosphere</p>
-                <p className="mt-2 text-lg font-black text-white">Prepared spaces for memorable events</p>
-              </div>
             </div>
-          </div>
-
-          <div className="lg:col-span-2">
-            <div className="grid gap-3 rounded-[1.5rem] border border-white/15 bg-white/10 p-4 text-center text-xs font-black uppercase tracking-[0.18em] text-white/82 backdrop-blur sm:grid-cols-3">
-              <span>Since 2015</span>
-              <span>Waling, Syangja</span>
-              <span>Trusted Event Support</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-[1180px] px-6 py-14 lg:py-20">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_390px] lg:items-start">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#C0A04C]">Built Around Real Celebrations</p>
-            <h2 className="mt-4 text-3xl font-black leading-tight text-[#3a1224] sm:text-4xl">
-              Venue planning should feel clear from the beginning.
-            </h2>
-            <div className="mt-6 space-y-5 text-base leading-8 text-[#3a1224]/70">
-              <p>
-                Planning an event usually means calling different places, asking about dates, comparing prices, checking food options, and hoping nothing is missed. Shubham Venue was created to make this process clearer.
+            <div className="mt-6 border-l-2 border-[var(--color-champagne)] pl-5">
+              <p className="text-sm font-medium italic leading-relaxed text-[var(--color-stone)]">
+                "A good venue is not just a space. It becomes part of the memory."
               </p>
-              <p>
-                We bring venue details, availability, menus, and booking steps into one guided experience so customers can plan with confidence.
+              <p className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-wine)]/50">
+                — Shubham Venue team
               </p>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="rounded-[2rem] border border-[#eadfcb] bg-white p-7 shadow-[0_22px_70px_-50px_rgba(58,18,36,0.35)]">
-            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#C0A04C]">Our view</p>
-            <blockquote className="mt-4 text-2xl font-black leading-tight text-[#3a1224]">
-              A good venue is not just a space. It becomes part of the memory.
-            </blockquote>
+      {/* ── What we stand for ─────────────────────────────────── */}
+      <section className="border-y border-[var(--color-sand)] bg-white py-16 lg:py-24">
+        <div className="site-container">
+          <div className="grid gap-12 lg:grid-cols-[280px_1fr] lg:items-start">
+            <div>
+              <p className="site-eyebrow mb-4">What we believe</p>
+              <h2 className="site-heading text-[var(--color-wine)]">
+                Simple standards that shape every booking.
+              </h2>
+            </div>
+            <div className="grid gap-8 sm:grid-cols-3">
+              <BeliefCard 
+                title="Clear Planning" 
+                desc="Guests should know the venue, date, capacity, and menu options before making a decision." 
+              />
+              <BeliefCard 
+                title="Reliable Service" 
+                desc="Every celebration deserves clean spaces, prepared staff, and smooth coordination on the day." 
+              />
+              <BeliefCard 
+                title="Local Hospitality" 
+                desc="We bring warm Nepali hospitality into a modern booking experience built for local celebrations." 
+              />
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="border-y border-[#eadfcb] bg-white px-6 py-14 lg:py-16">
-        <div className="mx-auto max-w-[1180px]">
-          <div className="mb-8 max-w-2xl">
-            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#C0A04C]">What We Believe</p>
-            <h2 className="mt-4 text-3xl font-black text-[#3a1224]">Simple standards that shape the experience.</h2>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {values.map((item) => (
-              <div key={item.title} className="rounded-2xl border border-[#eadfcb] bg-[#FDFCFB] p-6 transition hover:-translate-y-1 hover:border-[#C0A04C] hover:bg-white hover:shadow-[0_18px_55px_-48px_rgba(58,18,36,0.45)]">
-                <h3 className="text-xl font-black text-[#3a1224]">{item.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-[#3a1224]/65">{item.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-[1180px] px-6 py-14 lg:py-20">
-        <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#C0A04C]">More Than a Hall Booking</p>
-            <h2 className="mt-4 text-3xl font-black text-[#3a1224] sm:text-4xl">
-              A guided path from planning to booking.
+      {/* ── How it works ──────────────────────────────────────── */}
+      <section className="site-container py-16 lg:py-24">
+        <div className="grid gap-16 lg:grid-cols-[1fr_1fr] lg:items-start">
+          <div className="max-w-xl">
+            <p className="site-eyebrow mb-4">The booking flow</p>
+            <h2 className="site-heading text-[var(--color-wine)]">
+              A guided path from planning to confirmation.
             </h2>
-            <p className="mt-5 text-base leading-8 text-[#3a1224]/68">
-              The experience is designed around the questions people ask first: date, capacity, venue fit, food, and next steps.
+            <p className="mt-6 text-base leading-8 text-[var(--color-stone)]">
+              The platform is designed around the questions people ask first: date, guest count, 
+              venue fit, food options, and what happens next.
             </p>
           </div>
 
-          <div className="relative grid gap-4">
-            <div className="absolute bottom-6 left-6 top-6 hidden w-px bg-[#eadfcb] sm:block" />
-            {planningSteps.map((step, index) => (
-              <div key={step} className="relative grid gap-4 rounded-2xl border border-[#eadfcb] bg-white p-5 shadow-[0_16px_45px_-42px_rgba(58,18,36,0.4)] sm:grid-cols-[48px_minmax(0,1fr)]">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#3a1224] text-sm font-black text-[#C0A04C]">
-                  {String(index + 1).padStart(2, "0")}
-                </div>
+          <div className="flex flex-col">
+            {[
+              {
+                step: "01",
+                title: "Check date and guest count",
+                desc: "Start with the details that decide whether a venue can work for your event.",
+              },
+              {
+                step: "02",
+                title: "Compare suitable venues",
+                desc: "Browse halls that match the occasion, your guest list size, and your budget.",
+              },
+              {
+                step: "03",
+                title: "Review menu packages",
+                desc: "Understand food options and catering details before going further.",
+              },
+              {
+                step: "04",
+                title: "Book with guided support",
+                desc: "Move forward with clearer information and direct confirmation from the team.",
+              },
+            ].map((item) => (
+              <div
+                key={item.step}
+                className="flex gap-6 border-b border-[var(--color-sand)] py-6 first:pt-0 last:border-0 last:pb-0"
+              >
+                <span className="mt-0.5 shrink-0 text-sm font-black text-[var(--color-champagne)]">
+                  {item.step}
+                </span>
                 <div>
-                  <p className="text-sm font-black text-[#3a1224]">{step}</p>
-                  <p className="mt-1 text-sm leading-6 text-[#3a1224]/60">
-                    {index === 0 && "Start with the details that decide whether a venue can work."}
-                    {index === 1 && "Look at halls that match the occasion, guests, and budget."}
-                    {index === 2 && "Understand food options before moving further into booking."}
-                    {index === 3 && "Continue with clearer information and fewer assumptions."}
-                  </p>
+                  <p className="text-base font-black text-[var(--color-wine)]">{item.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--color-stone)]">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -170,67 +166,30 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="bg-[#3a1224] px-6 py-14 text-white lg:py-16">
-        <div className="mx-auto max-w-[1180px]">
-          <div className="mb-8 max-w-2xl">
-            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#C0A04C]">Trust and Numbers</p>
-            <h2 className="mt-4 text-3xl font-black">A track record built through service.</h2>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {stats.map((item) => (
-              <div key={item.label} className="rounded-2xl border border-white/15 bg-white/10 p-6">
-                <p className="text-4xl font-black text-[#C0A04C]">{item.value}</p>
-                <p className="mt-3 text-sm font-black uppercase tracking-[0.16em] text-white">{item.label}</p>
-                <p className="mt-2 text-sm leading-6 text-white/66">{item.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-[1180px] px-6 py-14 lg:py-20">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_390px] lg:items-stretch">
-          <div className="rounded-[2rem] border border-[#eadfcb] bg-white p-7 shadow-[0_22px_70px_-50px_rgba(58,18,36,0.35)] sm:p-8">
-            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#C0A04C]">Local Identity</p>
-            <h2 className="mt-4 text-3xl font-black leading-tight text-[#3a1224]">
-              Rooted in Waling, Made for Memorable Events
-            </h2>
-            <p className="mt-5 text-base leading-8 text-[#3a1224]/68">
-              Shubham Venue is proudly based in Waling, Syangja. We understand local celebrations, family expectations, food preferences, and the importance of smooth coordination. Our goal is to make event planning easier while keeping the warmth of local hospitality.
-            </p>
-          </div>
-
-          <div className="rounded-[2rem] border border-[#eadfcb] bg-[#fbf7ef] p-7">
-            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#C0A04C]">Visit and contact</p>
-            <div className="mt-5 space-y-4 text-sm font-bold leading-6 text-[#3a1224]">
-              <p>Address: Waling, Syangja, Gandaki Province, Nepal</p>
-              <p>Phone: +977 9812345678</p>
-              <p>Support: venue booking, event enquiry, and organizer questions</p>
+      {/* ── Track record ─────────────────────────────────────── */}
+      <section className="bg-[var(--color-wine)] py-16 text-white lg:py-24">
+        <div className="site-container">
+          <div className="flex flex-col gap-12 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-champagne)] mb-4">
+                Track record
+              </p>
+              <h2 className="text-3xl font-black leading-tight sm:text-4xl">
+                A platform built through years of hospitality service.
+              </h2>
             </div>
-            <Link href="/contact" className="mt-7 inline-flex cursor-pointer justify-center rounded-full bg-[#3a1224] px-6 py-3 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#4b1830]">
-              Contact Us
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-y border-[#eadfcb] bg-white px-6 py-14 lg:py-16">
-        <div className="mx-auto grid max-w-[1180px] gap-8 lg:grid-cols-[0.85fr_1.15fr]">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#C0A04C]">Why Choose Us</p>
-            <h2 className="mt-4 text-3xl font-black text-[#3a1224]">Why People Choose Shubham Venue</h2>
-            <p className="mt-5 text-base leading-8 text-[#3a1224]/68">
-              People choose Shubham Venue because the important details are easier to compare and the next step is clear.
-            </p>
-          </div>
-
-          <div className="rounded-[2rem] border border-[#eadfcb] bg-[#FDFCFB] p-6 sm:p-7">
-            <div className="space-y-3">
-              {reasons.map((reason, index) => (
-                <div key={reason} className="grid grid-cols-[40px_minmax(0,1fr)] items-center gap-4 rounded-2xl bg-white p-4">
-                  <span className="text-xs font-black text-[#C0A04C]">{String(index + 1).padStart(2, "0")}</span>
-                  <p className="text-sm font-bold text-[#3a1224]">{reason}</p>
+            <div className="grid grid-cols-2 gap-x-12 gap-y-10 sm:grid-cols-4 lg:gap-x-16">
+              {[
+                { value: "10+", label: "Years active" },
+                { value: "5,000+", label: "Guests served" },
+                { value: "3", label: "Venue halls" },
+                { value: "2015", label: "Founded" },
+              ].map((item) => (
+                <div key={item.label}>
+                  <p className="text-4xl font-black text-[var(--color-champagne)]">{item.value}</p>
+                  <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
+                    {item.label}
+                  </p>
                 </div>
               ))}
             </div>
@@ -238,25 +197,97 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1180px] px-6 py-14 lg:py-20">
-        <div className="rounded-[2rem] border border-[#eadfcb] bg-[#fbf7ef] p-7 text-center shadow-[0_22px_70px_-50px_rgba(58,18,36,0.35)] sm:p-10">
-          <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#C0A04C]">Start planning</p>
-          <h2 className="mx-auto mt-4 max-w-3xl text-3xl font-black leading-tight text-[#3a1224] sm:text-4xl">
-            Ready to Plan Your Event with Confidence?
-          </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#3a1224]/68">
-            Start with your date, guest count, and preferred venue style. Shubham Venue will help you move from planning to celebration with less confusion.
-          </p>
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link href={ROUTES.SITE.SEARCH_AVAILABILITY()} className="inline-flex cursor-pointer justify-center rounded-full bg-[#3a1224] px-7 py-3.5 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#4b1830]">
-              Check Availability
-            </Link>
-            <Link href="/contact" className="inline-flex cursor-pointer justify-center rounded-full border border-[#eadfcb] bg-white px-7 py-3.5 text-xs font-black uppercase tracking-[0.16em] text-[#3a1224] transition hover:border-[#C0A04C]">
-              Contact Us
-            </Link>
+      {/* ── Local identity + contact ──────────────────────────── */}
+      <section className="bg-white border-t border-[var(--color-sand)]">
+        <div className="site-container py-16 lg:py-24">
+          <div className="grid gap-16 lg:grid-cols-[1fr_380px] lg:items-start">
+            <div className="max-w-2xl">
+              <p className="site-eyebrow mb-4">Rooted locally</p>
+              <h2 className="site-heading text-[var(--color-wine)]">
+                Based in Waling, built for Nepali celebrations.
+              </h2>
+              <p className="mt-6 text-base leading-8 text-[var(--color-stone)]">
+                Shubham Venue is proudly based in Waling, Syangja. We understand local celebrations, 
+                family expectations, food preferences, and how important smooth coordination is on the day. 
+                Our goal is to make event planning easier while keeping the warmth of local hospitality intact.
+              </p>
+
+              <div className="mt-12">
+                <p className="site-eyebrow mb-6">Why people choose us</p>
+                <ul className="space-y-4">
+                  {[
+                    "Guided booking flow with clear next steps",
+                    "Transparent venue and menu information",
+                    "Event-ready spaces for any occasion",
+                    "Friendly, responsive local support",
+                    "Suitable for weddings, parties, meetings, and gatherings",
+                  ].map((reason) => (
+                    <li key={reason} className="flex items-start gap-4 text-sm font-semibold leading-6 text-[var(--color-stone)]">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-champagne)]" />
+                      {reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <aside className="sticky top-24 space-y-6">
+              <SiteCard className="p-6 sm:p-8">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-stone)]">
+                  Visit and contact
+                </p>
+                <div className="mt-6 space-y-5">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[var(--color-stone)]/70">Address</p>
+                    <p className="mt-1 text-sm font-bold text-[var(--color-wine)]">
+                      Waling, Syangja, Gandaki Province, Nepal
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[var(--color-stone)]/70">Phone</p>
+                    <p className="mt-1 text-sm font-bold text-[var(--color-wine)]">+977 9812345678</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[var(--color-stone)]/70">Support</p>
+                    <p className="mt-1 text-sm font-medium text-[var(--color-stone)]">
+                      Venue booking, event enquiry, organizer questions
+                    </p>
+                  </div>
+                </div>
+                <SiteButton href="/contact" className="mt-8 w-full" icon={null}>
+                  Contact Us
+                </SiteButton>
+              </SiteCard>
+
+              <SiteCard className="bg-white p-6 sm:p-8">
+                <p className="text-lg font-black text-[var(--color-wine)]">Ready to start planning?</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--color-stone)]">
+                  Enter your date and guest count to see what&apos;s available.
+                </p>
+                <SiteButton 
+                  href={ROUTES.SITE.SEARCH_AVAILABILITY()} 
+                  variant="secondary" 
+                  className="mt-6 w-full" 
+                  icon={null}
+                >
+                  Check Availability
+                </SiteButton>
+              </SiteCard>
+            </aside>
           </div>
         </div>
       </section>
     </main>
+  );
+}
+
+function BeliefCard({ title, desc }) {
+  return (
+    <div className="border-t-2 border-[var(--color-champagne)] pt-6">
+      <h3 className="text-lg font-black text-[var(--color-wine)]">{title}</h3>
+      <p className="mt-3 text-sm leading-7 text-[var(--color-stone)]">
+        {desc}
+      </p>
+    </div>
   );
 }

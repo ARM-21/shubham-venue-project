@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowRight, BadgeCheck, MapPin, Search, SlidersHorizontal, Users } from "lucide-react";
 import { useQueryHallsPublic } from "@queries/customer/halls-public";
 import { ROUTES } from "config/routes";
-import { SiteEmptyState, cn, resolveImage } from "components/site/SitePrimitives.jsx";
+import { SitePageHeader, SiteCard, SiteButton, SiteEmptyState, cn, resolveImage } from "components/site/SitePrimitives.jsx";
 
 const FALLBACK_IMAGE = "/assets/business-images/placeholder2.jpg";
 
@@ -75,80 +75,71 @@ export default function VenuesPage() {
 
   if (isLoading && hallsList.length === 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#3a1224]">
-        <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-[#e8dcc8] border-t-[#C0A04C]" />
-      </div>
+      <main className="min-h-screen bg-[var(--color-ivory)]">
+        <SitePageHeader title="Loading venues..." />
+        <div className="site-container py-12">
+           <div className="grid gap-6 lg:grid-cols-[260px_1fr] lg:items-start">
+              <div className="h-64 animate-pulse rounded-2xl border border-[var(--color-sand)] bg-white" />
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                 {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="h-80 animate-pulse rounded-2xl border border-[var(--color-sand)] bg-white" />
+                 ))}
+              </div>
+           </div>
+        </div>
+      </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#fdfaf6]">
-      {/* Hero */}
-      <section className="relative isolate overflow-hidden bg-[#3a1224] pb-14 pt-40">
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#fdfaf6] to-transparent" />
-        <div className="site-container relative z-10">
-          <p className="text-[10px] font-black uppercase tracking-[0.38em] text-[#C0A04C]">
-            Venues
-          </p>
-          <h1 className="mt-3 max-w-2xl text-3xl font-black leading-tight text-white sm:text-4xl">
-            Browse and compare celebration halls
-          </h1>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-white/60">
-            Every hall is verified. Filter by budget and capacity below, or check availability for a specific date.
-          </p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            <Link
-              href={ROUTES.SITE.SEARCH_AVAILABILITY()}
-              className="flex h-11 items-center rounded-2xl bg-[#C0A04C] px-5 text-[11px] font-black uppercase tracking-[0.18em] text-[#3a1224] transition hover:bg-[#d2b95f]"
-            >
-              Check availability
-            </Link>
-            <a
-              href="#venue-results"
-              className="flex h-11 items-center rounded-2xl border border-white/20 bg-white/10 px-5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-white/15"
-            >
-              Browse all
-            </a>
-          </div>
-        </div>
-      </section>
+    <main className="min-h-screen bg-[var(--color-ivory)]">
+      <SitePageHeader
+        eyebrow="Venues"
+        title="Browse and compare celebration halls"
+        description="Every hall is verified. Filter by budget and capacity below, or check availability for a specific date."
+      >
+         <div className="mt-8 flex flex-wrap gap-4">
+             <SiteButton href={ROUTES.SITE.SEARCH_AVAILABILITY()} variant="gold" icon={null}>
+               Check Availability
+             </SiteButton>
+         </div>
+      </SitePageHeader>
 
-      {/* Results */}
       <section id="venue-results" className="site-container py-12">
         {hallsError && (
-          <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+          <div className="mb-8 rounded-md border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
             Could not load venues right now. Please try again.
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-[260px_1fr] lg:items-start">
+        <div className="grid gap-8 lg:grid-cols-[260px_1fr] lg:items-start">
           {/* Filters sidebar */}
-          <aside className="h-fit rounded-2xl border border-[#e8dcc8] bg-white p-5 lg:sticky lg:top-24">
+          <aside className="sticky top-24 h-fit rounded-2xl border border-[var(--color-sand)] bg-white p-6 shadow-[var(--shadow-soft)]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-[#C0A04C]" />
-                <p className="text-sm font-black text-[#3a1224]">
+                <SlidersHorizontal className="h-4 w-4 text-[var(--color-champagne)]" />
+                <p className="text-sm font-black text-[var(--color-wine)]">
                   {isLoading ? "Loading…" : `${processedHalls.length} venue${processedHalls.length === 1 ? "" : "s"}`}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handleReset}
-                className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C0A04C] transition hover:text-[#3a1224]"
+                className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-champagne)] transition hover:text-[var(--color-wine)]"
               >
                 Reset
               </button>
             </div>
 
             {/* Capacity */}
-            <div className="mt-5 space-y-1.5 border-t border-[#e8dcc8] pt-5">
-              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#3a1224]/50">
+            <div className="mt-6 space-y-2 border-t border-[var(--color-sand)] pt-6">
+              <label className="block text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-stone)]">
                 Capacity
               </label>
               <select
                 value={filters.capacity}
                 onChange={handleCapacityChange}
-                className="w-full rounded-2xl border border-[#e8dcc8] bg-[#fbf8f2] px-4 py-2.5 text-sm font-medium text-[#3a1224] outline-none transition focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/15"
+                className="w-full rounded-md border border-[var(--color-sand)] bg-[var(--color-ivory)] px-4 py-2.5 text-sm font-semibold text-[var(--color-wine)] outline-none transition focus:border-[var(--color-champagne)] focus:ring-1 focus:ring-[var(--color-champagne)]"
               >
                 {CAPACITY_OPTIONS.map((o) => (
                   <option key={o} value={o}>{o}</option>
@@ -157,26 +148,26 @@ export default function VenuesPage() {
             </div>
 
             {/* Sort */}
-            <div className="mt-5 border-t border-[#e8dcc8] pt-5">
-              <p className="mb-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#3a1224]/50">
+            <div className="mt-6 border-t border-[var(--color-sand)] pt-6">
+              <p className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-stone)]">
                 Sort by
               </p>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {SORT_OPTIONS.map((opt) => (
                   <button
                     key={opt.id}
                     type="button"
                     onClick={() => setSortBy(opt.id)}
                     className={cn(
-                      "flex w-full items-center justify-between rounded-2xl border px-4 py-2.5 text-sm font-bold transition",
+                      "flex w-full items-center justify-between rounded-md border px-4 py-2.5 text-sm font-bold transition",
                       sortBy === opt.id
-                        ? "border-[#3a1224] bg-[#3a1224] text-[#C0A04C]"
-                        : "border-[#e8dcc8] bg-[#fbf8f2] text-[#3a1224] hover:border-[#C0A04C]/50"
+                        ? "border-[var(--color-wine)] bg-[var(--color-wine)] text-[var(--color-champagne)]"
+                        : "border-[var(--color-sand)] bg-[var(--color-ivory)] text-[var(--color-wine)] hover:border-[var(--color-champagne)]"
                     )}
                   >
                     {opt.label}
                     {sortBy === opt.id && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#C0A04C]" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-champagne)]" />
                     )}
                   </button>
                 ))}
@@ -186,14 +177,14 @@ export default function VenuesPage() {
 
           {/* Grid */}
           <div>
-            <p className="mb-4 text-[10px] font-black uppercase tracking-[0.22em] text-[#3a1224]/45">
+            <p className="mb-6 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-stone)]">
               {isLoading
                 ? "Loading venues…"
                 : `${processedHalls.length} hall${processedHalls.length === 1 ? "" : "s"} found`}
             </p>
 
             {processedHalls.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {processedHalls.map((hall) => (
                   <VenueCard key={hall._id || hall.slug} hall={hall} />
                 ))}
@@ -204,13 +195,9 @@ export default function VenuesPage() {
                 title="No venues match your filters"
                 description="Try a different capacity range or increase your budget."
                 action={
-                  <button
-                    type="button"
-                    onClick={handleReset}
-                    className="flex h-10 items-center rounded-2xl border border-[#e8dcc8] bg-white px-5 text-[11px] font-black uppercase tracking-[0.18em] text-[#3a1224] transition hover:bg-[#f8f4ed]"
-                  >
+                  <SiteButton type="button" onClick={handleReset} variant="secondary" icon={null}>
                     Reset filters
-                  </button>
+                  </SiteButton>
                 }
               />
             )}
@@ -229,24 +216,26 @@ function VenueCard({ hall }) {
   const capacity = formatCapacity(hall?.capacity);
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-[#e8dcc8] bg-white transition hover:border-[#C0A04C]/50">
-      <Link href={href} className="block">
-        <div className="relative aspect-[4/3] overflow-hidden bg-[#f5f0eb]">
+    <SiteCard as="article" className="group overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-champagne)] hover:shadow-[var(--shadow-card)]">
+      <Link href={href} className="block h-full">
+        <div className="relative aspect-[4/3] overflow-hidden bg-[var(--color-pearl)]">
           <Image
             src={resolveImage(image, FALLBACK_IMAGE)}
             alt={name}
             fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            className="object-cover transition-transform duration-700 group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, (max-width: 1280px) 40vw, 28vw"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#3a1224]/65 via-transparent to-transparent" />
-          <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full border border-white/50 bg-white/90 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[#3a1224]">
-            <BadgeCheck className="h-3 w-3 text-[#C0A04C]" />
+          
+          <div className="absolute left-3 top-3 flex items-center gap-1 rounded bg-white/95 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[var(--color-wine)] backdrop-blur-md">
+            <BadgeCheck className="h-3 w-3 text-[var(--color-champagne)]" />
             Verified
           </div>
+          
           <div className="absolute bottom-0 left-0 right-0 p-4">
-            <p className="flex items-center gap-1 text-[10px] font-bold text-white/65">
-              <MapPin className="h-3 w-3 shrink-0 text-[#C0A04C]" />
+            <p className="flex items-center gap-1 text-[10px] font-bold text-white/80">
+              <MapPin className="h-3 w-3 shrink-0 text-[var(--color-champagne)]" />
               {formatLocation(hall?.location)}
             </p>
             <h3 className="mt-1 line-clamp-2 text-lg font-black leading-tight text-white">
@@ -255,33 +244,33 @@ function VenueCard({ hall }) {
           </div>
         </div>
 
-        <div className="p-4">
+        <div className="flex flex-col p-5">
           {hall?.description && (
-            <p className="line-clamp-2 text-sm leading-5 text-[#3a1224]/50">
+            <p className="line-clamp-2 text-sm leading-6 text-[var(--color-stone)]">
               {hall.description}
             </p>
           )}
           <div className={cn(
-            "flex items-center justify-between border-t border-[#e8dcc8] pt-4",
+            "mt-auto flex items-center justify-between border-t border-[var(--color-sand)] pt-4",
             hall?.description ? "mt-4" : "mt-0 pt-0 border-t-0"
           )}>
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#3a1224]/40">
-                From
+              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[var(--color-stone)]">
+                Starting from
               </p>
-              <p className="mt-0.5 text-base font-black text-[#3a1224]">{price}</p>
-              <p className="flex items-center gap-1 text-[10px] text-[#3a1224]/40">
-                <Users className="h-3 w-3" />
+              <p className="mt-0.5 text-base font-black text-[var(--color-wine)]">{price}</p>
+              <p className="mt-1 flex items-center gap-1 text-[10px] font-semibold text-[var(--color-stone)]">
+                <Users className="h-3 w-3 text-[var(--color-champagne)]" />
                 {capacity}
               </p>
             </div>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[#3a1224] text-[#C0A04C] transition group-hover:bg-[#C0A04C] group-hover:text-[#3a1224]">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-wine)] text-white transition-colors group-hover:bg-[var(--color-champagne)] group-hover:text-[var(--color-wine)]">
               <ArrowRight className="h-4 w-4" />
             </span>
           </div>
         </div>
       </Link>
-    </article>
+    </SiteCard>
   );
 }
 

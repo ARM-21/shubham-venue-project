@@ -65,7 +65,7 @@ export default function BookingProcess() {
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden border-y border-[#e8d8bd] bg-[linear-gradient(180deg,#f7ecd9_0%,#fbf2e4_48%,#f4e5cf_100%)] py-16 text-[var(--color-wine)] sm:py-20 lg:py-24"
+      className="relative overflow-hidden border-y border-[var(--color-sand)] bg-white py-16 text-[var(--color-wine)] sm:py-20 lg:py-24"
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(192,160,76,0.13),transparent_30%),radial-gradient(circle_at_86%_78%,rgba(58,18,36,0.05),transparent_32%)]" />
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--color-champagne)]/45 to-transparent" />
@@ -192,7 +192,7 @@ function DesktopStop({ stop, index }) {
 function MobileJourneyRoad({ pathLength }) {
   return (
     <div className="relative overflow-hidden p-5 lg:hidden">
-      <div className="absolute bottom-10 left-10 top-9 w-px bg-[#e4cfaa]" aria-hidden="true" />
+      <div className="absolute bottom-10 left-10 top-9 w-px bg-[var(--color-sand)]" aria-hidden="true" />
       <motion.div
         className="absolute bottom-10 left-10 top-9 w-px origin-top bg-[var(--color-champagne)]"
         style={{ scaleY: pathLength }}
