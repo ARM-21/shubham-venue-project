@@ -1,13 +1,14 @@
 import Menu from "../../models/menu/Menu.js";
-import MenuSection from "../../models/menu/MenuSection.js";
 import { httpError } from "../../utils/http.utils.js";
 
 
 export async function listMenus() {
-  const menus = await Menu.find().populate({ path: "sections.section" }).populate({ path: "sections.dishes", select: "-section" }).sort({ createdAt: -1 }).lean();
-  console.log("Menus found:", menus.length);
-  if (!menus || menus.length === 0) throw httpError(404, "No menus found");
-  return menus;
+  const menus = await Menu.find({ isActive: true })
+    .populate({ path: "sections.section" })
+    .populate({ path: "sections.dishes", select: "-section" })
+    .sort({ createdAt: -1 })
+    .lean();
+  return menus || [];
 }
 
 export async function getMenuBySlug(slug) {
