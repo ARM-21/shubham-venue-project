@@ -1,238 +1,151 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, Download, Share2, Calendar, MapPin, DollarSign, Phone, Mail } from 'lucide-react';
+import axiosInstance from 'lib/axios';
 import { ROUTES } from 'config/routes';
+import { CheckCircle, Calendar, MapPin, Users, DollarSign, Loader2 } from 'lucide-react';
+import { SLOT_LABELS } from 'constants/slots';
 
-export default function BookingSuccess({ booking, hallDetails }) {
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString(undefined, {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+}
+
+export default function BookingSuccess({ bookingReference }) {
   const router = useRouter();
+  const [booking, setBooking] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleDownloadReceipt = () => {
-    // Generate PDF receipt
-    const content = `
-    BOOKING CONFIRMATION
-    Booking ID: ${booking._id}
-    Date: ${new Date().toLocaleDateString()}
-    
-    Event Details:
-    Date: ${booking.eventDate}
-    Time: ${booking.slot}
-    Guests: ${booking.guests}
-    
-    Contact:
-    Name: ${booking.fullName}
-    Phone: ${booking.phone}
-    Email: ${booking.email}
-    
-    Cost Summary:
-    Hall: NPR ${booking.hallPrice}
-    Menu: NPR ${booking.menuTotal || 0}
-    Decorations: NPR ${booking.decorationTotal || 0}
-    Total: NPR ${booking.totalAmount}
-    
-    Status: ${booking.status}
-    `;
+  useEffect(() => {
+    if (!bookingReference) { setLoading(false); return; }
+    axiosInstance
+      .get(`${ROUTES.API.BOOKINGS.ROOT}/${bookingReference}`)
+      .then((res) => setBooking(res.data.booking || res.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [bookingReference]);
 
-    const element = document.createElement('a');
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
-    element.setAttribute('download', `booking-${booking._id}.txt`);
-    element.style.display = 'none';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-  };
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-[#C0A04C]" />
+      </div>
+    );
+  }
 
-  const handleShare = () => {
-    const text = `I just booked ${hallDetails?.name}! Event on ${booking.eventDate} with ${booking.guests} guests. Total: NPR ${booking.totalAmount}. Check it out at our venue!`;
-    
-    if (navigator.share) {
-      navigator.share({
-        title: 'Booking Confirmation',
-        text: text,
-      });
-    } else {
-      navigator.clipboard.writeText(text);
-      alert('Booking details copied to clipboard!');
-    }
-  };
+  const isCash = !booking?.paymentId;
+  const ref = booking?._id?.toString().slice(-8).toUpperCase() ?? '—';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#3a1224]/5 to-[#C0A04C]/5 py-12 px-6">
-      <div className="max-w-2xl mx-auto">
-        {/* Success Animation */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-6">
+      <div className="mx-auto max-w-2xl">
+
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="mb-6 flex justify-center">
             <div className="relative">
-              <div className="absolute inset-0 bg-[#C0A04C] rounded-full blur-xl opacity-30 animate-pulse"></div>
-              <CheckCircle className="w-20 h-20 text-[#C0A04C] relative" strokeWidth={1.5} />
+              <div className="absolute inset-0 animate-pulse rounded-full bg-[#C0A04C] opacity-30 blur-xl" />
+              <CheckCircle className="relative h-20 w-20 text-[#C0A04C]" strokeWidth={1.5} />
             </div>
           </div>
-          
-          <h1 className="text-4xl font-display font-black text-[#3a1224] mb-3">
-            Booking Confirmed
+          <h1 className="mb-2 text-4xl font-black text-[#3a1224]">
+            {isCash ? 'Booking Submitted' : 'Booking Confirmed'}
           </h1>
-          <p className="text-lg text-[#3a1224]/60">
-            Your event is confirmed and locked in
+          <p className="text-[#3a1224]/60">
+            {isCash
+              ? 'Your request is under review — an admin will confirm it shortly.'
+              : 'Your slot is locked in. Check your email for confirmation.'}
           </p>
         </div>
 
-        {/* Booking Reference Card */}
-        <div className="bg-white/95 border border-[#3a1224]/5 rounded-3xl p-8 shadow-lg mb-6">
-          <div className="text-center mb-8 pb-8 border-b border-[#3a1224]/10">
-            <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-2">Booking Reference</p>
-            <p className="text-3xl font-display font-black text-[#3a1224] font-mono tracking-wider">
-              {booking._id?.substring(0, 8).toUpperCase()}
+        {/* Card */}
+        <div className="mb-6 rounded-3xl border border-[#3a1224]/5 bg-white/95 p-8 shadow-lg">
+
+          {/* Reference */}
+          <div className="mb-8 border-b border-[#3a1224]/10 pb-8 text-center">
+            <p className="mb-2 text-[9px] font-black uppercase tracking-widest text-[#3a1224]/40">
+              Booking Reference
             </p>
-            <p className="text-sm text-[#3a1224]/60 mt-2">
-              Save this code for your records
-            </p>
+            <p className="font-mono text-3xl font-black tracking-wider text-[#3a1224]">{ref}</p>
+            <p className="mt-2 text-sm text-[#3a1224]/60">Save this for your records</p>
           </div>
 
-          {/* Event Details Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="flex items-start gap-3">
-              <Calendar className="w-5 h-5 text-[#C0A04C] flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Event Date</p>
-                <p className="font-black text-[#3a1224] text-lg">{booking.eventDate}</p>
-                <p className="text-sm text-[#3a1224]/60">{booking.slot}</p>
-              </div>
-            </div>
+          {/* Details grid */}
+          <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <Detail icon={Calendar} label="Date & Slot">
+              <p className="font-black text-[#3a1224]">{formatDate(booking?.date)}</p>
+              <p className="text-sm text-[#3a1224]/60">{SLOT_LABELS?.[booking?.slot] ?? booking?.slot}</p>
+            </Detail>
 
-            <div className="flex items-start gap-3">
-              <MapPin className="w-5 h-5 text-[#C0A04C] flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Venue</p>
-                <p className="font-black text-[#3a1224] text-lg">{hallDetails?.name}</p>
-                <p className="text-sm text-[#3a1224]/60">{booking.guests} guests</p>
-              </div>
-            </div>
+            <Detail icon={MapPin} label="Venue">
+              <p className="font-black text-[#3a1224]">{booking?.hallId?.name ?? '—'}</p>
+              <p className="text-sm text-[#3a1224]/60">{booking?.guests} guests</p>
+            </Detail>
 
-            <div className="flex items-start gap-3">
-              <Phone className="w-5 h-5 text-[#C0A04C] flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Contact</p>
-                <p className="font-black text-[#3a1224] text-lg">{booking.fullName}</p>
-                <p className="text-sm text-[#3a1224]/60">{booking.phone}</p>
-              </div>
-            </div>
+            <Detail icon={Users} label="Event">
+              <p className="font-black text-[#3a1224]">{booking?.eventName || '—'}</p>
+              <p className="text-sm text-[#3a1224]/60">{booking?.eventType || ''}</p>
+            </Detail>
 
-            <div className="flex items-start gap-3">
-              <Mail className="w-5 h-5 text-[#C0A04C] flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-1">Email</p>
-                <p className="font-black text-[#3a1224] text-lg break-all">{booking.email}</p>
-              </div>
-            </div>
+            <Detail icon={DollarSign} label="Total">
+              <p className="font-black text-[#3a1224]">
+                NPR {Number(booking?.totalAmount ?? 0).toLocaleString()}
+              </p>
+              <p className="text-sm text-[#3a1224]/60">
+                {isCash ? 'Cash on arrival' : 'Paid online'}
+              </p>
+            </Detail>
           </div>
 
-          {/* Cost Breakdown */}
-          <div className="bg-gray-50 rounded-2xl p-6 mb-6">
-            <p className="text-[9px] font-black text-[#3a1224]/40 uppercase tracking-widest mb-4">Cost Summary</p>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[#3a1224]">Hall Booking</span>
-                <span className="font-black text-[#3a1224]">NPR {booking.hallPrice?.toLocaleString()}</span>
-              </div>
-              {booking.menuTotal > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="text-[#3a1224]">Menu</span>
-                  <span className="font-black text-[#3a1224]">NPR {booking.menuTotal?.toLocaleString()}</span>
-                </div>
-              )}
-              {booking.decorationTotal > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="text-[#3a1224]">Decorations</span>
-                  <span className="font-black text-[#3a1224]">NPR {booking.decorationTotal?.toLocaleString()}</span>
-                </div>
-              )}
-              <div className="pt-3 border-t border-[#3a1224]/10 flex items-center justify-between">
-                <span className="font-black text-[#3a1224]">Total Amount</span>
-                <span className="text-2xl font-black text-[#C0A04C]">NPR {booking.totalAmount?.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Payment Status */}
-          <div className={`p-4 rounded-2xl border-2 ${
-            booking.paymentStatus === 'paid'
-              ? 'bg-green-50 border-green-200'
-              : booking.paymentStatus === 'pending'
-              ? 'bg-amber-50 border-amber-200'
-              : 'bg-gray-50 border-gray-200'
+          {/* Status badge */}
+          <div className={`rounded-2xl border-2 p-4 ${
+            booking?.status === 'CONFIRMED'
+              ? 'border-emerald-200 bg-emerald-50'
+              : 'border-amber-200 bg-amber-50'
           }`}>
             <div className="flex items-center gap-2">
-              {booking.paymentStatus === 'paid' ? (
-                <>
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="font-black text-green-900">Payment Completed</span>
-                </>
-              ) : (
-                <>
-                  <span className="w-5 h-5 bg-amber-600 rounded-full flex items-center justify-center text-white text-xs">!</span>
-                  <span className="font-black text-amber-900">Payment Pending</span>
-                </>
-              )}
+              <CheckCircle className={`h-5 w-5 ${
+                booking?.status === 'CONFIRMED' ? 'text-emerald-600' : 'text-amber-600'
+              }`} />
+              <span className={`font-black ${
+                booking?.status === 'CONFIRMED' ? 'text-emerald-900' : 'text-amber-900'
+              }`}>
+                {booking?.status === 'CONFIRMED' ? 'Confirmed' : 'Awaiting Admin Approval'}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* What's Next */}
-        <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6 mb-6">
-          <h3 className="font-black text-blue-900 mb-4">What's Next?</h3>
-          <div className="space-y-3 text-sm text-blue-800">
-            <div className="flex gap-3">
-              <span className="font-black text-blue-600 min-w-fit">1.</span>
-              <span>Check your email for confirmation and booking details</span>
-            </div>
-            <div className="flex gap-3">
-              <span className="font-black text-blue-600 min-w-fit">2.</span>
-              <span>Our team will contact you 7 days before the event</span>
-            </div>
-            <div className="flex gap-3">
-              <span className="font-black text-blue-600 min-w-fit">3.</span>
-              <span>Final confirmation and any last-minute adjustments</span>
-            </div>
-            <div className="flex gap-3">
-              <span className="font-black text-blue-600 min-w-fit">4.</span>
-              <span>Event day setup and execution</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <button
-            onClick={handleDownloadReceipt}
-            className="flex-1 flex items-center justify-center gap-2 h-12 px-6 border border-[#3a1224]/10 text-[#3a1224] font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            Download Receipt
-          </button>
-          
-          <button
-            onClick={handleShare}
-            className="flex-1 flex items-center justify-center gap-2 h-12 px-6 border border-[#3a1224]/10 text-[#3a1224] font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            <Share2 className="w-4 h-4" />
-            Share Booking
-          </button>
-
+        {/* Actions */}
+        <div className="flex flex-col gap-3 sm:flex-row">
           <button
             onClick={() => router.push(ROUTES.SITE.BOOKINGS)}
-            className="flex-1 h-12 px-6 bg-[#3a1224] text-[#C0A04C] font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-[#4a172d] transition-colors shadow-lg cursor-pointer"
+            className="flex h-12 flex-1 items-center justify-center rounded-xl bg-[#3a1224] px-6 text-[9px] font-black uppercase tracking-widest text-[#C0A04C] shadow-lg transition hover:bg-[#4a172d]"
           >
-            View My Tickets
+            View My Bookings
+          </button>
+          <button
+            onClick={() => router.push(ROUTES.HOME)}
+            className="flex h-12 flex-1 items-center justify-center rounded-xl border border-[#3a1224]/10 px-6 text-[9px] font-black uppercase tracking-widest text-[#3a1224] transition hover:bg-gray-50"
+          >
+            Back to Home
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Home Button */}
-        <button
-          onClick={() => router.push(ROUTES.HOME)}
-          className="w-full mt-4 h-12 px-6 text-[#3a1224] font-black text-[9px] uppercase tracking-widest rounded-xl hover:underline transition-colors cursor-pointer"
-        >
-          Back to Home
-        </button>
+function Detail({ icon: Icon, label, children }) {
+  return (
+    <div className="flex items-start gap-3">
+      <Icon className="mt-0.5 h-5 w-5 shrink-0 text-[#C0A04C]" />
+      <div>
+        <p className="mb-1 text-[9px] font-black uppercase tracking-widest text-[#3a1224]/40">{label}</p>
+        {children}
       </div>
     </div>
   );

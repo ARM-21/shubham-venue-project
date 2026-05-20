@@ -8,7 +8,7 @@ import { ROUTES } from 'config/routes';
 import { Check, Loader2, Lock } from 'lucide-react';
 import { cn } from 'components/site/SitePrimitives';
 
-export default function Step4Payment({ data, reservationId, onUpdate, onPrev, onNext }) {
+export default function Step4Payment({ data, reservationId, onUpdate, onPrev, onNext, onReservationRelease }) {
   const router = useRouter();
   const [paymentMethod, setPaymentMethod] = useState('ONLINE');
   const [gateway, setGateway] = useState('KHALTI');
@@ -43,10 +43,13 @@ export default function Step4Payment({ data, reservationId, onUpdate, onPrev, on
         paymentMethod,
       });
       bookingId = bookingRes.data.booking._id;
-      const fallbackRedirect = data?.hallSlug ? ROUTES.SITE.VENUES(data.hallSlug) : ROUTES.HOME;
+      // Clear the reservation hold in the parent BEFORE any navigation or redirect
+      // so the unmount cleanup does not fire DELETE and delete the finalised booking.
+      onReservationRelease?.();
+
       if (paymentMethod === 'CASH') {
         toast.success('Booking submitted. Awaiting admin approval.');
-        router.push(fallbackRedirect);
+        onNext(bookingId);
         return;
       }
       const paymentRes = await axiosInstance.post(ROUTES.API.PAYMENTS.INITIATE, {

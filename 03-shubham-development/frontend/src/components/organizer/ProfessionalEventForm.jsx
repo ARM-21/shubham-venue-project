@@ -378,7 +378,7 @@ export default function ProfessionalEventForm({ initialData = null, booking = nu
                 key={id}
                 type="button"
                 onClick={() => setActiveTab(id)}
-                className={`flex w-full items-center gap-3 border px-3 py-3 text-left transition ${
+                className={`flex w-full cursor-pointer items-center gap-3 border px-3 py-3 text-left transition ${
                   active ? "border-[#3a1224] bg-white text-[#3a1224]" : "border-transparent text-[#3a1224]/55 hover:bg-white/70"
                 }`}
               >
@@ -412,7 +412,7 @@ export default function ProfessionalEventForm({ initialData = null, booking = nu
                   <input {...register("name", { required: "Event name is required" })} placeholder="e.g., Product launch evening" className={inputClass} />
                 </TextField>
                 <TextField label="Event category" required error={errors.eventCategory?.message}>
-                  <select {...register("eventCategory", { required: "Category is required" })} className={inputClass}>
+                  <select {...register("eventCategory", { required: "Category is required" })} className={`${inputClass} cursor-pointer`}>
                     {EVENT_CATEGORIES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
                   </select>
                 </TextField>
@@ -431,7 +431,7 @@ export default function ProfessionalEventForm({ initialData = null, booking = nu
                             setValue("bannerUrl", "");
                             setBannerError(null);
                           }}
-                          className="flex w-full items-center justify-center gap-2 border-t border-[#e8dcc8] bg-white px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50"
+                          className="flex w-full cursor-pointer items-center justify-center gap-2 border-t border-[#e8dcc8] bg-white px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                           Remove preview
@@ -525,7 +525,7 @@ export default function ProfessionalEventForm({ initialData = null, booking = nu
                   <input {...register("targetAudience")} placeholder="e.g., corporate professionals, families" className={inputClass} />
                 </TextField>
                 <TextField label="Dress code">
-                  <select {...register("dressCode")} className={inputClass}>
+                  <select {...register("dressCode")} className={`${inputClass} cursor-pointer`}>
                     <option value="">Not specified</option>
                     <option value="casual">Casual</option>
                     <option value="business_casual">Business Casual</option>
@@ -586,7 +586,7 @@ export default function ProfessionalEventForm({ initialData = null, booking = nu
                   </div>
                   <FieldGrid>
                     <TextField label="Menu package">
-                      <select {...register("cateringMenuId")} className={inputClass} disabled={menusLoading}>
+                      <select {...register("cateringMenuId")} className={`${inputClass} cursor-pointer`} disabled={menusLoading}>
                         <option value="">{menusLoading ? "Loading packages..." : "Select a package"}</option>
                         {menuPackages.map((menu) => (
                           <option key={menu._id} value={menu._id}>
@@ -636,12 +636,12 @@ export default function ProfessionalEventForm({ initialData = null, booking = nu
 
         <div className="flex flex-col gap-3 border-t border-[#e8dcc8] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-2">
-            <button type="button" onClick={goPrev} disabled={currentIndex === 0} className="h-10 border border-[#e8dcc8] px-4 text-sm font-bold text-[#3a1224] hover:bg-[#fbf8f2] disabled:opacity-40">Back</button>
-            <button type="button" onClick={goNext} disabled={currentIndex === tabs.length - 1} className="h-10 border border-[#e8dcc8] px-4 text-sm font-bold text-[#3a1224] hover:bg-[#fbf8f2] disabled:opacity-40">Next</button>
+            <button type="button" onClick={goPrev} disabled={currentIndex === 0} className="h-10 cursor-pointer border border-[#e8dcc8] px-4 text-sm font-bold text-[#3a1224] hover:bg-[#fbf8f2] disabled:cursor-not-allowed disabled:opacity-40">Back</button>
+            <button type="button" onClick={goNext} disabled={currentIndex === tabs.length - 1} className="h-10 cursor-pointer border border-[#e8dcc8] px-4 text-sm font-bold text-[#3a1224] hover:bg-[#fbf8f2] disabled:cursor-not-allowed disabled:opacity-40">Next</button>
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={() => window.history.back()} className="h-10 border border-[#e8dcc8] px-4 text-sm font-bold text-[#3a1224]/65 hover:bg-[#fbf8f2]">Cancel</button>
-            <button type="submit" disabled={isLoading} className="h-10 bg-[#3a1224] px-5 text-sm font-bold text-white hover:bg-[#4b1830] disabled:opacity-50">
+            <button type="button" onClick={() => window.history.back()} className="h-10 cursor-pointer border border-[#e8dcc8] px-4 text-sm font-bold text-[#3a1224]/65 hover:bg-[#fbf8f2]">Cancel</button>
+            <button type="submit" disabled={isLoading} className="h-10 cursor-pointer bg-[#3a1224] px-5 text-sm font-bold text-white hover:bg-[#4b1830] disabled:cursor-not-allowed disabled:opacity-50">
               {isLoading ? "Saving..." : initialData ? "Update event" : "Create event"}
             </button>
           </div>
@@ -692,8 +692,8 @@ function TimeBadge({ value }) {
 
 function CheckOption({ register, name, label }) {
   return (
-    <label className="flex items-center gap-3 border border-[#e8dcc8] bg-[#fbf8f2] px-4 py-3">
-      <input type="checkbox" {...register(name)} className="h-4 w-4 accent-[#3a1224]" />
+    <label className="flex cursor-pointer items-center gap-3 border border-[#e8dcc8] bg-[#fbf8f2] px-4 py-3">
+      <input type="checkbox" {...register(name)} className="h-4 w-4 cursor-pointer accent-[#3a1224]" />
       <span className="text-sm font-bold text-[#3a1224]">{label}</span>
     </label>
   );

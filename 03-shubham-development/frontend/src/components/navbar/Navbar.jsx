@@ -68,11 +68,13 @@ export default function Navbar() {
     try {
       await logout();
       setProfileOpen(false);
-      router.push(ROUTES.AUTH.LOGIN);
+      // Full page reload — ensures session cookie cleared by browser before
+      // the next request hits middleware (avoids redirect to /auth/onboarding)
+      window.location.href = ROUTES.AUTH.LOGIN;
     } catch (error) {
       console.error('Logout failed:', error);
     }
-  }, [logout, router]);
+  }, [logout]);
 
   return (
     <header 

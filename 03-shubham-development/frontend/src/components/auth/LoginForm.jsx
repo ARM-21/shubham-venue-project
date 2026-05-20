@@ -70,7 +70,7 @@ export default function LoginForm({ onSwitch }) {
       <div className="group">
         <div className="flex items-center justify-between mb-3 ml-1">
           <label className="block text-[11px] font-bold text-[#3a1224]/80 uppercase tracking-widest group-focus-within:text-[#C0A04C] transition-colors">Password</label>
-          <a href="#" className="text-[10px] text-[#C0A04C]/60 hover:text-[#C0A04C] underline transition-colors duration-200 uppercase tracking-widest font-bold">
+          <a href={ROUTES.AUTH.FORGOT_PASSWORD} className="text-[10px] text-[#C0A04C]/60 hover:text-[#C0A04C] underline transition-colors duration-200 uppercase tracking-widest font-bold">
             Forgot?
           </a>
         </div>

@@ -254,6 +254,13 @@ export default function BookingsPage() {
                         >
                           <Download className="w-3 h-3" /> Invoice
                         </button>
+                      ) : b.status === "PENDING" && b.reservedUntil && new Date(b.reservedUntil) > new Date() ? (
+                        <button
+                          onClick={() => router.push(ROUTES.SITE.VENUES(b.hallId?.slug || b.hallId?._id || b.hallId || ""))}
+                          className="flex items-center gap-2 h-10 px-4 bg-[#C0A04C] text-[#3a1224] rounded-lg font-black text-[8px] uppercase tracking-widest hover:shadow-lg transition-all cursor-pointer"
+                        >
+                          <Clock className="w-3 h-3" /> Continue Payment
+                        </button>
                       ) : (
                         <div className="px-4 py-2 bg-gray-100 rounded-lg text-[8px] font-black text-[#3a1224]/30 uppercase tracking-widest">
                            Pending...

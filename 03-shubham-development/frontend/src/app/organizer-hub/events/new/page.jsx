@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
 import { useAuth } from "contexts/AuthProvider";
 import ProfessionalEventForm from "components/organizer/ProfessionalEventForm";
+import { ORGANIZER_EVENTS_QUERY_KEY } from "@api/organizer/events-list-fetcher";
 import { AlertCircle, CalendarDays, Fingerprint, MapPin, Users, Zap } from "lucide-react";
 
 function formatDate(value) {
@@ -25,6 +27,7 @@ function formatDate(value) {
 export default function OrganizerEventCreatePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const preselectedBookingId = searchParams.get("bookingId") || "";
   const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
@@ -151,6 +154,8 @@ export default function OrganizerEventCreatePage() {
         toast.success("Event created successfully");
       }
       
+      queryClient.invalidateQueries({ queryKey: [ORGANIZER_EVENTS_QUERY_KEY] });
+
       const id = res.data?.event?._id;
       if (id) {
         router.push(ROUTES.SITE.ORGANIZER_EVENT_DETAIL(id));
@@ -177,7 +182,7 @@ export default function OrganizerEventCreatePage() {
           </p>
           <button
             onClick={() => router.push(ROUTES.SITE.ORGANIZER)}
-            className="mt-7 w-full bg-[#3a1224] px-6 py-3 text-sm font-bold text-white hover:bg-[#4b1830]"
+            className="mt-7 w-full cursor-pointer bg-[#3a1224] px-6 py-3 text-sm font-bold text-white hover:bg-[#4b1830]"
           >
             Go to dashboard
           </button>
@@ -230,7 +235,7 @@ export default function OrganizerEventCreatePage() {
                   <select
                     value={selectedBookingId}
                     onChange={(e) => setSelectedBookingId(e.target.value)}
-                    className="w-full border border-[#e8dcc8] bg-white px-4 py-3 text-sm font-bold text-[#3a1224] outline-none transition focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/15"
+                    className="w-full cursor-pointer border border-[#e8dcc8] bg-white px-4 py-3 text-sm font-bold text-[#3a1224] outline-none transition focus:border-[#C0A04C] focus:ring-2 focus:ring-[#C0A04C]/15"
                   >
                     <option value="">Select a booking...</option>
                     {bookings.map((booking) => (

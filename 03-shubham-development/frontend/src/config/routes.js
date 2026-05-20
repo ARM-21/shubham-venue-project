@@ -1,10 +1,14 @@
 export const ROUTES = {
   HOME: '/',
+  TERMS: '/terms',
+  PRIVACY: '/privacy',
   AUTH: {
     ROOT: '/auth',
     LOGIN: '/auth',
     REGISTER: '/auth',
     ONBOARDING: '/auth/onboarding',
+    FORGOT_PASSWORD: '/auth/forgot-password',
+    RESET_PASSWORD: '/auth/reset-password',
   },
   ADMIN: {
     ROOT: '/admin',
@@ -62,6 +66,8 @@ export const ROUTES = {
       RESEND_OTP: '/api/v1/auth/resend-otp',
       GOOGLE_LOGIN: '/api/v1/auth/google/login',
       VALIDATE_SESSION: '/api/v1/auth/validate-session',
+      FORGOT_PASSWORD: '/api/v1/auth/forgot-password',
+      RESET_PASSWORD: '/api/v1/auth/reset-password',
     },
     PROFILE: {
       ME: '/api/v1/profile/me',

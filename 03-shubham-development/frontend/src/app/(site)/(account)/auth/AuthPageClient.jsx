@@ -168,6 +168,17 @@ export default function AuthPageClient({ redirect }) {
                 />
               </div>
             </div>
+
+            <p className="text-center text-[10px] text-[#3a1224]/35 leading-relaxed">
+              By continuing, you agree to our{" "}
+              <a href={ROUTES.TERMS} className="text-[#C0A04C]/70 hover:text-[#C0A04C] underline transition-colors">
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a href={ROUTES.PRIVACY} className="text-[#C0A04C]/70 hover:text-[#C0A04C] underline transition-colors">
+                Privacy Policy
+              </a>.
+            </p>
           </div>
         </div>
       </div>

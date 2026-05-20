@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import axiosInstance from 'lib/axios';
 import { ROUTES } from 'config/routes';
 import toast from 'react-hot-toast';
-import { Building2, CalendarDays, Check, Clock, MapPin, ShieldCheck, Users } from 'lucide-react';
+import { AlertTriangle, Building2, CalendarDays, Check, Clock, MapPin, ShieldCheck, Users } from 'lucide-react';
 import Step1EventDetails from './Step1EventDetails';
 import Step2MenuSelection from './Step2MenuSelection';
 import Step3Decorations from './Step3Decorations';
@@ -112,6 +112,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
   const [reservationId, setReservationId] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
   const [isReserved, setIsReserved] = useState(false);
+  const [slotTaken, setSlotTaken] = useState(false);
 
   const draftKey = `booking_draft_${hall._id}`;
   const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
@@ -189,6 +190,50 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     }
   }, [bookingData, currentStepIndex, currentStepKey, draftKey]);
 
+  // Release the hold when:
+  // (a) user closes/refreshes the tab → beforeunload fires (fetch keepalive survives teardown)
+  // (b) user navigates away via SPA link → component unmounts → useEffect cleanup runs
+  // Poll availability every 30 s while the user is on the middle steps (not availability, not payment).
+  // Without WebSockets this is the only way to catch a slot being taken while the user fills the form.
+  useEffect(() => {
+    const POLL_STEPS = ['contact', 'details', 'menu', 'decor', 'review'];
+    if (!POLL_STEPS.includes(currentStepKey)) return;
+
+    const poll = async () => {
+      try {
+        const res = await axiosInstance.post(
+          ROUTES.API.BOOKINGS.CHECK_AVAILABILITY(bookingData.hallId),
+          { date: bookingData.date, slot: bookingData.slot, guests: Number(bookingData.guests) }
+        );
+        setSlotTaken(!res.data?.available);
+      } catch {
+        // silent — network blip should not interrupt the user
+      }
+    };
+
+    poll(); // immediate check on step entry
+    const id = setInterval(poll, 30_000);
+    return () => clearInterval(id);
+  }, [currentStepKey, bookingData.hallId, bookingData.date, bookingData.slot, bookingData.guests]);
+
+  // Must use the full backend URL — native fetch has no axios baseURL.
+  useEffect(() => {
+    if (!reservationId) return;
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+    const releaseUrl = `${apiBase}${ROUTES.API.BOOKINGS.RESERVE_BY_ID(reservationId)}`;
+
+    const releaseWithFetch = () => {
+      fetch(releaseUrl, { method: 'DELETE', keepalive: true, credentials: 'include' });
+    };
+
+    window.addEventListener('beforeunload', releaseWithFetch);
+    return () => {
+      window.removeEventListener('beforeunload', releaseWithFetch);
+      // Component unmounting = user navigated away mid-payment → free the slot
+      releaseWithFetch();
+    };
+  }, [reservationId]);
+
   useEffect(() => {
     if (currentStepKey !== 'payment' || !timeLeft) return;
     if (timeLeft <= 0) {
@@ -234,7 +279,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
   const releaseReservation = useCallback(async () => {
     if (!reservationId) return;
     try {
-      await axiosInstance.post(ROUTES.API.BOOKINGS.RESERVE_BY_ID(reservationId), {});
+      await axiosInstance.delete(ROUTES.API.BOOKINGS.RESERVE_BY_ID(reservationId));
       setReservationId(null);
       setTimeLeft(null);
       setIsReserved(false);
@@ -416,6 +461,21 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
           {/* ── Left: step content ── */}
           <div className="min-w-0">
 
+            {/* Slot-taken warning — shown when background poll detects the slot was booked */}
+            {slotTaken && (
+              <div className="mb-5 flex flex-wrap items-center gap-2.5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />
+                <span className="font-semibold">This slot was just taken by another user.</span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentStepIndex(0)}
+                  className="ml-auto text-[11px] font-black uppercase tracking-widest text-red-700 underline underline-offset-2"
+                >
+                  Go back & reselect
+                </button>
+              </div>
+            )}
+
             {/* Reservation expiry banner */}
             {isReserved && timeLeft !== null && (
               <div className="mb-5 flex flex-wrap items-center gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -568,8 +628,10 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
                   data={{ ...bookingData, hallPrice, total }}
                   reservationId={reservationId}
                   onUpdate={updateBookingData}
+                  onReservationRelease={() => setReservationId(null)}
                   onNext={(bookingRef) => {
                     try { localStorage.removeItem(draftKey); } catch {}
+                    setReservationId(null);
                     setBookingSuccess(bookingRef);
                   }}
                   onPrev={prevStep}

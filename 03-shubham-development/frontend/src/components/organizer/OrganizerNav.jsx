@@ -103,20 +103,11 @@ export default function OrganizerNav({ user }) {
 
   const handleLogout = async () => {
     try {
-      // Call logout API endpoint
-      const response = await axiosInstance.post(ROUTES.API.AUTH.LOGOUT);
-      
-      // Clear auth context
       await logout();
-      
-      // Redirect to login
-      router.push(ROUTES.AUTH.LOGIN);
-      
-      toast.success("Logged out successfully");
+      window.location.href = ROUTES.AUTH.LOGIN;
     } catch (err) {
       console.error('Logout error:', err);
-      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to logout';
-      toast.error(errorMessage);
+      toast.error('Failed to logout. Please try again.');
     }
   };
 

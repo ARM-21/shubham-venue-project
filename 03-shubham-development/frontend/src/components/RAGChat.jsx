@@ -23,18 +23,17 @@ export default function RAGChat() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [systemStatus, setSystemStatus] = useState(null);
-  const [expandedSourceId, setExpandedSourceId] = useState(null);
   const messagesEndRef = useRef(null);
 
   // Suggested questions for quick user interaction
   const suggestions = [
     "How do I book a hall?",
     "What are the payment methods?",
-    "Is parking available?",
-    "Menu prices"
+    "What is the cancellation policy?",
+    "Do you offer catering?",
   ];
 
-  const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1` || 'http://localhost:5000/api/v1';
+  const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'}/api/v1`;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -43,10 +42,10 @@ export default function RAGChat() {
   useEffect(() => {
     checkSystemStatus();
     const timer = setTimeout(() => {
-      if (!isOpen) setShowTooltip(true);
+      setShowTooltip(true);
     }, 1500);
     return () => clearTimeout(timer);
-  }, [isOpen]);
+  }, []);
 
   const checkSystemStatus = async () => {
     try {
@@ -214,29 +213,6 @@ export default function RAGChat() {
                   }`}>
                   {renderMessageContent(m.text)}
 
-                  {m.method && (
-                    <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-bold text-gray-400">{m.method}</span>
-                      {m.sources?.length > 0 && (
-                        <button
-                          onClick={() => setExpandedSourceId(expandedSourceId === m.id ? null : m.id)}
-                          className="text-[10px] text-blue-500 font-bold hover:underline"
-                        >
-                          {expandedSourceId === m.id ? 'Hide Sources' : `${m.sources.length} Sources`}
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {expandedSourceId === m.id && m.sources && (
-                    <div className="mt-2 space-y-1 animate-in slide-in-from-top-1">
-                      {m.sources.map((s, i) => (
-                        <div key={i} className="text-[10px] bg-blue-50 p-2 rounded text-blue-800 border-l-2 border-blue-300">
-                          {s.content.substring(0, 120)}...
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
