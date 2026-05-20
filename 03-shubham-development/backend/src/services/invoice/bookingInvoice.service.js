@@ -50,6 +50,13 @@ function computeTotals(booking, config) {
   return { addonsTotal, subtotal, serviceCharge, taxable, tax, grandTotal };
 }
 
+function buildBookingsPageUrl({ bookingId, paymentId }) {
+  const url = new URL("/bookings", ENV.FRONTEND_ORIGIN || "http://localhost:3000");
+  if (bookingId) url.searchParams.set("bookingId", String(bookingId));
+  if (paymentId) url.searchParams.set("invoice", String(paymentId));
+  return url.toString();
+}
+
 export async function streamBookingInvoice({ bookingId, currentUser, res }) {
   const booking = await Booking.findById(bookingId)
     .populate({ path: "hallId", select: "name location" })
@@ -150,7 +157,7 @@ export async function streamBookingInvoice({ bookingId, currentUser, res }) {
 
   // QR code
   doc.moveDown(1);
-  const qrData = `${ENV.FRONTEND_ORIGIN || "https://"}/bookings/${booking._id}?invoice=${payment._id}`;
+  const qrData = buildBookingsPageUrl({ bookingId: booking._id, paymentId: payment._id });
   const qrBuffer = await buildQrBuffer(qrData);
   doc.text("Scan to verify", 40);
   doc.image(qrBuffer, 40, doc.y + 10, { fit: [120, 120] });
