@@ -30,12 +30,11 @@ router.post("/login", async (req, res) => {
             if (existingUser.isActive === false) {
                 return res.status(403).json({ message: "Account disabled" });
             }
-            if (req.session.userId != existingUser._id) {
-                console.log("user is not connected.. connecting to a session")
-                req.session.userId = existingUser._id;
-                req.session.role = existingUser.role;
-                req.session.save()
-            }
+            req.session.userId = existingUser._id;
+            req.session.role = existingUser.role;
+            req.session.save();
+            // Single-session enforcement — invalidate any previous session
+            await User.findByIdAndUpdate(existingUser._id, { currentSessionId: req.session.id });
             return res.status(200).json({
                 message: "Login successful", user: {
                     id: existingUser._id,
@@ -64,8 +63,10 @@ router.post("/login", async (req, res) => {
         });
         req.session.userId = user._id.toString();
         req.session.role = user.role;
-        req.session.save()
+        req.session.save();
         await user.save();
+        // Single-session enforcement for new Google users
+        await User.findByIdAndUpdate(user._id, { currentSessionId: req.session.id });
         res.status(201).json({
             message: `User ${user.username} created with ${email}`, user: {
                 id: user._id.toString(),

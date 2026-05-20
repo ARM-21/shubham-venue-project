@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 /**
  * Rate limiting configuration
@@ -80,11 +80,10 @@ export const passwordResetLimiter = rateLimit({
  */
 export function createAuthAwareKeyGenerator() {
   return (req, res) => {
-    // Use user ID if authenticated, otherwise use IP
     if (req.currentUser && req.currentUser._id) {
       return `user:${req.currentUser._id}`;
     }
-    return req.ip || req.connection.remoteAddress;
+    return ipKeyGenerator(req);
   };
 }
 

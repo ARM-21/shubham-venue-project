@@ -1,90 +1,37 @@
-import {
-  ChatGoogleGenerativeAI,
-  GoogleGenerativeAIEmbeddings,
-} from "@langchain/google-genai";
-
-import {
-  HarmBlockThreshold,
-  HarmCategory,
-} from "@google/generative-ai";
-
+import { ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import lunr from "lunr";
 import ENV from "../config/env.config.js";
 
-/**
- * Lunr fallback search
- */
-class LunrSearch {
-  constructor() {
-    this.index = null;
-    this.documents = new Map();
-  }
-
-  async addDocuments(docs) {
-    try {
-      const self = this;
-
-      this.index = lunr(function () {
-        this.ref("id");
-        this.field("content");
-
-        docs.forEach((doc, idx) => {
-          const id = idx.toString();
-          this.add({ id, content: doc.pageContent });
-          self.documents.set(id, doc);
-        });
-      });
-    } catch (err) {
-      console.error("Lunr error:", err.message);
-    }
-  }
-
-  search(query, k = 3) {
-    if (!this.index) return [];
-
-    try {
-      return this.index
-        .search(query)
-        .slice(0, k)
-        .map((r) => this.documents.get(r.ref))
-        .filter(Boolean);
-    } catch {
-      return [];
-    }
-  }
-}
-
 class RAGService {
   constructor() {
-    this.model = null;
+    this.llm = null;
     this.embeddings = null;
     this.vectorStore = null;
-    this.lunrSearch = new LunrSearch();
+    this.lunrIndex = null;
+    this.lunrDocs = new Map();
     this.documents = [];
     this.initialized = false;
     this.useVectorSearch = false;
-    this.faqEmbeddingsCached = false; // New flag for caching
-    this.lastApiCallTime = 0; // For rate limiting
-    this.apiCallDelay = 1000; // 1 second delay between API calls
+    this.cache = new Map(); // question key → result, avoids repeat API calls
   }
 
-  async initialize() {
+  async init() {
     if (this.initialized) return;
 
-    // ✅ FIXED EMBEDDING MODEL
     this.embeddings = new GoogleGenerativeAIEmbeddings({
       apiKey: ENV.GOOGLE_GEMINI_API_KEY,
-      model: "gemini-embedding-001",
-      maxRetries: 0, // Disable excessive retries
+      model: "text-embedding-004",
+      maxRetries: 0,
     });
 
-    this.model = new ChatGoogleGenerativeAI({
+    this.llm = new ChatGoogleGenerativeAI({
       apiKey: ENV.GOOGLE_GEMINI_API_KEY,
-      modelName: "gemini-2.0-flash-lite",
+      modelName: "gemini-pro",
       temperature: 0.2,
-      maxRetries: 0, // Disable excessive retries
+      maxRetries: 0,
       safetySettings: [
         {
           category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -94,236 +41,190 @@ class RAGService {
     });
 
     this.initialized = true;
-    console.log("✓ RAG initialized");
-  }
-
-  async ensureApiCallDelay() {
-    const now = Date.now();
-    const timeSinceLastCall = now - this.lastApiCallTime;
-    if (timeSinceLastCall < this.apiCallDelay) {
-      const delayNeeded = this.apiCallDelay - timeSinceLastCall;
-      console.log(`Delaying API call for ${delayNeeded}ms to respect rate limits.`);
-      await new Promise(resolve => setTimeout(resolve, delayNeeded));
-    }
-    this.lastApiCallTime = Date.now();
+    console.log("✓ RAG service initialised");
   }
 
   async loadDocuments(texts) {
-    await this.initialize();
+    await this.init();
 
-    if (this.faqEmbeddingsCached) {
-      console.log("FAQ embeddings already cached. Skipping re-embedding.");
-      return; // Skip if already cached
-    }
-
-    const splitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 400,
-      chunkOverlap: 80,
-    });
-
+    const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 400, chunkOverlap: 80 });
     const docs = await splitter.createDocuments(texts);
     this.documents = docs;
 
-    console.log("📄 chunks:", docs.length);
+    console.log(`📄 ${docs.length} chunks created`);
 
+    // Build vector store (Gemini embeddings) — fall back to Lunr if it fails
     try {
-      await this.ensureApiCallDelay(); // Add delay before embedding call
-      this.vectorStore = await MemoryVectorStore.fromDocuments(
-        docs,
-        this.embeddings
-      );
+      this.vectorStore = await MemoryVectorStore.fromDocuments(docs, this.embeddings);
       this.useVectorSearch = true;
-      this.faqEmbeddingsCached = true; // Mark as cached after successful embedding
+      console.log("✓ Vector store ready");
     } catch (err) {
-      console.warn("Vector store failed → Lunr fallback", err);
+      console.warn("Vector store failed, Lunr only:", err.message);
       this.useVectorSearch = false;
     }
 
-    await this.lunrSearch.addDocuments(docs);
-
+    // Always build Lunr keyword index as offline fallback
+    this._buildLunrIndex(docs);
     console.log("✓ RAG ready");
   }
 
-  async query(question, k = 3) {
-    let relevantDocs = [];
-    let method = "none";
+  _buildLunrIndex(docs) {
+    const self = this;
+    this.lunrDocs = new Map();
+    this.lunrIndex = lunr(function () {
+      this.ref("id");
+      this.field("content");
+      docs.forEach((doc, i) => {
+        const id = String(i);
+        this.add({ id, content: doc.pageContent });
+        self.lunrDocs.set(id, doc);
+      });
+    });
+  }
 
+  _lunrSearch(query, k = 3) {
+    if (!this.lunrIndex) return [];
     try {
-      await this.initialize();
+      return this.lunrIndex
+        .search(query)
+        .slice(0, k)
+        .map((r) => this.lunrDocs.get(r.ref))
+        .filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
 
-      if (!question || question.trim().length < 3) {
-        return {
-          success: true,
-          answer: "Please ask a valid question.",
-          method: "blocked-input",
-        };
-      }
+  // Extract the best-matching answer from FAQ docs without calling the LLM
+  _extractBestAnswer(docs, question) {
+    const keywords = question.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+    let bestAnswer = null;
+    let bestScore = 0;
 
-      const cleaned = question.trim().toLowerCase();
-
-      // ✅ FAST GREETING HANDLER (NO LLM)
-      const junk = ["hi", "hey", "hello", "yo", "ok", "test"];
-      if (junk.includes(cleaned)) {
-        return {
-          success: true,
-          answer: "Hello 👋 How can I help you?",
-          method: "intent-greeting",
-        };
-      }
-
-      if (!this.documents.length) {
-        return {
-          success: false,
-          answer: "No documents loaded.",
-          method: "no-data",
-        };
-      }
-
-      // 🔍 VECTOR SEARCH
-      if (this.useVectorSearch && this.vectorStore) {
-        try {
-          const vectorSearchPromise = this.vectorStore.similaritySearchWithScore(
-            question,
-            k
-          );
-
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Vector search timed out")), 3000) // 3-second timeout
-          );
-
-          const results = await Promise.race([
-            vectorSearchPromise,
-            timeoutPromise,
-          ]);
-
-          relevantDocs = results
-            .filter(([_, score]) => score < 0.75)
-            .map(([doc]) => doc);
-
-          if (relevantDocs.length) method = "vector";
-        } catch (error) {
-          console.warn("Vector search failed or timed out, falling back to Lunr:", error.message);
-          relevantDocs = []; // Ensure no partial results are used
-          method = "lunr"; // Explicitly set method to lunr for fallback
+    for (const doc of docs) {
+      const pairs = this._extractQAPairs(doc.pageContent);
+      for (const qa of pairs) {
+        const haystack = (qa.question + " " + qa.answer).toLowerCase();
+        const score = keywords.filter((k) => haystack.includes(k)).length;
+        if (score > bestScore) {
+          bestScore = score;
+          bestAnswer = qa.answer;
         }
       }
+    }
 
-      // 🔁 LUNR fallback
-      if (!relevantDocs.length) {
-        relevantDocs = this.lunrSearch.search(question, k);
-        if (relevantDocs.length) method = "lunr";
-      }
+    return bestAnswer || docs[0].pageContent.trim().slice(0, 400);
+  }
 
-      // ❌ NO MATCH → NO LLM
-      if (!relevantDocs.length) {
-        return {
-          success: true,
-          answer: "I couldn\"t find this in the FAQ.",
-          method: "no-match",
-        };
-      }
+  _extractQAPairs(text) {
+    const pairs = [];
+    const regex = /Q:\s*(.*?)\s*A:\s*(.*?)(?=Q:|$)/gs;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      pairs.push({ question: match[1].trim(), answer: match[2].trim() });
+    }
+    return pairs;
+  }
 
-      // 🧠 SAFE CONTEXT LIMIT
-      const contextText = relevantDocs
-        .slice(0, 3)
-        .map((d) => d.pageContent.slice(0, 700))
-        .join("\n\n")
-        .slice(0, 2000);
+  async query(question, k = 3) {
+    await this.init();
 
-      const prompt = `
-You are a FAQ assistant.
+    const q = question?.trim();
+    if (!q || q.length < 3) {
+      return { success: true, answer: "Please ask a valid question.", method: "blocked" };
+    }
 
-RULES:
-- Use ONLY the context
-- If not found say "I don\"t know"
+    const key = q.toLowerCase();
 
-Context:
-${contextText}
-
-Question:
-${question}
-
-Answer:
-`;
-
-      // ✅ SAFE LLM CALL WITH ABORT CONTROLLER
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-
-      let response;
-
-      try {
-        await this.ensureApiCallDelay(); // Re-add delay before LLM call
-        response = await this.model.invoke(prompt, {
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(timeout);
-      }
-
+    // Greetings — no retrieval needed
+    if (["hi", "hey", "hello", "yo", "ok"].includes(key)) {
       return {
         success: true,
-        answer: response.content,
-        sources: relevantDocs.map((d) =>
-          d.pageContent.substring(0, 120)
-        ),
-        method,
+        answer: "Hello! How can I help you with your booking or event at Shubham Venue?",
+        method: "greeting",
       };
-    } catch (error) {
-      console.error("Query Error:", error);
+    }
 
-      // Hard Fallback: If LLM fails, return raw relevant document content
-      if (relevantDocs && relevantDocs.length > 0) {
-        const topDocumentContent = relevantDocs[0].pageContent;
-        const qaPairs = this.extractQAPairs(topDocumentContent);
-        let fallbackAnswer = "";
+    // Return cached answer for repeated questions
+    if (this.cache.has(key)) {
+      return { ...this.cache.get(key), method: "cache" };
+    }
 
-        // Try to find the most relevant Q&A pair
-        let bestMatchQA = null;
-        let maxScore = 0;
-
-        for (const qa of qaPairs) {
-          // Simple keyword matching for relevance
-          const questionKeywords = question.toLowerCase().split(" ");
-          const qaQuestionKeywords = qa.question.toLowerCase().split(" ");
-          const qaAnswerKeywords = qa.answer.toLowerCase().split(" ");
-
-          let currentScore = 0;
-          questionKeywords.forEach(qK => {
-            if (qaQuestionKeywords.includes(qK)) currentScore += 2; // Prioritize question match
-            if (qaAnswerKeywords.includes(qK)) currentScore += 1;
-          });
-
-          if (currentScore > maxScore) {
-            maxScore = currentScore;
-            bestMatchQA = qa;
-          }
-        }
-
-        if (bestMatchQA) {
-          fallbackAnswer = `Q: ${bestMatchQA.question}\nA: ${bestMatchQA.answer}`;
-        } else {
-          // If no specific Q&A match, fall back to the first paragraph or a concise snippet
-          const paragraphs = topDocumentContent.split(/\n\s*\n/);
-          fallbackAnswer = paragraphs[0].trim().slice(0, 500); // Take first paragraph, or first 500 chars
-        }
-
-        return {
-          success: true,
-          answer: `I apologize, I couldn\"t process your request with the AI at the moment. Here\"s what I found in the FAQ: ${fallbackAnswer}`,
-          sources: relevantDocs.map((d) =>
-            d.pageContent.substring(0, 120)
-          ),
-          method: "hard-fallback",
-        };
-      }
-
+    if (!this.documents.length) {
       return {
         success: false,
-        answer:
-          "Service temporarily unavailable. Please try again.",
-        error: error.message,
+        answer: "The assistant isn't ready yet. Please try again in a moment.",
+        method: "no-data",
       };
+    }
+
+    // Step 1: vector search (semantic)
+    let docs = [];
+    let method = "lunr";
+
+    if (this.useVectorSearch && this.vectorStore) {
+      try {
+        const results = await Promise.race([
+          this.vectorStore.similaritySearchWithScore(q, k),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000)),
+        ]);
+        docs = results.filter(([, score]) => score < 0.75).map(([doc]) => doc);
+        if (docs.length) method = "vector";
+      } catch {
+        // fall through to Lunr
+      }
+    }
+
+    // Step 2: Lunr keyword search fallback
+    if (!docs.length) {
+      docs = this._lunrSearch(q, k);
+    }
+
+    if (!docs.length) {
+      return {
+        success: true,
+        answer: "I couldn't find that in our FAQ. For help, contact us at hello@shubham.com or call +977 9812345678.",
+        method: "no-match",
+      };
+    }
+
+    // Step 3: LLM call with retrieved context
+    const context = docs
+      .slice(0, 3)
+      .map((d) => d.pageContent.slice(0, 700))
+      .join("\n\n")
+      .slice(0, 2000);
+
+    const prompt = `You are a helpful support assistant for Shubham Venue, an event venue in Waling, Syangja, Nepal.
+Answer using ONLY the context provided. Be concise and friendly.
+If the answer is not in the context, say: "Please contact us at hello@shubham.com or call +977 9812345678."
+
+Context:
+${context}
+
+Question: ${q}
+Answer:`;
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      let response;
+      try {
+        response = await this.llm.invoke(prompt, { signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+
+      const result = { success: true, answer: response.content, method };
+      if (this.cache.size < 200) this.cache.set(key, result);
+      return result;
+    } catch (err) {
+      // LLM unavailable (quota / timeout) — serve Lunr answer directly, no crash
+      console.warn("LLM unavailable, serving Lunr answer:", err.message);
+      const answer = this._extractBestAnswer(docs, q);
+      const result = { success: true, answer, method: "lunr-direct" };
+      if (this.cache.size < 200) this.cache.set(key, result);
+      return result;
     }
   }
 
@@ -334,23 +235,10 @@ Answer:
   clearDocuments() {
     this.documents = [];
     this.vectorStore = null;
-    this.lunrSearch = new LunrSearch();
+    this.lunrIndex = null;
+    this.lunrDocs = new Map();
     this.useVectorSearch = false;
-    this.faqEmbeddingsCached = false; // Reset cache flag
-  }
-
-  // Helper to extract Q&A pairs from text
-  extractQAPairs(text) {
-    const qaPairs = [];
-    const qaRegex = /Q:\s*(.*?)\s*A:\s*(.*?)(?=(?:\s*Q:|$))/gs;
-    let match;
-    while ((match = qaRegex.exec(text)) !== null) {
-      qaPairs.push({
-        question: match[1].trim(),
-        answer: match[2].trim(),
-      });
-    }
-    return qaPairs;
+    this.cache.clear();
   }
 }
 

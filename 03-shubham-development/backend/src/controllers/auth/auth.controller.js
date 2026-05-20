@@ -1,11 +1,11 @@
-import { 
-  registerWithOTP, 
-  verifyOTP, 
-  resendOTP, 
-  loginLocalUser, 
-  formatUserResponse 
+import {
+  registerWithOTP,
+  verifyOTP,
+  resendOTP,
+  loginLocalUser,
+  formatUserResponse
 } from "../../services/auth/auth.service.js";
-import { sendWelcomeEmail } from "../../services/email/email.service.js";
+import { sendWelcomeEmail, sendPasswordResetEmail } from "../../services/email/email.service.js";
 import { httpError } from "../../utils/http.utils.js";
 import { success } from "../../utils/http.utils.js";
 import { validateRegistrationInput } from "../../utils/passwordValidation.js";
@@ -56,6 +56,9 @@ export const verifyOTPController = async (req, res, next) => {
     req.session.role = user.role;
     req.session.save();
 
+    // Single-session enforcement — invalidate any previous session
+    await User.findByIdAndUpdate(user._id, { currentSessionId: req.session.id });
+
     const userData = formatUserResponse(user);
     console.log("Sending welcome email to:", user.email);
     // await sendWelcomeEmail(user.email, user.username);
@@ -94,12 +97,11 @@ export const loginUserController = async (req, res, next) => {
 
     const user = await loginLocalUser(email, password);
 
-    // Keep existing session logic for web frontend
-    if (req.session.userId != user._id) {
-      req.session.userId = user._id;
-      req.session.role = user.role;
-      req.session.save();
-    }
+    // Stamp new session and invalidate any previous one (single-session enforcement)
+    req.session.userId = user._id;
+    req.session.role = user.role;
+    req.session.save();
+    await User.findByIdAndUpdate(user._id, { currentSessionId: req.session.id });
 
     // Generate JWT token for mobile app
     const jwtToken = crypto
@@ -136,6 +138,68 @@ export const logoutController = async (req, res, next) => {
       res.clearCookie(cookieName, cookieOptions);
       return success(res, {}, "User logged out", 200);
     });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+// Forgot password — generates a token and emails a reset link
+export const forgotPasswordController = async (req, res, next) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    // Always respond the same way to prevent user enumeration
+    if (!user || user.provider === 'google') {
+      return res.json({ message: "If that email is registered, a reset link has been sent." });
+    }
+
+    const plainToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(plainToken).digest('hex');
+
+    user.passwordResetToken = hashedToken;
+    user.passwordResetExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    const resetUrl = `${ENV.FRONTEND_ORIGIN}/auth/reset-password?token=${plainToken}`;
+    await sendPasswordResetEmail(user.email, resetUrl);
+
+    return res.json({ message: "If that email is registered, a reset link has been sent." });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+// Reset password — validates token and sets new password
+export const resetPasswordController = async (req, res, next) => {
+  try {
+    const { token, password } = req.body || {};
+    if (!token || !password) {
+      return res.status(400).json({ message: "Token and new password are required" });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpiry: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Reset link is invalid or has expired" });
+    }
+
+    user.password = password; // pre-save hook hashes it
+    user.passwordResetToken = null;
+    user.passwordResetExpiry = null;
+    // Invalidate all existing sessions on password change
+    user.currentSessionId = null;
+    await user.save();
+
+    return res.json({ message: "Password updated successfully. Please log in." });
   } catch (err) {
     return next(err);
   }

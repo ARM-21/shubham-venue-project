@@ -9,9 +9,7 @@ export async function isAuthenticated(req, res, next) {
         const user = await User.findById(userId).select("-password");
         if (!user) return res.status(401).json({ message: "User not found" });
         if (user.isActive === false) {
-            // Clear session for disabled accounts
             req.session?.destroy?.(() => {});
-            // Use correct cookie name with same domain config as session
             const cookieName = process.env.SESSION_NAME || "sid";
             res.clearCookie(cookieName, {
                 path: "/",
@@ -20,6 +18,11 @@ export async function isAuthenticated(req, res, next) {
                 secure: process.env.NODE_ENV === "production"
             });
             return res.status(403).json({ message: "Account disabled" });
+        }
+        // Single-session enforcement — reject sessions that were superseded by a newer login
+        if (user.currentSessionId && req.session.id !== user.currentSessionId) {
+            req.session?.destroy?.(() => {});
+            return res.status(401).json({ message: "Signed in from another device. Please log in again.", code: "SESSION_SUPERSEDED" });
         }
         req.currentUser = user;
         next()

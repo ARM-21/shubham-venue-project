@@ -923,6 +923,33 @@ export const sendPaymentConfirmationEmail = async (customerEmail, customerName, 
 /**
  * Email service health check (replaces nodemailer.verify())
  */
+export const sendPasswordResetEmail = async (email, resetUrl) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+      <h2 style="text-align: center; color: #3a1224;">Shubham Venue</h2>
+      <p>You requested a password reset. Click the button below to set a new password:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetUrl}" style="display: inline-block; background: #3a1224; color: #C0A04C; padding: 14px 32px; border-radius: 8px; font-weight: bold; text-decoration: none; letter-spacing: 1px;">
+          Reset Password
+        </a>
+      </div>
+      <p style="color: #888; font-size: 13px;">This link expires in <strong>1 hour</strong>. If you did not request this, ignore this email — your password will not change.</p>
+      <hr style="margin: 20px 0;"/>
+      <footer style="text-align: center; font-size: 12px; color: #888;">
+        Shubham Venue, Waling BP Road, Syangja<br/>
+        📞 9849320765 | ✉️ contact@shubham-venue.me
+      </footer>
+    </div>
+  `;
+  const { error } = await resend.emails.send({
+    from: 'Shubham Venue <info@shubham-venue.me>',
+    to: [email],
+    subject: 'Reset your password – Shubham Venue',
+    html,
+  });
+  if (error) throw httpError(500, 'Failed to send reset email');
+};
+
 export const verifyEmailConnection = async () => {
   try {
     console.log("✅ Resend email service is configured and ready");

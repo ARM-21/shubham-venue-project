@@ -8,49 +8,49 @@ class FAQPDFGenerator {
       {
         category: "General",
         questions: [
-          { q: "What is our hall booking service?", a: "Our hall booking service provides an easy and convenient way to reserve event halls for various occasions including weddings, conferences, seminars, and private parties. We offer multiple venue options with different capacities and amenities." },
-          { q: "How far in advance can I book a hall?", a: "You can book a hall up to 12 months in advance. We recommend booking at least 2-3 months prior to your event date to ensure availability and to have sufficient time for event planning." },
-          { q: "What payment methods do you accept?", a: "We accept all major credit cards (Visa, Mastercard, American Express), bank transfers, digital wallets, and UPI payments. Payment plans are also available for large bookings." },
+          { q: "What is Shubham Venue?", a: "Shubham Venue is an event venue and online booking platform based in Waling, Syangja, Gandaki Province, Nepal. We offer a guided online booking experience covering hall selection, menu packages, decoration schemes, and payment — all in one place. We cater to weddings, engagements, corporate functions, family celebrations, and public events." },
+          { q: "How far in advance can I book a hall?", a: "You can book a hall well in advance — we recommend reserving at least 2–3 months before your event date to secure your preferred slot and allow time for planning. Popular dates (festive seasons, weekends) book out quickly, so earlier is better." },
+          { q: "What payment methods do you accept?", a: "We accept online payment through Khalti, a trusted Nepali digital payment platform. We also offer a Cash on Arrival option for select bookings, where payment is made directly to our team before the event. All prices are in Nepalese Rupees (NPR)." },
         ],
       },
       {
         category: "Booking Process",
         questions: [
-          { q: "How do I book a hall?", a: "To book a hall: (1) Browse available venues on our website, (2) Select your preferred date and time, (3) Fill in event details, (4) Review the quote, (5) Make payment, and (6) Receive confirmation. Our support team is available to assist throughout the process." },
-          { q: "Can I modify my booking after confirmation?", a: "Yes, you can modify bookings up to 30 days before your event date at no additional cost. Changes within 30 days may incur modifications fees. Contact our support team for details." },
-          { q: "What is your cancellation policy?", a: "Cancellations made 60+ days before the event receive a full refund. Cancellations 30-59 days before receive 50% refund. Cancellations within 30 days forfeit the booking amount." },
+          { q: "How do I book a hall?", a: "To book a hall: (1) Browse available halls on our website, (2) Select your preferred date and time slot (Morning, Evening, or Whole Day), (3) Fill in your event and contact details, (4) Choose menu and decoration packages, (5) Review your booking summary, (6) Complete payment via Khalti or choose Cash on Arrival, and (7) Receive your booking confirmation by email." },
+          { q: "What is a booking hold and how long does it last?", a: "When you begin the booking process, a temporary hold is placed on your selected slot for approximately 5 minutes while you complete payment. This prevents someone else from booking the same slot at the same time. If payment is not completed within the hold window, the slot is automatically released and becomes available again." },
+          { q: "Can I modify my booking after confirmation?", a: "Modification requests must be submitted in writing to our team at hello@shubham.com or by calling +977 9812345678. Changes are subject to availability and may incur additional charges depending on the nature of the modification and how close it is to the event date." },
+        ],
+      },
+      {
+        category: "Cancellation & Refunds",
+        questions: [
+          { q: "What is your cancellation policy?", a: "Cancellations must be submitted in writing. Refund eligibility is as follows: 30+ days before the event — full refund (less any payment processing fee); 15–29 days before — 50% refund; 7–14 days before — 25% refund; less than 7 days before — no refund; no-show — no refund. Refunds are processed within 7–14 business days to the original payment method." },
+          { q: "How do I request a cancellation?", a: "Email your cancellation request to hello@shubham.com with your booking reference number, your full name, and the reason for cancellation. You can also manage bookings from your account on our website. Our team will confirm the cancellation and advise on any applicable refund." },
+          { q: "What if Shubham Venue cancels my booking?", a: "In the rare event that we need to cancel a confirmed booking (for example, due to force majeure or an unforeseen circumstance), you will receive a full refund and our team will contact you immediately to explore alternative dates or arrangements." },
         ],
       },
       {
         category: "Amenities & Services",
         questions: [
-          { q: "What amenities are included in the hall rental?", a: "Standard amenities include air conditioning, basic furniture, sound system, projector, and restrooms. Premium venues may include catering services, lighting systems, and decoration options. Check each venue's details for specifics." },
-          { q: "Can I bring my own catering?", a: "Yes, you can bring your own catering. However, some premium venues have exclusive catering agreements. Please check the venue details or contact us for specific restrictions." },
-          { q: "Is parking available?", a: "Most of our venues offer complimentary parking for guests. Parking capacity varies by location. Please check the specific venue information when booking." },
+          { q: "What is included in the hall rental?", a: "Each hall comes with its own set of included amenities — details are listed on each hall's page on our website. Common inclusions are seating arrangements, sound system, lighting, and restrooms. Please review the specific hall listing before booking." },
+          { q: "Do you offer catering services?", a: "Yes. We offer curated catering menu packages that you can select and customise as part of the booking flow. Our menus cover a range of cuisines and guest capacities. Menu selection and pricing are shown during the booking process." },
+          { q: "Can I add decoration to my booking?", a: "Yes. Our platform lets you choose from decoration schemes and add-on items as part of your booking. You can browse available packages and their prices during the booking process and add them before confirming your reservation." },
         ],
       },
       {
         category: "Pricing",
         questions: [
-          { q: "How is the price determined?", a: "Pricing depends on venue size, location, amenities, date (peak vs off-season), and duration of rental. We provide transparent quotes with itemized breakdowns." },
-          { q: "Are there discounts for early bookings?", a: "Yes! Early bird bookings made 6+ months in advance receive up to 15% discount. We also offer discounts for weekday bookings and long-term event packages." },
-          { q: "What additional costs might I incur?", a: "Additional costs may include decoration services (+₹5,000-₹50,000), catering (varies), extra furniture rental, technical support staff, and parking (if not included)." },
+          { q: "How is pricing determined?", a: "Hall rental prices are based on the hall, the time slot selected (Morning, Evening, or Whole Day), and the event date. Menu and decoration packages are priced separately and added to your total. Full pricing is shown transparently before you confirm and pay." },
+          { q: "Are there any hidden charges?", a: "No. We display a full itemised breakdown of your booking cost — hall rental, menu package, decoration add-ons, and applicable taxes — before you proceed to payment. There are no hidden fees." },
+          { q: "What currency are prices shown in?", a: "All prices are shown in Nepalese Rupees (NPR)." },
         ],
       },
       {
-        category: "Event Support",
+        category: "Accounts & Support",
         questions: [
-          { q: "Who will guide me on the day of the event?", a: "Our dedicated event coordinator will be present to ensure smooth execution. They will help with setup, troubleshooting any issues, and ensuring all amenities work properly." },
-          { q: "Can I do a venue walkthrough before booking?", a: "Absolutely! We encourage venue walkthroughs. Book a tour through our website or call our support team to arrange a convenient time." },
-          { q: "What if there's an emergency during my event?", a: "Our on-site team is trained to handle emergencies. We have trained first aid personnel and clear emergency protocols in place. Contact the event coordinator immediately." },
-        ],
-      },
-      {
-        category: "Technical Support",
-        questions: [
-          { q: "How can I contact customer support?", a: "You can reach us via: Phone: +1-800-BOOKING-1, Email: support@hallbooking.com, Live Chat: Visit our website, WhatsApp: +1-800-BOOKING-1 (24/7 support)." },
-          { q: "How long does it take to get a response?", a: "We aim to respond to all inquiries within 24 hours. For urgent matters, our live chat team responds within 15 minutes during business hours (9 AM - 10 PM)." },
-          { q: "Can I track my booking status?", a: "Yes! Log into your account on our website or mobile app to view real-time booking status, upcoming events, and payment history." },
+          { q: "Do I need an account to book?", a: "Yes. You need a registered account to make a booking. You can sign up with your email address or continue with your Google account. Registration is free and only takes a moment." },
+          { q: "How can I contact the Shubham Venue team?", a: "You can reach us by phone at +977 9812345678, or by email at hello@shubham.com. Our office hours are Sunday to Friday, 9 AM to 6 PM. For booking-related queries, you can also use the contact form on our website." },
+          { q: "Can I track my booking status?", a: "Yes. Log into your account on our website and visit the 'My Bookings' section to see the status of all your bookings, payment history, and event details. You will also receive email notifications when your booking status changes." },
         ],
       },
     ];
@@ -68,9 +68,9 @@ class FAQPDFGenerator {
     return new Promise((resolve, reject) => {
       try {
         console.log("FAQPDFGenerator: starting PDF generation for", fullPath);
-        const doc = new PDFDocument({ 
+        const doc = new PDFDocument({
           margin: 50,
-          info: { Title: "Hall Booking FAQ", Author: "System" }
+          info: { Title: "Shubham Venue — Frequently Asked Questions", Author: "Shubham Venue", Subject: "FAQ" }
         });
         
         const stream = fs.createWriteStream(fullPath);
@@ -88,7 +88,7 @@ class FAQPDFGenerator {
 
         // Header
         console.log("FAQPDFGenerator: writing header");
-        doc.fontSize(22).font("Helvetica-Bold").text("Frequently Asked Questions", { align: "center" });
+        doc.fontSize(22).font("Helvetica-Bold").text("Shubham Venue — Frequently Asked Questions", { align: "center" });
         doc.moveDown();
 
         this.faqContent.forEach((section, si) => {

@@ -4,10 +4,24 @@ import Hall from "../../models/Hall.js";
 import mongoose from "mongoose";
 import { isAuthenticated } from "../../middleware/auth.middleware.js";
 import { checkHallAvailability } from "../../services/hall/hall.service.js";
-import { getSlotPriceMultiplier } from "../../utils/bookingPolicy.utils.js";
+import {
+  getSlotPriceMultiplier,
+  getConflictSlots,
+  BLOCKING_BOOKING_STATUSES,
+  validateCustomerBookingDate,
+  utcDayRange,
+} from "../../utils/bookingPolicy.utils.js";
 import { sendBookingConfirmationEmail, sendAdminBookingNotificationEmail } from "../../services/email/email.service.js";
 import User from "../../models/User.js";
 import { streamBookingInvoice } from "../../services/invoice/bookingInvoice.service.js";
+import { createAuthAwareLimiter } from "../../config/rateLimit.config.js";
+
+// 5 reserve attempts per 15 minutes per authenticated user — stops hold-spamming
+const reserveLimiter = createAuthAwareLimiter(
+  15 * 60 * 1000,
+  5,
+  "Too many reservation attempts. Please wait 15 minutes before trying again."
+);
 
 const router = express.Router();
 
@@ -27,7 +41,7 @@ const isOrganizerUser = (user) => {
 };
 
 // POST /reserve -> create a 5-minute hold
-router.post("/reserve", isAuthenticated, async (req, res, next) => {
+router.post("/reserve", isAuthenticated, reserveLimiter, async (req, res, next) => {
   try {
     const { hallId, date, slot, guests, bookingPurpose } = req.body || {};
     if (!hallId || !date || !slot || !guests) {
@@ -39,32 +53,87 @@ router.post("/reserve", isAuthenticated, async (req, res, next) => {
       return res.status(403).json({ message: "Organizer access required for this booking" });
     }
 
-    const availability = await checkHallAvailability({ hallId, date, slot, guests: Number(guests) });
-    if (!availability.available) {
-      return res.status(400).json({ message: "Hall not available", reason: availability.reason });
+    // Non-DB validation (date policy, format) before opening a session
+    const datePolicy = validateCustomerBookingDate(date);
+    if (datePolicy.blocked) {
+      return res.status(400).json({ message: datePolicy.message, reason: datePolicy.reason });
     }
+    const range = utcDayRange(date);
+    if (!range) return res.status(400).json({ message: "Invalid date format (use yyyy-mm-dd)" });
+    const conflicts = getConflictSlots(slot);
+    if (!conflicts) return res.status(400).json({ message: "Invalid slot" });
 
-    const expiresAt = new Date(Date.now() + HOLD_DURATION_MS);
+    const guestsNum = Number(guests);
 
-    const reservation = await Booking.create({
-      userId: req.currentUser._id,
-      hallId,
-      date: new Date(date),
-      slot,
-      guests: Number(guests),
-      bookingPurpose: normalizedPurpose,
-      status: "PENDING",
-      reservedUntil: expiresAt,
-      totalAmount: 0,
-    });
+    // Wrap the conflict-check + insert in a transaction so no two concurrent
+    // requests can both pass the "slot free" check and both create a PENDING hold.
+    const session = await mongoose.startSession();
+    let reservation;
+    try {
+      await session.withTransaction(async () => {
+        const hall = await Hall.findById(hallId)
+          .select("capacity isActive isDeleted")
+          .session(session)
+          .lean();
+
+        if (!hall || hall.isDeleted) {
+          const err = new Error("Hall not found"); err.statusCode = 404; throw err;
+        }
+        if (!hall.isActive) {
+          const err = new Error("Hall is not available"); err.statusCode = 400; err.reason = "HALL_INACTIVE"; throw err;
+        }
+        if (guestsNum > hall.capacity) {
+          const err = new Error("Guest count exceeds hall capacity"); err.statusCode = 400; err.reason = "EXCEEDS_CAPACITY"; throw err;
+        }
+
+        const blocking = await Booking.findOne({
+          hallId,
+          date: { $gte: range.start, $lt: range.end },
+          slot: { $in: conflicts },
+          status: { $in: BLOCKING_BOOKING_STATUSES },
+        })
+          .select("_id slot status")
+          .session(session)
+          .lean();
+
+        if (blocking) {
+          const err = new Error("Hall not available for the selected date and slot");
+          err.statusCode = 400;
+          err.reason = blocking.status === "PENDING" ? "HOLD" : "BOOKED";
+          err.blockingSlot = blocking.slot;
+          throw err;
+        }
+
+        const expiresAt = new Date(Date.now() + HOLD_DURATION_MS);
+        [reservation] = await Booking.create(
+          [{
+            userId: req.currentUser._id,
+            hallId,
+            date: new Date(date),
+            slot,
+            guests: guestsNum,
+            bookingPurpose: normalizedPurpose,
+            status: "PENDING",
+            reservedUntil: expiresAt,
+            totalAmount: 0,
+          }],
+          { session }
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
 
     return res.json({
       reservationId: reservation._id,
       expiresIn: Math.floor(HOLD_DURATION_MS / 1000),
-      expiresAt,
+      expiresAt: reservation.reservedUntil,
       message: "Hall reserved for 5 minutes",
     });
   } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ message: err.message, reason: err.reason, blockingSlot: err.blockingSlot });
+    }
     return next(err);
   }
 });
@@ -208,8 +277,9 @@ router.post("/", isAuthenticated, async (req, res, next) => {
 
     const finalMenuMode = organizerBooking ? "package" : menuModeValue;
 
-    const nextStatus = paymentMethod === "cash" ? "CONFIRMED" : "PENDING";
-    const confirmedAt = paymentMethod === "cash" ? new Date() : null;
+    const isCash = (paymentMethod || "").toLowerCase() === "cash";
+    const nextStatus = isCash ? "PENDING" : "PENDING"; // cash stays PENDING until admin confirms; online stays PENDING until gateway verifies
+    const confirmedAt = null;
 
     if (bookingDoc) {
       bookingDoc.status = nextStatus;

@@ -70,6 +70,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true
     },
+    currentSessionId: {
+      type: String,
+      default: null,
+    },
+    passwordResetToken: { type: String, default: null },
+    passwordResetExpiry: { type: Date, default: null },
     organizerStatus: {
       type: String,
       enum: ['none', 'pending', 'approved', 'rejected'],

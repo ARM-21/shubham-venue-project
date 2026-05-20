@@ -181,9 +181,7 @@ router.get("/status", async (req, res, next) => {
 // Generates the sample FAQ as a downloadable PDF file
 router.post("/generate-faq-pdf", async (req, res, next) => {
   try {
-    const pdfPath = await faqPdfGenerator.generateFAQPDF(
-      "./sample-business-faq.pdf"
-    );
+    const pdfPath = await faqPdfGenerator.generatePDF(FAQ_PDF_PATH);
 
     return res.json({
       success: true,

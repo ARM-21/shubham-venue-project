@@ -201,6 +201,8 @@ export async function completePayment({ paymentId }) {
     await Booking.findByIdAndUpdate(
       payment.bookingId,
       {
+        status: "CONFIRMED",
+        confirmedAt: new Date(),
         reservedUntil: null,
         paymentId: payment._id,
         cancelledAt: null,
