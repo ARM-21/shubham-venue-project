@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 import Booking from "../../../models/Booking.js";
 import Payment from "../../../models/Payment.js";
 import { sendInvoiceEmail, sendPaymentConfirmationEmail } from "../../../services/email/email.service.js";
-import { streamBookingInvoice } from "../../../services/invoice/bookingInvoice.service.js";
 import Menu from "../../../models/menu/Menu.js";
 import DecorationScheme from "../../../models/DecorationScheme.js";
 import User from "../../../models/User.js";
@@ -205,6 +204,16 @@ router.patch("/:id/status", async (req, res, next) => {
 
     if (!canTransition(current, nextStatus)) {
       return res.status(400).json({ message: `Cannot change status from ${current} to ${nextStatus}` });
+    }
+
+    if (["CONFIRMED", "COMPLETED"].includes(nextStatus)) {
+      const payment = booking.paymentId
+        ? await Payment.findById(booking.paymentId).select("gateway status").lean()
+        : await Payment.findOne({ bookingId: booking._id }).sort({ createdAt: -1 }).select("gateway status").lean();
+
+      if (payment && payment.gateway !== "CASH" && payment.status !== "COMPLETED") {
+        return res.status(400).json({ message: "Online payment must be completed before approval" });
+      }
     }
 
     booking.status = nextStatus;
@@ -419,33 +428,12 @@ router.patch("/:id/payment", async (req, res, next) => {
     }
 
     // Auto-send invoice email when payment is marked COMPLETED
-    if (nextStatus === "COMPLETED") {
+    if (nextStatus === "COMPLETED" && ["CONFIRMED", "COMPLETED"].includes(booking.status)) {
       try {
         const user = await User.findById(booking.userId).select('email first_name last_name');
         const hall = await Booking.findById(booking._id).populate('hallId', 'name').select('hallId');
         
         if (user && user.email) {
-          const pdfBuffer = await new Promise((resolve, reject) => {
-            const chunks = [];
-            const { PassThrough } = require('stream');
-            const stream = new PassThrough();
-            
-            // Generate PDF and collect it
-            streamBookingInvoice({ 
-              bookingId: booking._id, 
-              currentUser: { _id: booking.userId, role: 'user' },
-              res: {
-                setHeader: () => {},
-                end: (chunk) => chunks.push(chunk),
-                on: () => {},
-                write: (chunk) => chunks.push(chunk)
-              } 
-            }).catch(reject);
-            
-            // For now, just send email without PDF attachment (PDF generation is complex in async context)
-            resolve(null);
-          });
-
           await sendInvoiceEmail(user.email, `${user.first_name || ''} ${user.last_name || ''}`.trim(), {
             bookingId: String(booking._id),
             venue: hall?.hallId?.name || 'Shubham Venue',
@@ -455,7 +443,7 @@ router.patch("/:id/payment", async (req, res, next) => {
             totalAmount: booking.totalAmount || 0,
             paymentStatus: 'COMPLETED',
             bookingStatus: booking.status || 'PENDING'
-          }, pdfBuffer);
+          }, null);
 
           await sendPaymentConfirmationEmail(user.email, `${user.first_name || ''} ${user.last_name || ''}`.trim(), {
             bookingId: String(booking._id),
@@ -487,6 +475,9 @@ router.post("/:id/send-invoice", async (req, res, next) => {
 
     const booking = await Booking.findById(id).populate('hallId', 'name');
     if (!booking) return res.status(404).json({ message: "Booking not found" });
+    if (!["CONFIRMED", "COMPLETED"].includes(booking.status)) {
+      return res.status(400).json({ message: "Invoice can only be sent after admin approval" });
+    }
 
     const payment = await Payment.findOne({ bookingId: booking._id }).sort({ createdAt: -1 });
     if (!payment || payment.status !== "COMPLETED") {

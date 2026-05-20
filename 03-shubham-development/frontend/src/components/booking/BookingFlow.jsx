@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import axiosInstance from 'lib/axios';
 import { ROUTES } from 'config/routes';
@@ -110,6 +110,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
   });
 
   const [reservationId, setReservationId] = useState(null);
+  const reservationFinalizedRef = useRef(false);
   const [timeLeft, setTimeLeft] = useState(null);
   const [isReserved, setIsReserved] = useState(false);
   const [slotTaken, setSlotTaken] = useState(false);
@@ -156,6 +157,23 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     };
     refreshUserProfile();
   }, [setUser]);
+
+  // Back-fill contact fields from the auth user once it's available.
+  // Only fills fields that are currently empty to avoid overwriting user input.
+  useEffect(() => {
+    if (!user) return;
+    setBookingData((prev) => {
+      const fullName = `${user.firstName || user.first_name || ''} ${user.lastName || user.last_name || ''}`.trim();
+      return {
+        ...prev,
+        fullName: prev.fullName || fullName,
+        email: prev.email || user.email || '',
+        phone: prev.phone || user.phone || '',
+        deliveryAddress: prev.deliveryAddress || user.address || '',
+        city: prev.city || user.city || '',
+      };
+    });
+  }, [user]);
 
   // Restore draft on mount
   useEffect(() => {
@@ -223,6 +241,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
     const releaseUrl = `${apiBase}${ROUTES.API.BOOKINGS.RESERVE_BY_ID(reservationId)}`;
 
     const releaseWithFetch = () => {
+      if (reservationFinalizedRef.current) return;
       fetch(releaseUrl, { method: 'DELETE', keepalive: true, credentials: 'include' });
     };
 
@@ -261,6 +280,7 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
       });
       toast.dismiss();
       toast.success('Hall reserved for 5 minutes!');
+      reservationFinalizedRef.current = false;
       setReservationId(res.data.reservationId);
       setTimeLeft(res.data.expiresIn);
       setIsReserved(true);
@@ -628,9 +648,13 @@ export default function BookingFlow({ hall, initialDate, initialSlot, initialGue
                   data={{ ...bookingData, hallPrice, total }}
                   reservationId={reservationId}
                   onUpdate={updateBookingData}
-                  onReservationRelease={() => setReservationId(null)}
+                  onReservationRelease={() => {
+                    reservationFinalizedRef.current = true;
+                    setReservationId(null);
+                  }}
                   onNext={(bookingRef) => {
                     try { localStorage.removeItem(draftKey); } catch {}
+                    reservationFinalizedRef.current = true;
                     setReservationId(null);
                     setBookingSuccess(bookingRef);
                   }}

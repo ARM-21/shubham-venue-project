@@ -56,6 +56,42 @@ export async function verifyEsewaTransaction({ transactionUuid, totalAmount }) {
   return response.data || {};
 }
 
+/**
+ * Verify eSewa v2 `data` parameter sent to the success URL.
+ * Decodes base64 JSON, verifies HMAC-SHA256 signature, returns decoded payload.
+ * Throws 400 if signature is invalid.
+ */
+export function verifyEsewaData(encodedData) {
+  ensureEsewaConfig();
+  let decoded;
+  try {
+    decoded = JSON.parse(Buffer.from(encodedData, "base64").toString("utf-8"));
+  } catch {
+    throw httpError(400, "Invalid eSewa data payload");
+  }
+
+  const { signed_field_names, signature } = decoded;
+  if (!signed_field_names || !signature) {
+    throw httpError(400, "eSewa data missing signature fields");
+  }
+
+  const message = signed_field_names
+    .split(",")
+    .map((field) => `${field}=${decoded[field] ?? ""}`)
+    .join(",");
+
+  const expected = crypto
+    .createHmac("sha256", ENV.ESEWA_SECRET_KEY)
+    .update(message)
+    .digest("base64");
+
+  if (signature !== expected) {
+    throw httpError(400, "eSewa signature mismatch");
+  }
+
+  return decoded;
+}
+
 export function getEsewaInitUrl() {
   ensureEsewaConfig();
   return ENV.ESEWA_INIT_URL;

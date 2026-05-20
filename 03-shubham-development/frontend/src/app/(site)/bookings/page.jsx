@@ -247,7 +247,7 @@ export default function BookingsPage() {
 
                     {/* Footer Actions */}
                     <div className="mt-auto pt-8 border-t border-[#3a1224]/5 flex items-center gap-3">
-                      {((["CONFIRMED", "COMPLETED"].includes(b.status) && b.paymentId) || (b.paymentId && (b.paymentId.status === "COMPLETED" || b.paymentId.gateway === "CASH"))) ? (
+                      {(["CONFIRMED", "COMPLETED"].includes(b.status) && b.paymentId && (b.paymentId.status === "COMPLETED" || b.paymentId.gateway === "CASH")) ? (
                         <button
                           onClick={() => handleDownloadInvoice(b._id)}
                           className="flex items-center gap-2 h-10 px-4 bg-[#3a1224] text-white rounded-lg font-black text-[8px] uppercase tracking-widest hover:shadow-lg transition-all cursor-pointer"

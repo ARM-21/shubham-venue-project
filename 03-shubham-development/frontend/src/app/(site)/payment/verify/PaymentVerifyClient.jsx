@@ -6,6 +6,26 @@ import { useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "lib/axios";
 import { ROUTES } from "config/routes";
 
+function normalizeCallbackParams(searchParams) {
+  let transactionUuid = searchParams.get("transaction_uuid") || searchParams.get("transactionUuid");
+  const pidx = searchParams.get("pidx");
+  const bookingId = searchParams.get("purchase_order_id") || searchParams.get("purchaseOrderId");
+  let esewaData = searchParams.get("data");
+
+  // Some eSewa callbacks can arrive as:
+  // /payment/verify?transaction_uuid=<uuid>?data=<base64>
+  // Treat that malformed legacy URL as if it used &data=.
+  if (transactionUuid && !esewaData) {
+    const dataMarker = transactionUuid.indexOf("?data=");
+    if (dataMarker !== -1) {
+      esewaData = transactionUuid.slice(dataMarker + "?data=".length);
+      transactionUuid = transactionUuid.slice(0, dataMarker);
+    }
+  }
+
+  return { transactionUuid, pidx, bookingId, esewaData };
+}
+
 export default function PaymentVerifyClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -15,8 +35,8 @@ export default function PaymentVerifyClient() {
   const [isOrganizerBooking, setIsOrganizerBooking] = useState(false);
 
   useEffect(() => {
-    const transactionUuid = searchParams.get("transaction_uuid") || searchParams.get("pidx");
-    if (!transactionUuid) {
+    const { transactionUuid, pidx, bookingId, esewaData } = normalizeCallbackParams(searchParams);
+    if (!transactionUuid && !pidx && !bookingId && !esewaData) {
       setStatus("error");
       return;
     }
@@ -25,7 +45,12 @@ export default function PaymentVerifyClient() {
 
     const verify = async () => {
       try {
-        const res = await axiosInstance.post("/api/v1/payments/verify", { transactionUuid });
+        const res = await axiosInstance.post("/api/v1/payments/verify", {
+          ...(transactionUuid && { transactionUuid }),
+          ...(pidx && { pidx }),
+          ...(bookingId && { bookingId }),
+          ...(esewaData && { data: esewaData }),
+        });
         if (!isMounted) return;
 
         queryClient.invalidateQueries({ queryKey: ["bookings-my"] });
@@ -81,17 +106,17 @@ export default function PaymentVerifyClient() {
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
           </div>
-          <h1 className="text-2xl font-black text-[#3a1224] mb-2">Venue booking confirmed!</h1>
+          <h1 className="text-2xl font-black text-[#3a1224] mb-2">Payment received!</h1>
           <p className="text-[#3a1224]/60 text-sm mb-8 leading-relaxed">
-            Your hall is reserved. Head to the organizer dashboard to create the public event page for this booking.
+            Your booking is now awaiting admin approval. You can create the public event page after the booking is approved.
           </p>
 
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => router.push(`${ROUTES.SITE.ORGANIZER_EVENT_NEW}?bookingId=${bookingId}`)}
+              onClick={() => router.push(ROUTES.SITE.BOOKINGS)}
               className="w-full h-12 rounded-2xl bg-[#3a1224] text-[#C0A04C] text-xs font-black uppercase tracking-widest hover:bg-[#4a172d] transition-colors"
             >
-              Create Event Page
+              View Booking Status
             </button>
             <button
               onClick={() => router.push(ROUTES.SITE.ORGANIZER)}
@@ -114,8 +139,8 @@ export default function PaymentVerifyClient() {
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
           </div>
-          <p className="text-emerald-600 font-semibold">Payment successful!</p>
-          <p className="text-[#3a1224]/60 text-sm">Redirecting to your bookings...</p>
+          <p className="text-emerald-600 font-semibold">Payment received!</p>
+          <p className="text-[#3a1224]/60 text-sm">Your booking is pending admin approval. Redirecting...</p>
           <RedirectTimer onRedirect={() => router.push("/bookings")} />
         </div>
       </div>

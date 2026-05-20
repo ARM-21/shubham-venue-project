@@ -135,14 +135,13 @@ export default function AdminBookingsPage() {
     setActionLoading(true);
     try {
       const { id, date, slot, guests, status, paymentStatus, originalStatus, originalPaymentStatus } = editModal;
-      const promises = [bookingUpdateMutation.mutateAsync({ id, type: 'update', payload: { date, slot, guests: Number(guests) } })];
-      if (status !== originalStatus) promises.push(bookingUpdateMutation.mutateAsync({ id, type: 'status', payload: { status } }));
       if (paymentStatus !== originalPaymentStatus) {
         const b = bookingsData?.items?.find(x => (x.id || x._id) === id);
         const gateway = b?.payment?.gateway || "CASH";
-        promises.push(bookingUpdateMutation.mutateAsync({ id, type: 'payment', payload: { status: paymentStatus, gateway } }));
+        await bookingUpdateMutation.mutateAsync({ id, type: 'payment', payload: { status: paymentStatus, gateway } });
       }
-      await Promise.all(promises);
+      await bookingUpdateMutation.mutateAsync({ id, type: 'update', payload: { date, slot, guests: Number(guests) } });
+      if (status !== originalStatus) await bookingUpdateMutation.mutateAsync({ id, type: 'status', payload: { status } });
       setEditModal({ open: false, id: null });
       setSuccessMsg("Booking updated.");
     } catch (err) {

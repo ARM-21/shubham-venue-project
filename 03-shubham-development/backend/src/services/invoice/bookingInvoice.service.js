@@ -59,6 +59,9 @@ export async function streamBookingInvoice({ bookingId, currentUser, res }) {
   if (!isAdmin(currentUser) && String(booking.userId) !== String(currentUser?._id)) {
     throw httpError(403, "Not authorized to view this invoice");
   }
+  if (!["CONFIRMED", "COMPLETED"].includes(booking.status)) {
+    throw httpError(400, "Invoice available only after admin approval");
+  }
 
   const payment = await Payment.findOne({ bookingId: booking._id }).sort({ paidAt: -1, createdAt: -1 }).lean();
   // Invoice only available if payment is COMPLETED (for all payment gateways including CASH)

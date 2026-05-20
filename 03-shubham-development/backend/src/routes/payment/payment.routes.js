@@ -19,11 +19,22 @@ router.post("/initiate", isAuthenticated, async (req, res, next) => {
 
 router.post("/verify", isAuthenticated, async (req, res, next) => {
   try {
-    const { pidx, paymentId, transactionUuid, transaction_uuid: transactionUuidLegacy } = req.body || {};
+    const {
+      pidx,
+      paymentId,
+      bookingId,
+      purchase_order_id: purchaseOrderId,
+      transactionUuid,
+      transaction_uuid: transactionUuidLegacy,
+      data: esewaData,
+    } = req.body || {};
     const target = pidx || transactionUuid || transactionUuidLegacy || paymentId;
-    if (!target) return res.status(400).json({ message: "pidx or transactionUuid is required" });
+    const targetBookingId = bookingId || purchaseOrderId;
+    if (!target && !targetBookingId && !esewaData) {
+      return res.status(400).json({ message: "pidx, bookingId, transactionUuid, or eSewa data is required" });
+    }
 
-    const payment = await completePayment({ paymentId: target });
+    const payment = await completePayment({ paymentId: target, bookingId: targetBookingId, esewaData });
     
     // Audit log for successful payment
     if (payment && payment.status === "COMPLETED") {
@@ -53,4 +64,3 @@ router.post("/verify", isAuthenticated, async (req, res, next) => {
 });
 
 export default router;
-

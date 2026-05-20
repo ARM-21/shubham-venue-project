@@ -25,7 +25,7 @@ const reserveLimiter = createAuthAwareLimiter(
 
 const router = express.Router();
 
-const HOLD_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+const HOLD_DURATION_MS = 20 * 60 * 1000; // 20 minutes — covers external payment gateway round-trip
 
 function calculateHallPrice(hall, slot) {
   const multiplier = getSlotPriceMultiplier(slot);
@@ -145,6 +145,7 @@ router.delete("/reserve/:id", isAuthenticated, async (req, res, next) => {
       _id: req.params.id,
       userId: req.currentUser._id,
       status: "PENDING",
+      reservedUntil: { $ne: null },
     });
 
     if (!reservation) {

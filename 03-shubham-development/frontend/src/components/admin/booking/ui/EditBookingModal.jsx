@@ -8,6 +8,7 @@ export default function EditBookingModal({ editModal, setEditModal, saveEdit, ac
   const isOpen = !!editModal.open;
   const [sendingInvoice, setSendingInvoice] = useState(false);
   const paymentStatusKey = (editModal.paymentStatus || "INITIATED").toUpperCase().trim();
+  const bookingStatusKey = (editModal.status || "PENDING").toUpperCase().trim();
 
   const paymentOptions = useMemo(() => {
     const key = (editModal.originalPaymentStatus || "INITIATED").toUpperCase();
@@ -139,7 +140,7 @@ export default function EditBookingModal({ editModal, setEditModal, saveEdit, ac
           ) : null}
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          {paymentStatusKey === "COMPLETED" && (
+          {paymentStatusKey === "COMPLETED" && ["CONFIRMED", "COMPLETED"].includes(bookingStatusKey) && (
             <button
               onClick={handleSendInvoice}
               disabled={sendingInvoice}
